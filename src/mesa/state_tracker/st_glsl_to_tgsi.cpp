@@ -5251,6 +5251,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                          EXP_TO_EXP2 |
                          LOG_TO_LOG2 |
                          (options->EmitNoPow ? POW_TO_EXP2 : 0) |
+                         (options->EmitNoLrp ? LRP_TO_ARITH : 0) |
                          (!ctx->Const.NativeIntegers ? INT_DIV_TO_MUL_RCP : 0));
 
       lower_ubo_reference(prog->_LinkedShaders[i], ir);

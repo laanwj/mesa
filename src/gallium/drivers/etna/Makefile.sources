@@ -1,0 +1,16 @@
+C_SOURCES := etna_asm.c \
+	etna_blend.c \
+	etna_clear_blit.c \
+	etna_compiler.c \
+	etna_fence.c \
+	etna_pipe.c \
+	etna_rasterizer.c \
+	etna_resource.c \
+	etna_screen.c \
+	etna_shader.c \
+	etna_surface.c \
+	etna_texture.c \
+	etna_transfer.c \
+	etna_zsa.c
+
+CPP_SOURCES :=
