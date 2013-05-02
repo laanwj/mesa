@@ -38,6 +38,7 @@ proxyCXX = @CXX_FOR_BUILD@
 proxyCXXFLAGS = @CXXFLAGS_FOR_BUILD@
 proxyLD = @LD_FOR_BUILD@
 proxyLDFLAGS = @LDFLAGS_FOR_BUILD@
+proxyLIBTOOL = @LIBTOOL_FOR_BUILD@
 AM_CFLAGS += $(DEFINES_FOR_BUILD)
 else
 proxyCC = @CC@
@@ -48,6 +49,7 @@ proxyCXX = @CXX@
 proxyCXXFLAGS = @CXXFLAGS@
 proxyLD = @LD@
 proxyLDFLAGS = @LDFLAGS@
+proxyLIBTOOL = @LIBTOOL@
 AM_CFLAGS += $(DEFINES)
 endif
 
@@ -59,6 +61,7 @@ CXX = $(proxyCXX)
 CXXFLAGS = $(proxyCXXFLAGS)
 LD = $(proxyLD)
 LDFLAGS = $(proxyLDFLAGS)
+LIBTOOL = $(proxyLIBTOOL)
 
 AM_CXXFLAGS = $(AM_CFLAGS)
 

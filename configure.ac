@@ -126,6 +126,8 @@ if test "x$GCC" = xyes -a "x$acv_mesa_CLANG" = xno; then
 fi
 AM_CONDITIONAL([GEN_ASM_OFFSETS], test "x$GEN_ASM_OFFSETS" = xyes)
 
+AC_ARG_VAR(LIBTOOL_FOR_BUILD, Path to the libtool instance to be used for building native executables during cross compilation.)
+
 dnl Make sure the pkg-config macros are defined
 m4_ifndef([PKG_PROG_PKG_CONFIG],
     [m4_fatal([Could not locate the pkg-config autoconf macros.
@@ -1401,6 +1403,9 @@ AC_SUBST([LLVM_INCLUDEDIR])
 AC_SUBST([LLVM_VERSION])
 AC_SUBST([CLANG_RESOURCE_DIR])
 
+AC_SUBST([ETNA_LIBS])
+AC_SUBST([ETNA_CFLAGS])
+
 case "x$enable_opengl$enable_gles1$enable_gles2" in
 x*yes*)
     EGL_CLIENT_APIS="$EGL_CLIENT_APIS "'$(GL_LIB)'
@@ -1822,6 +1827,13 @@ if test "x$with_gallium_drivers" != x; then
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS freedreno"
             gallium_check_st "freedreno/drm" "dri-freedreno" "" "" "" ""
             ;;
+        xetna)
+            HAVE_GALLIUM_ETNA=yes
+            #PKG_CHECK_MODULES([FREEDRENO], [libdrm_freedreno >= $LIBDRM_FREEDRENO_REQUIRED])
+            #gallium_require_drm_loader
+            GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS etna"
+            #gallium_check_st "freedreno/drm" "dri-freedreno" "" "" "" ""
+            ;;
         xswrast)
             HAVE_GALLIUM_SOFTPIPE=yes
             GALLIUM_DRIVERS_DIRS="$GALLIUM_DRIVERS_DIRS softpipe"
@@ -1903,6 +1915,7 @@ AM_CONDITIONAL(HAVE_GALLIUM_R600, test "x$HAVE_GALLIUM_R600" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_RADEONSI, test "x$HAVE_GALLIUM_RADEONSI" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_NOUVEAU, test "x$HAVE_GALLIUM_NOUVEAU" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_FREEDRENO, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_ETNA, test "x$HAVE_GALLIUM_ETNA" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SOFTPIPE, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_LLVMPIPE, test "x$HAVE_GALLIUM_LLVMPIPE" = xyes)
 
@@ -2021,6 +2034,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/drivers/softpipe/Makefile
 		src/gallium/drivers/svga/Makefile
 		src/gallium/drivers/trace/Makefile
+		src/gallium/drivers/etna/Makefile
 		src/gallium/state_trackers/Makefile
 		src/gallium/state_trackers/clover/Makefile
 		src/gallium/state_trackers/dri/Makefile
@@ -2069,6 +2083,8 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/tests/trivial/Makefile
 		src/gallium/tests/unit/Makefile
 		src/gallium/winsys/Makefile
+		src/gallium/winsys/etna/drm/Makefile
+		src/gallium/winsys/etna/fbdev/Makefile
 		src/gallium/winsys/freedreno/drm/Makefile
 		src/gallium/winsys/i915/drm/Makefile
 		src/gallium/winsys/i915/sw/Makefile

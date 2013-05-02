@@ -49,6 +49,8 @@
 #include "svga/svga_public.h"
 /* for freedreno */
 #include "freedreno/drm/freedreno_drm_public.h"
+/* for etnaviv */
+#include "etna/drm/etna_drm_public.h"
 
 static struct pipe_screen *
 pipe_i915_create_screen(int fd)
@@ -224,6 +226,24 @@ pipe_freedreno_create_screen(int fd)
 #endif
 }
 
+static struct pipe_screen *
+pipe_etna_create_screen(int fd)
+{
+#if _EGL_PIPE_ETNA
+   struct pipe_screen *screen;
+
+   screen = etna_drm_screen_create(fd);
+   if (!screen)
+      return NULL;
+
+   screen = debug_screen_wrap(screen);
+
+   return screen;
+#else
+   return NULL;
+#endif
+}
+
 struct pipe_screen *
 egl_pipe_create_drm_screen(const char *name, int fd)
 {
@@ -243,6 +263,8 @@ egl_pipe_create_drm_screen(const char *name, int fd)
       return pipe_vmwgfx_create_screen(fd);
    else if (strcmp(name, "kgsl") == 0)
       return pipe_freedreno_create_screen(fd);
+   else if (strcmp(name, "etna") == 0)
+      return pipe_etna_create_screen(fd);
    else
       return NULL;
 }

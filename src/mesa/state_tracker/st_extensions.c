@@ -213,6 +213,8 @@ void st_init_limits(struct st_context *st)
       pc->MaxEnvParams = MIN2(pc->MaxParameters, MAX_PROGRAM_ENV_PARAMS);
 
       options->EmitNoNoise = TRUE;
+      options->EmitNoPow = !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_TGSI_POW_SUPPORTED);
+      options->EmitNoLrp = !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_TGSI_LRP_SUPPORTED);
 
       /* TODO: make these more fine-grained if anyone needs it */
       options->MaxIfDepth = screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH);
