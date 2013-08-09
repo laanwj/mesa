@@ -233,6 +233,10 @@ static void reset_context(struct pipe_context *restrict pipe)
     {
         /*020C0*/ EMIT_STATE(TE_SAMPLER_LOD_CONFIG(x), TE_SAMPLER_LOD_CONFIG[x]);
     }
+    for(int x=0; x<12; ++x)
+    {
+        /*021C0*/ EMIT_STATE(TE_SAMPLER_CONFIG1(x), TE_SAMPLER_CONFIG1[x]);
+    }
     for(int y=0; y<14; ++y)
     {
         for(int x=0; x<12; ++x)
@@ -573,6 +577,14 @@ static void sync_context(struct pipe_context *restrict pipe)
                         VIVS_TE_SAMPLER_LOD_CONFIG_MIN(MAX2(e->sampler[x]->min_lod, e->sampler_view[x].min_lod))); 
             }
         }
+        for(int x=0; x<VIVS_TE_SAMPLER__LEN; ++x)
+        {
+            if((1<<x) & active_samplers)
+            {
+                /*021C0*/ EMIT_STATE(TE_SAMPLER_CONFIG1(x), TE_SAMPLER_CONFIG1[x], 
+                        e->sampler[x]->TE_SAMPLER_CONFIG1 | e->sampler_view[x].TE_SAMPLER_CONFIG1);
+            }
+        }
     }
     if(dirty & (ETNA_STATE_SAMPLER_VIEWS))
     {
@@ -646,7 +658,7 @@ static void sync_context(struct pipe_context *restrict pipe)
     /**** Start of flushes ****/
 #if 0
     etna_set_state(ctx, VIVS_GL_FLUSH_CACHE, VIVS_GL_FLUSH_CACHE_TEXTURE | VIVS_GL_FLUSH_CACHE_COLOR | VIVS_GL_FLUSH_CACHE_DEPTH);
-    etna_set_state(ctx, VIVS_RS_FLUSH_CACHE, VIVS_RS_FLUSH_CACHE_FLUSH);
+    etna_set_state(ctx, VIVS_TS_FLUSH_CACHE, VIVS_TS_FLUSH_CACHE_FLUSH);
 #endif
     if(dirty & (ETNA_STATE_TEXTURE_CACHES))
     {
@@ -987,7 +999,7 @@ static void etna_pipe_set_vertex_buffers( struct pipe_context *pipe,
             cs->logical = etna_resource(vbi->buffer)->levels[0].logical + vbi->buffer_offset;
         }
         /* compiled state */
-        cs->FE_VERTEX_STREAM_CONTROL = VIVS_FE_VERTEX_STREAM_CONTROL_VERTEX_STRIDE(vbi->stride);
+        cs->FE_VERTEX_STREAM_CONTROL = FE_VERTEX_STREAM_CONTROL_VERTEX_STRIDE(vbi->stride);
         cs->FE_VERTEX_STREAM_BASE_ADDR = gpu_addr;
         
         etna_resource_touch(pipe, vbi->buffer);

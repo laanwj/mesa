@@ -74,14 +74,17 @@ void etna_rs_gen_clear_surface(struct etna_surface *surf, uint32_t clear_value)
              format = RS_FORMAT_A8R8G8B8;
              assert(0);
     }
+    /* use tiled clear if width is multiple of 16 */
+    bool tiled_clear = (surf->surf.padded_width & ETNA_RS_WIDTH_MASK) == 0 &&
+                       (surf->surf.padded_height & ETNA_RS_HEIGHT_MASK) == 0;
     etna_compile_rs_state(&surf->clear_command, &(struct rs_state){
             .source_format = format,
             .dest_format = format,
             .dest_addr = surf->surf.address,
             .dest_stride = surf->surf.stride,
-            .dest_tiling = ETNA_LAYOUT_LINEAR, /* Clearing always in LINEAR layout */
+            .dest_tiling = tiled_clear ? surf->layout : ETNA_LAYOUT_LINEAR,
             .dither = {0xffffffff, 0xffffffff},
-            .width = surf->surf.padded_width, /* These must be padded to 4x4, otherwise RS will hang */
+            .width = surf->surf.padded_width, /* These must be padded to 16x4 if !LINEAR, otherwise RS will hang */
             .height = surf->surf.padded_height,
             .clear_value = {clear_value},
             .clear_mode = VIVS_RS_CLEAR_CONTROL_MODE_ENABLED1,
@@ -96,6 +99,7 @@ static void etna_pipe_clear(struct pipe_context *pipe,
              unsigned stencil)
 {
     struct etna_pipe_context *priv = etna_pipe_context(pipe);
+    bool need_flush_ts = false;
     /* Flush color and depth cache before clearing anything.
      * This is especially important when coming from another surface, as otherwise it may clear
      * part of the old surface instead.
@@ -120,6 +124,7 @@ static void etna_pipe_clear(struct pipe_context *pipe,
                     priv->framebuffer.TS_COLOR_CLEAR_VALUE = new_clear_value;
                     priv->dirty_bits |= ETNA_STATE_TS;
                 }
+                need_flush_ts = true;
             }
             else if(unlikely(new_clear_value != surf->clear_value)) /* Queue normal RS clear for non-TS surfaces */
             {
@@ -140,12 +145,18 @@ static void etna_pipe_clear(struct pipe_context *pipe,
                 priv->framebuffer.TS_DEPTH_CLEAR_VALUE = new_clear_value;
                 priv->dirty_bits |= ETNA_STATE_TS;
             }
+            need_flush_ts = true;
         } else if(unlikely(new_clear_value != surf->clear_value)) /* Queue normal RS clear for non-TS surfaces */
         {
             etna_rs_gen_clear_surface(surf, new_clear_value);
         }
         etna_submit_rs_state(priv->ctx, &surf->clear_command);
         surf->clear_value = new_clear_value;
+    }
+    if(need_flush_ts)
+    {
+        /* Flush RS if we overwrote the TS outside of normal rendering */
+        etna_set_state(priv->ctx, VIVS_TS_FLUSH_CACHE, VIVS_TS_FLUSH_CACHE_FLUSH);
     }
     /* Wait rasterizer until PE finished updating. This makes sure that it sees the updated surface.
      */
