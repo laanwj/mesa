@@ -206,7 +206,7 @@ static PIPE_THREAD_ROUTINE(fbdev_bswap_thread, param)
         struct pipe_fence_handle *fence;
         /* unqueue buffer */
         pipe_mutex_lock(fbsurf->buffer_mutex);
-        while(fbsurf->posted_buffers == 0)
+        while(fbsurf->posted_buffers == 0 && !fbsurf->terminate)
         {
            pipe_condvar_wait(fbsurf->buffer_posted, fbsurf->buffer_mutex);
         }
