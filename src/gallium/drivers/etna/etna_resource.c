@@ -67,6 +67,12 @@ bool etna_screen_resource_alloc_ts(struct pipe_screen *screen, struct etna_resou
     resource->ts = rt_ts;
     resource->levels[0].ts_address = resource->ts->address;
     resource->levels[0].ts_size = resource->ts->size;
+    /* It is important to initialize the TS to zero, as random pattern
+     * can result in crashes. Do this on the CPU as this only happens once
+     * per surface anyway and it's a small area, so it may not be worth
+     * queuing this to the GPU.
+     */
+    memset(rt_ts->logical, 0, rt_ts_size);
     return true;
 }
 
@@ -128,7 +134,7 @@ static struct pipe_resource * etna_screen_resource_create(struct pipe_screen *sc
     assert(templat->height0 != 0);
     assert(templat->depth0 != 0);
     assert(templat->array_size != 0);
-    
+
     /* Figure out what tiling to use -- for now, assume that textures cannot be supertiled, and cannot be linear.
      * There is a feature flag SUPERTILED_TEXTURE (not supported on any known hw) that may allow this, as well 
      * as LINEAR_TEXTURE_SUPPORT (supported on gc880 and gc2000 at least), but not sure how it works. 
@@ -152,7 +158,7 @@ static struct pipe_resource * etna_screen_resource_create(struct pipe_screen *sc
             (templat->bind & PIPE_BIND_SAMPLER_VIEW) && !VIV_FEATURE(priv->dev, chipMinorFeatures1, TEXTURE_HALIGN),
             &paddingX, &paddingY, &halign);
     assert(paddingX && paddingY);
-    
+
     /* determine mipmap levels */
     struct etna_resource *resource = CALLOC_STRUCT(etna_resource);
     int max_mip_level = templat->last_level;
