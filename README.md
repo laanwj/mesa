@@ -84,6 +84,15 @@ this can be done with the environment variable `EGL_FBDEV_DRIVER`, i.e.
     export EGL_FBDEV_DRIVER=swrast
     (run EGL demo...)
 
+Force single buffering
+-----------------------
+
+To force single buffering (without wait for vsync) use the following:
+
+    export EGL_FBDEV_BUFFERS=1
+
+This can be useful for testing or benchmarking.
+
 Testing
 ====================
 

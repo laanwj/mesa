@@ -263,7 +263,15 @@ static bool fbdev_create_buffers(struct fbdev_surface *fbsurf, const struct fb_v
    bool fail = false;
    if(fbsurf->num_buffers) /* if buffers already exist, destroy and recreate */
       fbdev_destroy_buffers(fbsurf);
+   /* By default, use maximum number of buffers possible given screen mode */
    fbsurf->num_buffers = MIN2(vinfo->yres_virtual / vinfo->yres, FBDEV_MAX_BUFFERS);
+   /* Allow overriding number of buffers to a lower amount from command line */
+   if(getenv("EGL_FBDEV_BUFFERS"))
+   {
+      int requested_buffers = atoi(getenv("EGL_FBDEV_BUFFERS"));
+      if(requested_buffers > 0)
+          fbsurf->num_buffers = MIN2(fbsurf->num_buffers, requested_buffers);
+   }
    printf("native_fbdev: %i buffers of %ix%i\n",
            fbsurf->num_buffers, fbsurf->width, fbsurf->height);
    if(fbsurf->num_buffers > 1) /* double or more buffered */
