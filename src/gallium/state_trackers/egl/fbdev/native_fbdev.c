@@ -89,6 +89,7 @@ struct fbdev_surface {
    struct resource_surface *rsurf;
    int width, height;
    int num_buffers;
+   int swap_interval;
    struct fb_var_screeninfo vinfo;
 
    unsigned int sequence_number;
@@ -178,8 +179,10 @@ vinfo_to_format(const struct fb_var_screeninfo *vinfo)
 static int fbdev_set_buffer(struct fbdev_surface *fbsurf, int buffer)
 {
     assert(buffer < fbsurf->num_buffers);
-    /* Is this supposed to wait for vblank or just postpone the operation asynchronously? */
-    //fbsurf->vinfo.activate = FB_ACTIVATE_VBL;
+    /* Is this supposed to wait for vblank or just postpone the operation asynchronously?
+     * This assumes the former.
+     */
+    fbsurf->vinfo.activate = fbsurf->swap_interval ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
     fbsurf->vinfo.yoffset = buffer * fbsurf->height;
     /* Pan framebuffer in y direction.
      * Android uses FBIOPUT_VSCREENINFO for this; however on some hardware this does a
@@ -335,6 +338,7 @@ fbdev_surface_present(struct native_surface *nsurf,
    }
 
    int cur = 0;
+   fbsurf->swap_interval = ctrl->swap_interval;
    if(fbsurf->num_buffers > 1)
    {
       /* wait for buffer to be available */
@@ -345,11 +349,6 @@ fbdev_surface_present(struct native_surface *nsurf,
       }
       cur = fbsurf->buffer_tail;
       pipe_mutex_unlock(fbsurf->buffer_mutex);
-   } else if(ctrl->swap_interval) {
-      if (ioctl(fbsurf->fbdpy->fd, FBIO_WAITFORVSYNC, 0))
-      {
-         printf("Warning: failed to wait for vsync\n");
-      }
    }
 
    /* present */
@@ -403,6 +402,7 @@ fbdev_display_create_window_surface(struct native_display *ndpy,
       return NULL;
 
    fbsurf->fbdpy = fbdpy;
+   fbsurf->swap_interval = 1;
 
    /* get current vinfo */
    if (fbdpy->assume_fixed_vinfo) {
