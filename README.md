@@ -1,7 +1,10 @@
 Etnaviv Mesa fork
 =================
 
-Open source GLES1/2 driver for Vivante GPU hardware.
+Open source GLES1/2 driver for Vivante GPU hardware. It is capable of running most of the glmark tests
+and some games.
+This driver has been used to run glquake and d2x and other GLES games so it should be fairly stable.
+There may still be quite a few rendering bugs, specific bug reports are very welcome.
 
 This is being maintained as a set of patches on top of the Mesa main repository. Expect frequent rebases
 while in this phase of development.

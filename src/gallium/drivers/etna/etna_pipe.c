@@ -275,7 +275,7 @@ static void sync_context(struct pipe_context *restrict pipe)
     /* CSOs must be bound before calling this */
     assert(e->blend && e->rasterizer && e->depth_stencil_alpha && e->vertex_elements);
 
-    /* pre-processing: re-link shader if needed.
+    /* Pre-processing: re-link shader if needed.
      */
     if((dirty & ETNA_STATE_SHADER) && e->vs && e->fs)
     {
@@ -283,18 +283,20 @@ static void sync_context(struct pipe_context *restrict pipe)
         etna_link_shaders(pipe, &e->shader_state, e->vs, e->fs);
     }
 
-    /* pre-processing: see what caches we need to flush before making state
+    /* Pre-processing: see what caches we need to flush before making state
      * changes.
      */
     uint32_t to_flush = 0;
     if(dirty & (ETNA_STATE_BLEND))
     {
-        /* Need flush when changing "PE.COLOR_FORMAT.OVERWRITE".
+        /* Need flush COLOR when changing PE.COLOR_FORMAT.OVERWRITE.
          */
         if((e->gpu3d.PE_COLOR_FORMAT & VIVS_PE_COLOR_FORMAT_OVERWRITE) !=
            (e->blend->PE_COLOR_FORMAT & VIVS_PE_COLOR_FORMAT_OVERWRITE))
             to_flush |= VIVS_GL_FLUSH_CACHE_COLOR;
     }
+    if(dirty & (ETNA_STATE_TEXTURE_CACHES))
+        to_flush |= VIVS_GL_FLUSH_CACHE_TEXTURE;
     if(to_flush)
     {
         etna_set_state(ctx, VIVS_GL_FLUSH_CACHE, to_flush);
@@ -681,17 +683,10 @@ static void sync_context(struct pipe_context *restrict pipe)
     /**** End of state update ****/
 #undef EMIT_STATE
 #undef EMIT_STATE_FIXP
-    /**** Start of flushes ****/
-    if(dirty & (ETNA_STATE_TEXTURE_CACHES))
-    {
-        /* clear texture cache (both fragment and vertex) */
-        /* don't flush TEXTUREVS until we figure out how to make it not crash */
-        etna_set_state(ctx, VIVS_GL_FLUSH_CACHE, VIVS_GL_FLUSH_CACHE_TEXTURE);
-    }
+    /**** Post processing ****/
     if(dirty & (ETNA_STATE_FRAMEBUFFER | ETNA_STATE_TS))
     {
-        /* Wait rasterizer until RS (PE) finished configuration.
-         * Also wait after texture cache was flushed, otherwise rendering may hang. */
+        /* Wait rasterizer until RS (PE) finished configuration. */
         etna_stall(ctx, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
     }
 
@@ -895,7 +890,7 @@ static void etna_pipe_set_framebuffer_state(struct pipe_context *pipe,
         pipe_surface_reference(&cs->cbuf, &cbuf->base);
         cs->PE_COLOR_FORMAT =
                 VIVS_PE_COLOR_FORMAT_FORMAT(translate_rt_format(cbuf->base.format, false)) |
-                (color_supertiled ? VIVS_PE_COLOR_FORMAT_SUPER_TILED : 0); /* XXX depends on layout */
+                (color_supertiled ? VIVS_PE_COLOR_FORMAT_SUPER_TILED : 0);
                 /* XXX VIVS_PE_COLOR_FORMAT_OVERWRITE and the rest comes from blend_state / depth_stencil_alpha */
                 /* merged with depth_stencil_alpha */
         if (priv->ctx->conn->chip.pixel_pipes == 1)
@@ -911,7 +906,7 @@ static void etna_pipe_set_framebuffer_state(struct pipe_context *pipe,
         if(cbuf->surf.ts_address)
         {
             ts_mem_config |= VIVS_TS_MEM_CONFIG_COLOR_FAST_CLEAR;
-            cs->TS_COLOR_CLEAR_VALUE = cbuf->clear_value;
+            cs->TS_COLOR_CLEAR_VALUE = cbuf->level->clear_value;
             cs->TS_COLOR_STATUS_BASE = cbuf->surf.ts_address;
             cs->TS_COLOR_SURFACE_BASE = cbuf->surf.address;
         }
@@ -950,9 +945,10 @@ static void etna_pipe_set_framebuffer_state(struct pipe_context *pipe,
         if(zsbuf->surf.ts_address)
         {
             ts_mem_config |= VIVS_TS_MEM_CONFIG_DEPTH_FAST_CLEAR |
-                (depth_bits == 16 ? VIVS_TS_MEM_CONFIG_DEPTH_16BPP : 0) |
-                VIVS_TS_MEM_CONFIG_DEPTH_COMPRESSION;
-            cs->TS_DEPTH_CLEAR_VALUE = zsbuf->clear_value;
+                (depth_bits == 16 ? VIVS_TS_MEM_CONFIG_DEPTH_16BPP : 0);
+                /* XXX VIVS_TS_MEM_CONFIG_DEPTH_COMPRESSION;
+                 * Disable for now, as it causes corruption in glquake. */
+            cs->TS_DEPTH_CLEAR_VALUE = zsbuf->level->clear_value;
             cs->TS_DEPTH_STATUS_BASE = zsbuf->surf.ts_address;
             cs->TS_DEPTH_SURFACE_BASE = zsbuf->surf.address;
         }
