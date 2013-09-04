@@ -60,12 +60,15 @@ static struct pipe_surface *etna_pipe_create_surface(struct pipe_context *pipe,
     /* XXX for now, don't do TS for render textures as this path
      * is not stable.
      */
-#if 1
-    if(!resource->ts & !(resource->base.bind & (PIPE_BIND_SAMPLER_VIEW)) &&
+    if(!DBG_ENABLED(ETNA_DBG_NO_TS) &&
+            !resource->ts &&
+            !(resource->base.bind & (PIPE_BIND_SAMPLER_VIEW)) &&
             (resource->levels[level].padded_width & ETNA_RS_WIDTH_MASK) == 0 &&
             (resource->levels[level].padded_height & ETNA_RS_HEIGHT_MASK) == 0)
+    {
         etna_screen_resource_alloc_ts(pipe->screen, resource);
-#endif
+    }
+
     surf->base.texture = &resource->base;
     surf->base.format = resource->base.format;
     surf->base.width = resource->levels[level].width;
@@ -74,9 +77,10 @@ static struct pipe_surface *etna_pipe_create_surface(struct pipe_context *pipe,
     surf->base.u = templat->u;
 
     surf->layout = resource->layout;
-    surf->level = &resource->levels[level]; /* Keep pointer to actual level to set clear color */
+    surf->level = &resource->levels[level]; /* Keep pointer to actual level to set clear color on */
+                                            /* underlying resource instead of surface */
     surf->surf = resource->levels[level]; /* Make copy of level to narrow down address to layer */
-                                        /* XXX we don't really need a copy */
+                                        /* XXX we don't really need a copy but it's convenient */
     surf->surf.address += layer * surf->surf.layer_stride;
     surf->surf.logical += layer * surf->surf.layer_stride;
 
@@ -99,7 +103,7 @@ static struct pipe_surface *etna_pipe_create_surface(struct pipe_context *pipe,
                 .clear_bits = 0xffff
             });
     } else {
-        etna_rs_gen_clear_surface(surf, surf->level->clear_value);
+        etna_rs_gen_clear_surface(&surf->clear_command, surf, surf->level->clear_value);
     }
     etna_resource_touch(pipe, surf->base.texture);
     return &surf->base;

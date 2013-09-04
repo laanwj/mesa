@@ -57,7 +57,7 @@ bool etna_screen_resource_alloc_ts(struct pipe_screen *screen, struct etna_resou
     if(rt_ts_size == 0)
         return true;
 
-    DBG_F(ETNA_RESOURCE_MSGS, "%p: Allocating tile status of size %i", resource, rt_ts_size);
+    DBG_F(ETNA_DBG_RESOURCE_MSGS, "%p: Allocating tile status of size %i", resource, rt_ts_size);
     struct etna_vidmem *rt_ts = 0;
     if(unlikely(etna_vidmem_alloc_linear(priv->dev, &rt_ts, rt_ts_size, VIV_SURF_TILE_STATUS, VIV_POOL_DEFAULT, true)!=ETNA_OK))
     {
@@ -81,7 +81,7 @@ static boolean etna_screen_can_create_resource(struct pipe_screen *pscreen,
                               const struct pipe_resource *templat)
 {
     struct etna_screen *screen = etna_screen(pscreen);
-    if(templat->nr_samples > 1)
+    if(!translate_samples_to_xyscale(templat->nr_samples, NULL, NULL, NULL))
         return false;
     if(templat->bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DEPTH_STENCIL | PIPE_BIND_SAMPLER_VIEW))
     {
@@ -129,7 +129,6 @@ static struct pipe_resource * etna_screen_resource_create(struct pipe_screen *sc
     {
         assert(templat->array_size == 1);
     }
-    assert(templat->nr_samples <= 1);
     assert(templat->width0 != 0);
     assert(templat->height0 != 0);
     assert(templat->depth0 != 0);
@@ -149,6 +148,23 @@ static struct pipe_resource * etna_screen_resource_create(struct pipe_screen *sc
             layout = ETNA_LAYOUT_TILED;
     }
     /* XXX multi tiled formats */
+
+    /* Determine scaling for antialiasing, allow override using debug flag */
+    int nr_samples = templat->nr_samples;
+    if((templat->bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DEPTH_STENCIL)) &&
+       !(templat->bind & PIPE_BIND_SAMPLER_VIEW))
+    {
+        if(DBG_ENABLED(ETNA_DBG_MSAA_2X))
+            nr_samples = 2;
+        if(DBG_ENABLED(ETNA_DBG_MSAA_4X))
+            nr_samples = 4;
+    }
+    int msaa_xscale = 1, msaa_yscale = 1;
+    if(!translate_samples_to_xyscale(nr_samples, &msaa_xscale, &msaa_yscale, NULL))
+    {
+        /* Number of samples not supported */
+        assert(0);
+    }
 
     /* Determine needed padding (alignment of height/width) */
     unsigned paddingX = 0, paddingY = 0;
@@ -179,9 +195,9 @@ static struct pipe_resource * etna_screen_resource_create(struct pipe_screen *sc
         struct etna_resource_level *mip = &resource->levels[ix];
         mip->width = x;
         mip->height = y;
-        mip->padded_width = align(x, paddingX);
-        mip->padded_height = align(y, paddingY);
-        mip->stride = align(resource->levels[ix].padded_width, divSizeX)/divSizeX * element_size;
+        mip->padded_width = align(x * msaa_xscale, paddingX);
+        mip->padded_height = align(y * msaa_yscale, paddingY);
+        mip->stride = align(mip->padded_width, divSizeX)/divSizeX * element_size;
         mip->offset = offset;
         mip->layer_stride = align(mip->padded_width, divSizeX)/divSizeX *
                       align(mip->padded_height, divSizeY)/divSizeY * element_size;
@@ -210,7 +226,7 @@ static struct pipe_resource * etna_screen_resource_create(struct pipe_screen *sc
     else if(templat->bind & PIPE_BIND_VERTEX_BUFFER)
         memtype = VIV_SURF_VERTEX;
 
-    DBG_F(ETNA_RESOURCE_MSGS, "%p: Allocate surface of %ix%i (padded to %ix%i) of format %s (%i bpe %ix%i), size %08x flags %08x, memtype %i",
+    DBG_F(ETNA_DBG_RESOURCE_MSGS, "%p: Allocate surface of %ix%i (padded to %ix%i) of format %s (%i bpe %ix%i), size %08x flags %08x, memtype %i",
             resource,
             templat->width0, templat->height0, resource->levels[0].padded_width, resource->levels[0].padded_height, util_format_name(templat->format),
             element_size, divSizeX, divSizeY, rt_size, templat->bind, memtype);
@@ -225,6 +241,7 @@ static struct pipe_resource * etna_screen_resource_create(struct pipe_screen *sc
     resource->base = *templat;
     resource->base.last_level = ix; /* real last mipmap level */
     resource->base.screen = screen;
+    resource->base.nr_samples = nr_samples;
     resource->layout = layout;
     resource->halign = halign;
     resource->surface = rt;
@@ -236,7 +253,7 @@ static struct pipe_resource * etna_screen_resource_create(struct pipe_screen *sc
         struct etna_resource_level *mip = &resource->levels[ix];
         mip->address = resource->surface->address + mip->offset;
         mip->logical = resource->surface->logical + mip->offset;
-        DBG_F(ETNA_RESOURCE_MSGS, "  %08x level %i: %ix%i (%i) stride=%i layer_stride=%i",
+        DBG_F(ETNA_DBG_RESOURCE_MSGS, "  %08x level %i: %ix%i (%i) stride=%i layer_stride=%i",
                 (int)mip->address, ix, (int)mip->width, (int)mip->height, (int)mip->size,
                 (int)mip->stride, (int)mip->layer_stride);
     }
@@ -258,11 +275,11 @@ static void etna_screen_resource_destroy(struct pipe_screen *screen,
          * the context was since destroyed.
          */
         struct etna_pipe_context *ectx = resource->last_ctx;
-        DBG_F(ETNA_RESOURCE_MSGS, "%p: resource queued destroyed (%ix%ix%i)", resource, resource_->width0, resource_->height0, resource_->depth0);
+        DBG_F(ETNA_DBG_RESOURCE_MSGS, "%p: resource queued destroyed (%ix%ix%i)", resource, resource_->width0, resource_->height0, resource_->depth0);
         etna_vidmem_queue_free(ectx->ctx->queue, resource->surface);
         etna_vidmem_queue_free(ectx->ctx->queue, resource->ts);
     } else {
-        DBG_F(ETNA_RESOURCE_MSGS, "%p: resource destroyed (%ix%ix%i)", resource, resource_->width0, resource_->height0, resource_->depth0);
+        DBG_F(ETNA_DBG_RESOURCE_MSGS, "%p: resource destroyed (%ix%ix%i)", resource, resource_->width0, resource_->height0, resource_->depth0);
         etna_vidmem_free(priv->dev, resource->surface);
         etna_vidmem_free(priv->dev, resource->ts);
     }
