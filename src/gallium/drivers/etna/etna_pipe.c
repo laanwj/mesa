@@ -359,11 +359,20 @@ static void sync_context(struct pipe_context *restrict pipe)
      * - ETNA_STATE_TS
      * - removed ETNA_STATE_BASE_SETUP statements -- these are guaranteed to not change anyway
      * - PS / framebuffer interaction for MSAA
+     * - move update of GL_MULTI_SAMPLE_CONFIG first
      */
     uint32_t last_reg, last_fixp, span_start;
     ETNA_COALESCE_STATE_OPEN(ETNA_3D_CONTEXT_SIZE);
     /* begin only EMIT_STATE -- make sure no new etna_reserve calls are done here directly
      *    or indirectly */
+    /* multi sample config is set first, and outside of the normal sorting
+     * order, as changing the multisample state clobbers PS.INPUT_COUNT (and
+     * possibly PS.TEMP_REGISTER_CONTROL).
+     */
+    if(dirty & (ETNA_STATE_FRAMEBUFFER | ETNA_STATE_SAMPLE_MASK))
+    {
+        /*03818*/ EMIT_STATE(GL_MULTI_SAMPLE_CONFIG, GL_MULTI_SAMPLE_CONFIG, e->sample_mask.GL_MULTI_SAMPLE_CONFIG | e->framebuffer.GL_MULTI_SAMPLE_CONFIG);
+    }
     if(dirty & (ETNA_STATE_INDEX_BUFFER))
     {
         /*00644*/ EMIT_STATE(FE_INDEX_STREAM_BASE_ADDR, FE_INDEX_STREAM_BASE_ADDR, e->index_buffer.FE_INDEX_STREAM_BASE_ADDR);
@@ -653,10 +662,6 @@ static void sync_context(struct pipe_context *restrict pipe)
             }
         }
     }
-    if(dirty & (ETNA_STATE_FRAMEBUFFER | ETNA_STATE_SAMPLE_MASK))
-    {
-        /*03818*/ EMIT_STATE(GL_MULTI_SAMPLE_CONFIG, GL_MULTI_SAMPLE_CONFIG, e->sample_mask.GL_MULTI_SAMPLE_CONFIG | e->framebuffer.GL_MULTI_SAMPLE_CONFIG);
-    }
     if(dirty & (ETNA_STATE_SHADER))
     {
         /*0381C*/ EMIT_STATE(GL_VARYING_TOTAL_COMPONENTS, GL_VARYING_TOTAL_COMPONENTS, e->shader_state.GL_VARYING_TOTAL_COMPONENTS);
@@ -779,6 +784,10 @@ static void etna_pipe_draw_vbo(struct pipe_context *pipe,
     {
         etna_draw_primitives(priv->ctx, translate_draw_mode(info->mode),
                 info->start, prims);
+    }
+    if(DBG_ENABLED(ETNA_DBG_FLUSH_ALL))
+    {
+        pipe->flush(pipe, NULL, 0);
     }
 }
 
@@ -1174,6 +1183,14 @@ static void etna_pipe_flush(struct pipe_context *pipe,
     if(etna_flush(priv->ctx) != ETNA_OK)
     {
         printf("Error: %s: etna_flush failed, GPU may be in unpredictable state\n", __func__);
+    }
+    if(DBG_ENABLED(ETNA_DBG_FINISH_ALL))
+    {
+        if(etna_finish(priv->ctx) != ETNA_OK)
+        {
+            printf("Error: %s: etna_finish failed, GPU may be in unpredictable state\n", __func__);
+            abort();
+        }
     }
 }
 
