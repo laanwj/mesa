@@ -391,6 +391,7 @@ void st_init_extensions(struct st_context *st)
       { o(EXT_blend_equation_separate),      PIPE_CAP_BLEND_EQUATION_SEPARATE          },
       { o(EXT_draw_buffers2),                PIPE_CAP_INDEP_BLEND_ENABLE               },
       { o(EXT_stencil_two_side),             PIPE_CAP_TWO_SIDED_STENCIL                },
+      { o(EXT_texture3D),                    PIPE_CAP_MAX_TEXTURE_3D_LEVELS            },
       { o(EXT_texture_array),                PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS         },
       { o(EXT_texture_filter_anisotropic),   PIPE_CAP_ANISOTROPIC_FILTER               },
       { o(EXT_texture_mirror_clamp),         PIPE_CAP_TEXTURE_MIRROR_CLAMP             },
@@ -553,6 +554,7 @@ void st_init_extensions(struct st_context *st)
     */
    ctx->Extensions.EXT_separate_shader_objects = GL_FALSE;
 
+   ctx->Extensions.EXT_texture3D = GL_FALSE; /* Override Mesa default; set by cap mapping below */
    ctx->Extensions.EXT_texture_env_dot3 = GL_TRUE;
    ctx->Extensions.EXT_vertex_array_bgra = GL_TRUE;
 
