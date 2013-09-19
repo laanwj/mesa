@@ -36,3 +36,4 @@ void etna_link_shaders(struct pipe_context *pipe,
 void etna_pipe_shader_init(struct pipe_context *pipe);
 
 #endif
+

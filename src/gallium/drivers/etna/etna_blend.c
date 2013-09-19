@@ -101,3 +101,4 @@ void etna_pipe_blend_init(struct pipe_context *pc)
     pc->bind_blend_state = etna_pipe_bind_blend_state;
     pc->delete_blend_state = etna_pipe_delete_blend_state;
 }
+

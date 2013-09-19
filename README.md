@@ -148,9 +148,9 @@ Support matrix (cubox, v2, gc600):
     Corrupted:
     [Scene] shadow   -> rendering corrupted
     [Scene] buffer   -> renders, but lines are not right
+    [Scene] ideas    -> doesn't show much
 
     Shader assertion:
-    [Scene] ideas    -> missing instruction KILP
     [Scene] loop      -> missing loops support
 
     Crash:

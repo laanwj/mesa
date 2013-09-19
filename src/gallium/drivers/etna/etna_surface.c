@@ -122,3 +122,4 @@ void etna_pipe_surface_init(struct pipe_context *pc)
     pc->create_surface = etna_pipe_create_surface;
     pc->surface_destroy = etna_pipe_surface_destroy;
 }
+

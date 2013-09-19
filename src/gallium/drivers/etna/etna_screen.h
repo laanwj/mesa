@@ -67,3 +67,4 @@ struct pipe_screen *
 etna_screen_create(struct viv_conn *dev);
 
 #endif
+

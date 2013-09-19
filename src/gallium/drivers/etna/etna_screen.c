@@ -58,6 +58,9 @@ static void etna_set_debug_flags(const char *str)
       { "linker_msgs", ETNA_DBG_LINKER_MSGS },
       { "dump_shaders", ETNA_DBG_DUMP_SHADERS },
       { "no_ts", ETNA_DBG_NO_TS },
+      { "no_autodisable", ETNA_DBG_NO_AUTODISABLE },
+      { "no_supertile", ETNA_DBG_NO_SUPERTILE },
+      { "no_early_z", ETNA_DBG_NO_EARLY_Z },
       { "cflush_all", ETNA_DBG_CFLUSH_ALL },
       { "msaa2x", ETNA_DBG_MSAA_2X },
       { "msaa4x", ETNA_DBG_MSAA_4X },
@@ -569,3 +572,4 @@ etna_screen_create(struct viv_conn *dev)
 
     return pscreen;
 }
+

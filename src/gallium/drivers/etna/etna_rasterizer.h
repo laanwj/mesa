@@ -29,3 +29,4 @@ struct pipe_context;
 void etna_pipe_rasterizer_init(struct pipe_context *pipe);
 
 #endif
+

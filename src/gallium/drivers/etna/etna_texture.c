@@ -221,3 +221,4 @@ void etna_pipe_texture_init(struct pipe_context *pc)
     pc->sampler_view_destroy = etna_pipe_sampler_view_destroy;
     pc->texture_barrier = etna_pipe_texture_barrier;
 }
+

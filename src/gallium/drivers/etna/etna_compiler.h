@@ -116,3 +116,4 @@ int etna_link_shader_objects(struct etna_shader_link_info *info, const struct et
 void etna_destroy_shader_object(struct etna_shader_object *obj);
 
 #endif
+

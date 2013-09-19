@@ -172,3 +172,5 @@ void etna_screen_fence_init(struct pipe_screen *pscreen)
     pscreen->fence_signalled = etna_screen_fence_signalled;
     pscreen->fence_finish = etna_screen_fence_finish;
 }
+
+

@@ -41,3 +41,4 @@ bool etna_screen_resource_alloc_ts(struct pipe_screen *screen, struct etna_resou
 void etna_screen_resource_init(struct pipe_screen *screen);
 
 #endif
+

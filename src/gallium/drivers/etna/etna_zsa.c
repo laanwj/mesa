@@ -78,6 +78,13 @@ static void *etna_pipe_create_depth_stencil_alpha_state(struct pipe_context *pip
             }
         }
     }
+    /* Disable early z reject when no depth test is enabled.
+     * This avoids having to sample depth even though we know it's going to succeed.
+     */
+    if(dsa.depth.enabled == false || dsa.depth.func == PIPE_FUNC_ALWAYS)
+        early_z = false;
+    if(DBG_ENABLED(ETNA_DBG_NO_EARLY_Z))
+        early_z = false;
     /* compare funcs have 1 to 1 mapping */
     cs->PE_DEPTH_CONFIG =
             VIVS_PE_DEPTH_CONFIG_DEPTH_FUNC(dsa.depth.enabled ? dsa.depth.func : PIPE_FUNC_ALWAYS) |
@@ -129,3 +136,4 @@ void etna_pipe_zsa_init(struct pipe_context *pc)
     pc->bind_depth_stencil_alpha_state = etna_pipe_bind_depth_stencil_alpha_state;
     pc->delete_depth_stencil_alpha_state = etna_pipe_delete_depth_stencil_alpha_state;
 }
+

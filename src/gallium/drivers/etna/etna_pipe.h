@@ -237,3 +237,4 @@ etna_transfer(struct pipe_transfer *p)
 struct pipe_context *etna_new_pipe_context(struct viv_conn *dev, const struct etna_pipe_specs *specs, struct pipe_screen *scr, void *priv);
 
 #endif
+

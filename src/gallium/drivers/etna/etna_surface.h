@@ -29,3 +29,4 @@ struct pipe_context;
 void etna_pipe_surface_init(struct pipe_context *pipe);
 
 #endif
+

@@ -29,3 +29,4 @@ struct pipe_context;
 void etna_pipe_blend_init(struct pipe_context *pipe);
 
 #endif
+

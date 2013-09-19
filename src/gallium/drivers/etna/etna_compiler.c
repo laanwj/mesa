@@ -1823,3 +1823,4 @@ int etna_link_shader_objects(struct etna_shader_link_info *info, const struct et
     }
     return 0;
 }
+

@@ -29,3 +29,5 @@ struct pipe_context;
 void etna_pipe_texture_init(struct pipe_context *pipe);
 
 #endif
+
+

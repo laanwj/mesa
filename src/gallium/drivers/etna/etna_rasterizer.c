@@ -89,3 +89,4 @@ void etna_pipe_rasterizer_init(struct pipe_context *pc)
     pc->bind_rasterizer_state = etna_pipe_bind_rasterizer_state;
     pc->delete_rasterizer_state = etna_pipe_delete_rasterizer_state;
 }
+

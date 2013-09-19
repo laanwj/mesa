@@ -296,3 +296,4 @@ void etna_pipe_shader_init(struct pipe_context *pc)
     /* XXX delete_gs_state */
     pc->set_constant_buffer = etna_set_constant_buffer;
 }
+

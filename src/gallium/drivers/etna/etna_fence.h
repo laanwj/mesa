@@ -67,3 +67,4 @@ void etna_screen_destroy_fences(struct pipe_screen *screen_h);
 void etna_screen_fence_init(struct pipe_screen *screen);
 
 #endif
+
