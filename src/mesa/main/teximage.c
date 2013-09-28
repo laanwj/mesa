@@ -2937,11 +2937,11 @@ _mesa_choose_texture_format(struct gl_context *ctx,
           switch(type)
           {
           case GL_UNSIGNED_SHORT_5_6_5:
-              _mesa_debug("GLES: overriding internal format to RGB565\n");
+              _mesa_debug(ctx, "GLES: overriding internal format to RGB565\n");
               internalFormat = GL_RGB565;
               break;
           case GL_UNSIGNED_SHORT_5_5_5_1:
-              _mesa_debug("GLES: overriding internal format to RGB5_A1\n");
+              _mesa_debug(ctx, "GLES: overriding internal format to RGB5_A1\n");
               internalFormat = GL_RGB5_A1;
               break;
           }
@@ -2950,7 +2950,7 @@ _mesa_choose_texture_format(struct gl_context *ctx,
           switch(type)
           {
           case GL_UNSIGNED_SHORT_4_4_4_4:
-              _mesa_debug("GLES: overriding internal format to RGB4\n");
+              _mesa_debug(ctx, "GLES: overriding internal format to RGB4\n");
               internalFormat = GL_RGB4;
               break;
           }
