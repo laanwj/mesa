@@ -2926,37 +2926,6 @@ _mesa_choose_texture_format(struct gl_context *ctx,
       }
    }
 
-   /* GLES has no direct way to specify internal format, so we
-    * want to determine the best fit based on format and type and
-    * override the preferred internal format. */
-   if (_mesa_is_gles(ctx))
-   {
-      switch(format)
-      {
-      case GL_RGB:
-          switch(type)
-          {
-          case GL_UNSIGNED_SHORT_5_6_5:
-              _mesa_debug(ctx, "GLES: overriding internal format to RGB565\n");
-              internalFormat = GL_RGB565;
-              break;
-          case GL_UNSIGNED_SHORT_5_5_5_1:
-              _mesa_debug(ctx, "GLES: overriding internal format to RGB5_A1\n");
-              internalFormat = GL_RGB5_A1;
-              break;
-          }
-          break;
-      case GL_RGBA:
-          switch(type)
-          {
-          case GL_UNSIGNED_SHORT_4_4_4_4:
-              _mesa_debug(ctx, "GLES: overriding internal format to RGB4\n");
-              internalFormat = GL_RGB4;
-              break;
-          }
-          break;
-      }
-   }
    /* choose format from scratch */
    f = ctx->Driver.ChooseTextureFormat(ctx, texObj->Target, internalFormat,
                                        format, type);
