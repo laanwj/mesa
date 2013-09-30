@@ -1547,7 +1547,8 @@ util_gen_mipmap(struct gen_mipmap_state *ctx,
    if (!screen->is_format_supported(screen, psv->format, pt->target,
                                     pt->nr_samples,
                                     is_depth ? PIPE_BIND_DEPTH_STENCIL :
-                                               PIPE_BIND_RENDER_TARGET)) {
+                                               PIPE_BIND_RENDER_TARGET) |
+       /* XXX etnaviv shunt, remove when alignment probs fixed */ (util_format_get_blocksize(pt->format) < 4 && pt->height0 > pt->width0)) {
       fallback_gen_mipmap(ctx, pt, face, baseLevel, lastLevel);
       return;
    }
