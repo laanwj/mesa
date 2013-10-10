@@ -34,7 +34,7 @@ static void etna_fbdev_screen_destroy(struct native_fbdev_screen *fbdev_screen)
 }
 
 static void *etna_fbdev_create_drawable(struct native_fbdev_screen *fbdev_screen,
-          int fd, bool want_fence,
+          int fd,
           unsigned xoffset, unsigned yoffset,
           unsigned width, unsigned height)
 {
@@ -46,8 +46,6 @@ static void *etna_fbdev_create_drawable(struct native_fbdev_screen *fbdev_screen
       return NULL;
    if (ioctl(fd, FBIOGET_FSCREENINFO, &finfo))
       return NULL;
-
-   drawable->want_fence = want_fence;
 
    /* sanitize the values */
    if (xoffset + width > vinfo.xres_virtual) {

@@ -64,7 +64,7 @@ static void swrast_fbdev_screen_destroy(struct native_fbdev_screen *fbdev_screen
 }
 
 static void *swrast_fbdev_create_drawable(struct native_fbdev_screen *hfbdev_screen,
-          int fd, bool want_fence,
+          int fd,
           unsigned xoffset, unsigned yoffset,
           unsigned width, unsigned height)
 {

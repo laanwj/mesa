@@ -279,7 +279,7 @@ static bool fbdev_create_buffers(struct fbdev_surface *fbsurf, const struct fb_v
        for(buf=0; buf<fbsurf->num_buffers; ++buf)
        {
            fbsurf->drawable[buf] = fbdev_screen->create_drawable(fbdev_screen,
-                   fbdpy->fd, /* want_fence */ true,
+                   fbdpy->fd,
                    0, vinfo->yres*buf, vinfo->xres, vinfo->yres);
            if(fbsurf->drawable[buf] == NULL)
               fail = true;
@@ -287,7 +287,7 @@ static bool fbdev_create_buffers(struct fbdev_surface *fbsurf, const struct fb_v
     } else /* single buffer, at current virtual x/y offset */
     {
        fbsurf->drawable[0] = fbdev_screen->create_drawable(fbdev_screen,
-               fbdpy->fd, /* want_fence */ false,
+               fbdpy->fd,
                vinfo->xoffset, vinfo->yoffset, vinfo->xres, vinfo->yres);
        if(fbsurf->drawable[0] == NULL)
           fail = true;

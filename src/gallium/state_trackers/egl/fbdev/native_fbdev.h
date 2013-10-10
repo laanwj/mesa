@@ -48,7 +48,7 @@ struct native_fbdev_screen
     *    framebuffers (or subsets thereof) at once.
     */
    void *(*create_drawable)(struct native_fbdev_screen *fbdev_screen,
-             int fd, bool want_fence,
+             int fd,
              unsigned xoffset, unsigned yoffset,
              unsigned width, unsigned height);
 
