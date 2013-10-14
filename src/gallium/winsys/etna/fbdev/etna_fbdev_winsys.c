@@ -11,6 +11,7 @@
 #include "etna/etna_screen.h"
 
 #include <etnaviv/viv.h>
+#include <etnaviv/etna_bo.h>
 #include <etnaviv/etna_fb.h>
 
 #include <stdio.h>
@@ -41,6 +42,7 @@ static void *etna_fbdev_create_drawable(struct native_fbdev_screen *fbdev_screen
    struct etna_rs_target *drawable = CALLOC_STRUCT(etna_rs_target);
    struct fb_var_screeninfo vinfo;
    struct fb_fix_screeninfo finfo;
+   struct etna_screen *screen = etna_screen(fbdev_screen->screen);
 
    if (ioctl(fd, FBIOGET_VSCREENINFO, &vinfo))
       return NULL;
@@ -63,9 +65,9 @@ static void *etna_fbdev_create_drawable(struct native_fbdev_screen *fbdev_screen
 
    drawable->width = width;
    drawable->height = height;
-   drawable->addr = finfo.smem_start +
-      finfo.line_length * yoffset +
-      vinfo.bits_per_pixel / 8 * xoffset;
+   drawable->bo = etna_bo_from_fbdev(screen->dev, fd,
+      finfo.line_length * yoffset + vinfo.bits_per_pixel / 8 * xoffset,
+      finfo.line_length * height);
    drawable->stride = finfo.line_length;
 
    if(width == 0 || height == 0 ||

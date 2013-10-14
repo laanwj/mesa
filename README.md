@@ -19,8 +19,8 @@ My configure script for cubox:
 #!/bin/bash
 DIR=... # path to target headers and libraries
 ETNAVIV_BASE="${HOME}/projects/etna_viv"
-ETNAVIV_LIB="${ETNAVIV_BASE}/native/etnaviv"
-ETNAVIV_INC="${ETNAVIV_BASE}/native"
+ETNAVIV_LIB="${ETNAVIV_BASE}/src/etnaviv" # important!
+ETNAVIV_INC="${ETNAVIV_BASE}/src" # important!
 
 export TARGET="arm-linux-gnueabihf"
 export CFLAGS="-I${DIR}/cubox/include -I${ETNAVIV_INC}"
