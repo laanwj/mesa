@@ -5421,6 +5421,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                          CARRY_TO_ARITH |
                          BORROW_TO_ARITH |
                          (options->EmitNoPow ? POW_TO_EXP2 : 0) |
+                         (options->EmitNoLrp ? LRP_TO_ARITH : 0) |
                          (!ctx->Const.NativeIntegers ? INT_DIV_TO_MUL_RCP : 0) |
                          (vs_sm3 ? SAT_TO_CLAMP : 0));
 

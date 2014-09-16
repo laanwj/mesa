@@ -76,6 +76,8 @@ endif
 if HAVE_EGL_PLATFORM_FBDEV
 libegl_la_SOURCES += $(fbdev_FILES)
 AM_CPPFLAGS += \
+	-I$(top_srcdir)/src/gallium/winsys/sw \
+	-I$(top_srcdir)/src/gallium/winsys/etna/fbdev \
 	-DHAVE_FBDEV_BACKEND
 endif
 

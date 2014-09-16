@@ -354,7 +354,6 @@ eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
    if (!disp->Initialized) {
       if (!_eglMatchDriver(disp, EGL_FALSE))
          RETURN_EGL_ERROR(disp, EGL_NOT_INITIALIZED, EGL_FALSE);
-
       /* limit to APIs supported by core */
       disp->ClientAPIs &= _EGL_API_ALL_BITS;
    }
@@ -588,9 +587,19 @@ eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
                        EGLNativeWindowType window, const EGLint *attrib_list)
 {
    _EGLDisplay *disp = _eglLockDisplay(dpy);
-   STATIC_ASSERT(sizeof(void*) == sizeof(window));
-   return _eglCreateWindowSurfaceCommon(disp, config, (void*) window,
-                                        attrib_list);
+   _EGLConfig *conf = _eglLookupConfig(config, disp);
+   _EGLDriver *drv;
+   _EGLSurface *surf;
+   EGLSurface ret;
+
+   _EGL_CHECK_CONFIG(disp, conf, EGL_NO_SURFACE, drv);
+   if (disp->Platform != _eglGetNativePlatform(disp->PlatformDisplay))
+      RETURN_EGL_ERROR(disp, EGL_BAD_NATIVE_WINDOW, EGL_NO_SURFACE);
+
+   surf = drv->API.CreateWindowSurface(drv, disp, conf, window, attrib_list);
+   ret = (surf) ? _eglLinkSurface(surf) : EGL_NO_SURFACE;
+
+   RETURN_EGL_EVAL(disp, ret);
 }
 
 

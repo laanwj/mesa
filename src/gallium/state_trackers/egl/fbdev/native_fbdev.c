@@ -46,15 +46,27 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <linux/fb.h>
+#include <stdio.h>
 
 #include "pipe/p_screen.h"
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 #include "util/u_pointer.h"
+#include "os/os_thread.h"
 
 #include "common/native.h"
 #include "common/native_helper.h"
-#include "sw/fbdev/fbdev_sw_winsys.h"
+
+#include "fbdev/native_fbdev.h"
+
+#define ETNA  /* Use ETNA instead of swrast driver */
+
+#include "fbdev/native_fbdev_swrast.h"
+#ifdef ETNA
+#include "etna_fbdev_public.h"
+#endif
+
+#define FBDEV_MAX_BUFFERS (2) /* double buffering */
 
 struct fbdev_display {
    struct native_display base;
@@ -65,6 +77,7 @@ struct fbdev_display {
    struct fb_fix_screeninfo finfo;
    struct fb_var_screeninfo config_vinfo;
    struct native_config config;
+   struct native_fbdev_screen *fbdev_screen;
 
    boolean assume_fixed_vinfo;
 };
@@ -75,10 +88,22 @@ struct fbdev_surface {
    struct fbdev_display *fbdpy;
    struct resource_surface *rsurf;
    int width, height;
+   int num_buffers;
+   int swap_interval;
+   struct fb_var_screeninfo vinfo;
 
    unsigned int sequence_number;
 
-   struct fbdev_sw_drawable drawable;
+   /* For Android-style double/triple buffering */
+   volatile bool terminate; /* terminate flag for buffer swap thread */
+   int buffer_head; /* next buffer to be shown */
+   int buffer_tail; /* next buffer to be posted */
+   int posted_buffers; /* number of posted buffers */
+   pipe_thread bswap_thread;
+   pipe_mutex buffer_mutex;
+   pipe_condvar buffer_available; /* condition if buffer available for use */
+   pipe_condvar buffer_posted; /* condition if buffer posted */
+   void *drawable[FBDEV_MAX_BUFFERS]; /* drawable for buffers */
 };
 
 static INLINE struct fbdev_display *
@@ -115,7 +140,7 @@ fbdev_surface_validate(struct native_surface *nsurf, uint attachment_mask,
    return TRUE;
 }
 
-static enum pipe_format
+enum pipe_format
 vinfo_to_format(const struct fb_var_screeninfo *vinfo)
 {
    enum pipe_format format = PIPE_FORMAT_NONE;
@@ -136,6 +161,12 @@ vinfo_to_format(const struct fb_var_screeninfo *vinfo)
           vinfo->blue.length == 5 &&
           vinfo->transp.length == 0)
          format = PIPE_FORMAT_B5G6R5_UNORM;
+      if (vinfo->red.length == 5 &&
+          vinfo->green.length == 5 &&
+          vinfo->blue.length == 5) {
+         format = (vinfo->transp.length == 1) ?
+            PIPE_FORMAT_B5G5R5A1_UNORM : PIPE_FORMAT_B5G5R5X1_UNORM;
+      }
       break;
    default:
       break;
@@ -144,41 +175,138 @@ vinfo_to_format(const struct fb_var_screeninfo *vinfo)
    return format;
 }
 
-static boolean
-fbdev_surface_update_drawable(struct native_surface *nsurf,
-                              const struct fb_var_screeninfo *vinfo)
+/* Set currently visible buffer id */
+static int fbdev_set_buffer(struct fbdev_surface *fbsurf, int buffer)
 {
-   struct fbdev_surface *fbsurf = fbdev_surface(nsurf);
-   unsigned x, y, width, height;
+    assert(buffer < fbsurf->num_buffers);
+    /* Is this supposed to wait for vblank or just postpone the operation asynchronously?
+     * This assumes the former.
+     */
+    fbsurf->vinfo.activate = fbsurf->swap_interval ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
+    fbsurf->vinfo.yoffset = buffer * fbsurf->height;
+    /* Pan framebuffer in y direction.
+     * Android uses FBIOPUT_VSCREENINFO for this; however on some hardware this does a
+     * reconfiguration of the DC every time it is called which causes flicker and slowness.
+     * On the other hand, FBIOPAN_DISPLAY causes a smooth scroll on some hardware,
+     * according to the Android rationale. Choose the least of both evils.
+     */
+    if (ioctl(fbsurf->fbdpy->fd, FBIOPAN_DISPLAY, &fbsurf->vinfo))
+    {
+        printf("Error: failed to run ioctl to pan display: %s\n", strerror(errno));
+        return errno;
+    }
+    return 0;
+}
 
-   x = vinfo->xoffset;
-   y = vinfo->yoffset;
-   width = MIN2(vinfo->xres, fbsurf->width);
-   height = MIN2(vinfo->yres, fbsurf->height);
+static PIPE_THREAD_ROUTINE(fbdev_bswap_thread, param)
+{
+    struct fbdev_surface *fbsurf = (struct fbdev_surface*)param;
+    struct pipe_screen *screen = fbsurf->fbdpy->base.screen;
+    struct native_fbdev_screen *fbdev_screen = fbsurf->fbdpy->fbdev_screen;
+    while(!fbsurf->terminate)
+    {
+        int cur;
+        struct pipe_fence_handle *fence;
+        /* unqueue buffer */
+        pipe_mutex_lock(fbsurf->buffer_mutex);
+        while(fbsurf->posted_buffers == 0 && !fbsurf->terminate)
+        {
+           pipe_condvar_wait(fbsurf->buffer_posted, fbsurf->buffer_mutex);
+        }
+        cur = fbsurf->buffer_head;
+        pipe_mutex_unlock(fbsurf->buffer_mutex);
 
-   /* sanitize the values */
-   if (x + width > vinfo->xres_virtual) {
-      if (x > vinfo->xres_virtual)
-         width = 0;
-      else
-         width = vinfo->xres_virtual - x;
+        if(fbsurf->terminate)
+            break;
+        /* wait for buffer fence */
+        fence = fbdev_screen->get_drawable_fence(fbdev_screen, fbsurf->drawable[cur]);
+        if(fence)
+            screen->fence_finish(screen, fence, PIPE_TIMEOUT_INFINITE);
+        /* switch to buffer */
+        fbdev_set_buffer(fbsurf, cur);
+        /* notify that previously visible buffer is available again */
+        pipe_mutex_lock(fbsurf->buffer_mutex);
+        fbsurf->posted_buffers -= 1;
+        fbsurf->buffer_head = (fbsurf->buffer_head + 1) % fbsurf->num_buffers;
+        pipe_condvar_signal(fbsurf->buffer_available);
+        pipe_mutex_unlock(fbsurf->buffer_mutex);
+    }
+    return NULL;
+}
+
+static void fbdev_destroy_buffers(struct fbdev_surface *fbsurf)
+{
+   struct native_fbdev_screen *fbdev_screen = fbsurf->fbdpy->fbdev_screen;
+   int buf;
+   /* Terminate buffer swap thread, wait for it to exit */
+   pipe_mutex_lock(fbsurf->buffer_mutex);
+   fbsurf->terminate = 1;
+   pipe_condvar_signal(fbsurf->buffer_posted);
+   pipe_mutex_unlock(fbsurf->buffer_mutex);
+   pipe_thread_wait(fbsurf->bswap_thread);
+   pipe_thread_destroy(fbsurf->bswap_thread);
+
+   /* Clean up synchronization primitives */
+   pipe_condvar_destroy(fbsurf->buffer_posted);
+   pipe_condvar_destroy(fbsurf->buffer_available);
+   pipe_mutex_destroy(fbsurf->buffer_mutex);
+   for(buf=0; buf<fbsurf->num_buffers; ++buf)
+       fbdev_screen->destroy_drawable(fbdev_screen, fbsurf->drawable[buf]);
+   fbsurf->num_buffers = 0;
+}
+
+static bool fbdev_create_buffers(struct fbdev_surface *fbsurf, const struct fb_var_screeninfo *vinfo)
+{
+   int buf;
+   struct fbdev_display *fbdpy = fbsurf->fbdpy;
+   struct native_fbdev_screen *fbdev_screen = fbsurf->fbdpy->fbdev_screen;
+   bool fail = false;
+   if(fbsurf->num_buffers) /* if buffers already exist, destroy and recreate */
+      fbdev_destroy_buffers(fbsurf);
+   /* By default, use maximum number of buffers possible given screen mode */
+   fbsurf->num_buffers = MIN2(vinfo->yres_virtual / vinfo->yres, FBDEV_MAX_BUFFERS);
+   /* Allow overriding number of buffers to a lower amount from command line */
+   if(getenv("EGL_FBDEV_BUFFERS"))
+   {
+      int requested_buffers = atoi(getenv("EGL_FBDEV_BUFFERS"));
+      if(requested_buffers > 0)
+          fbsurf->num_buffers = MIN2(fbsurf->num_buffers, requested_buffers);
    }
-   if (y + height > vinfo->yres_virtual) {
-      if (y > vinfo->yres_virtual)
-         height = 0;
-      else
-         height = vinfo->yres_virtual - y;
-   }
-
-   fbsurf->drawable.format = vinfo_to_format(vinfo);
-   fbsurf->drawable.x = vinfo->xoffset;
-   fbsurf->drawable.y = vinfo->yoffset;
-   fbsurf->drawable.width = vinfo->xres;
-   fbsurf->drawable.height = vinfo->yres;
-
-   return (fbsurf->drawable.format != PIPE_FORMAT_NONE &&
-           fbsurf->drawable.width &&
-           fbsurf->drawable.height);
+   printf("native_fbdev: %i buffers of %ix%i\n",
+           fbsurf->num_buffers, fbsurf->width, fbsurf->height);
+   if(fbsurf->num_buffers > 1) /* double or more buffered */
+   {
+       for(buf=0; buf<fbsurf->num_buffers; ++buf)
+       {
+           fbsurf->drawable[buf] = fbdev_screen->create_drawable(fbdev_screen,
+                   fbdpy->fd,
+                   0, vinfo->yres*buf, vinfo->xres, vinfo->yres);
+           if(fbsurf->drawable[buf] == NULL)
+              fail = true;
+        }
+    } else /* single buffer, at current virtual x/y offset */
+    {
+       fbsurf->drawable[0] = fbdev_screen->create_drawable(fbdev_screen,
+               fbdpy->fd,
+               vinfo->xoffset, vinfo->yoffset, vinfo->xres, vinfo->yres);
+       if(fbsurf->drawable[0] == NULL)
+          fail = true;
+    }
+    if(fail)
+    {
+       for(buf=0; buf<fbsurf->num_buffers; ++buf)
+          fbdev_screen->destroy_drawable(fbdev_screen, fbsurf->drawable[buf]);
+       return false;
+    }
+    fbsurf->terminate = 0;
+    fbsurf->buffer_head = 0;
+    fbsurf->buffer_tail = 0;
+    fbsurf->posted_buffers = 0;
+    pipe_mutex_init(fbsurf->buffer_mutex);
+    pipe_condvar_init(fbsurf->buffer_available);
+    pipe_condvar_init(fbsurf->buffer_posted);
+    fbsurf->bswap_thread = pipe_thread_create(fbdev_bswap_thread, fbsurf);
+    return true;
 }
 
 static boolean
@@ -189,8 +317,6 @@ fbdev_surface_present(struct native_surface *nsurf,
    struct fbdev_display *fbdpy = fbsurf->fbdpy;
    boolean ret = FALSE;
 
-   if (ctrl->swap_interval)
-      return FALSE;
    if (ctrl->natt != NATIVE_ATTACHMENT_BACK_LEFT)
       return FALSE;
 
@@ -201,27 +327,50 @@ fbdev_surface_present(struct native_surface *nsurf,
       if (ioctl(fbdpy->fd, FBIOGET_VSCREENINFO, &vinfo))
          return FALSE;
 
-      /* present the surface */
-      if (fbdev_surface_update_drawable(&fbsurf->base, &vinfo)) {
-         ret = resource_surface_present(fbsurf->rsurf,
-               ctrl->natt, (void *) &fbsurf->drawable);
-      }
+      if (fbsurf->width != vinfo.xres || fbsurf->height != vinfo.yres)
+      {
+         fbsurf->width = vinfo.xres;
+         fbsurf->height = vinfo.yres;
 
-      fbsurf->width = vinfo.xres;
-      fbsurf->height = vinfo.yres;
+         if(!fbdev_create_buffers(fbsurf, &vinfo))
+            return FALSE;
 
-      if (resource_surface_set_size(fbsurf->rsurf,
-               fbsurf->width, fbsurf->height)) {
-         /* surface resized */
-         fbsurf->sequence_number++;
-         fbdpy->event_handler->invalid_surface(&fbdpy->base,
-               &fbsurf->base, fbsurf->sequence_number);
+         if (resource_surface_set_size(fbsurf->rsurf,
+                  fbsurf->width, fbsurf->height)) {
+            /* surface resized */
+            fbsurf->sequence_number++;
+            fbdpy->event_handler->invalid_surface(&fbdpy->base,
+                  &fbsurf->base, fbsurf->sequence_number);
+         }
       }
    }
-   else {
-      /* the drawable never changes */
-      ret = resource_surface_present(fbsurf->rsurf,
-            ctrl->natt, (void *) &fbsurf->drawable);
+
+   int cur = 0;
+   fbsurf->swap_interval = ctrl->swap_interval;
+   if(fbsurf->num_buffers > 1)
+   {
+      /* wait for buffer to be available */
+      pipe_mutex_lock(fbsurf->buffer_mutex);
+      while(fbsurf->posted_buffers >= fbsurf->num_buffers-1)
+      {
+         pipe_condvar_wait(fbsurf->buffer_available, fbsurf->buffer_mutex);
+      }
+      cur = fbsurf->buffer_tail;
+      pipe_mutex_unlock(fbsurf->buffer_mutex);
+   }
+
+   /* present */
+   ret = resource_surface_present(fbsurf->rsurf,
+         ctrl->natt, fbsurf->drawable[cur]);
+
+   if(fbsurf->num_buffers > 1)
+   {
+       /* post the buffer */
+       pipe_mutex_lock(fbsurf->buffer_mutex);
+       fbsurf->posted_buffers += 1;
+       fbsurf->buffer_tail = (fbsurf->buffer_tail + 1) % fbsurf->num_buffers;
+       pipe_condvar_signal(fbsurf->buffer_posted);
+       pipe_mutex_unlock(fbsurf->buffer_mutex);
    }
 
    return ret;
@@ -239,6 +388,7 @@ fbdev_surface_destroy(struct native_surface *nsurf)
    struct fbdev_surface *fbsurf = fbdev_surface(nsurf);
 
    resource_surface_destroy(fbsurf->rsurf);
+   fbdev_destroy_buffers(fbsurf);
    FREE(fbsurf);
 }
 
@@ -260,23 +410,26 @@ fbdev_display_create_window_surface(struct native_display *ndpy,
       return NULL;
 
    fbsurf->fbdpy = fbdpy;
+   fbsurf->swap_interval = 1;
 
    /* get current vinfo */
    if (fbdpy->assume_fixed_vinfo) {
       vinfo = fbdpy->config_vinfo;
    }
    else {
-      memset(&vinfo, 0, sizeof(vinfo));
+      memset(&fbsurf->vinfo, 0, sizeof(vinfo));
       if (ioctl(fbdpy->fd, FBIOGET_VSCREENINFO, &vinfo)) {
          FREE(fbsurf);
          return NULL;
       }
    }
 
+   /* determine number of buffers */
    fbsurf->width = vinfo.xres;
    fbsurf->height = vinfo.yres;
 
-   if (!fbdev_surface_update_drawable(&fbsurf->base, &vinfo)) {
+   if(!fbdev_create_buffers(fbsurf, &vinfo))
+   {
       FREE(fbsurf);
       return NULL;
    }
@@ -296,6 +449,7 @@ fbdev_display_create_window_surface(struct native_display *ndpy,
    fbsurf->base.present = fbdev_surface_present;
    fbsurf->base.validate = fbdev_surface_validate;
    fbsurf->base.wait = fbdev_surface_wait;
+   fbsurf->vinfo = vinfo;
 
    return &fbsurf->base;
 }
@@ -393,10 +547,10 @@ fbdev_display_get_param(struct native_display *ndpy,
 
    switch (param) {
    case NATIVE_PARAM_PRESERVE_BUFFER:
+   case NATIVE_PARAM_MAX_SWAP_INTERVAL:
       val = 1;
       break;
    case NATIVE_PARAM_USE_NATIVE_BUFFER:
-   case NATIVE_PARAM_MAX_SWAP_INTERVAL:
    default:
       val = 0;
       break;
@@ -411,6 +565,9 @@ fbdev_display_destroy(struct native_display *ndpy)
    struct fbdev_display *fbdpy = fbdev_display(ndpy);
 
    ndpy_uninit(&fbdpy->base);
+
+   fbdpy->fbdev_screen->destroy(fbdpy->fbdev_screen);
+
    close(fbdpy->fd);
    FREE(fbdpy);
 }
@@ -419,24 +576,33 @@ static boolean
 fbdev_display_init_screen(struct native_display *ndpy)
 {
    struct fbdev_display *fbdpy = fbdev_display(ndpy);
-   struct sw_winsys *ws;
+   const struct native_fbdev_driver *driver = NULL;
+   const char *driver_name;
 
-   ws = fbdev_create_sw_winsys(fbdpy->fd);
-   if (!ws)
+   driver_name = os_get_option("EGL_FBDEV_DRIVER");
+   if(!driver_name)
+      driver_name = "etna"; /* XXX probe drivers */
+
+   if(!strcmp(driver_name, "etna"))
+      driver = etna_fbdev_get_driver();
+   else if(!strcmp(driver_name, "swrast"))
+      driver = swrast_fbdev_get_driver();
+   if(!driver)
       return FALSE;
 
-   fbdpy->base.screen = fbdpy->event_handler->new_sw_screen(&fbdpy->base, ws);
-   if (!fbdpy->base.screen) {
-      if (ws->destroy)
-         ws->destroy(ws);
+   fbdpy->fbdev_screen = driver->create_screen(driver, fbdpy->fd, &fbdpy->base, fbdpy->event_handler);
+   if(!fbdpy->fbdev_screen)
       return FALSE;
-   }
+   fbdpy->base.screen = fbdpy->fbdev_screen->screen;
 
    if (!fbdpy->base.screen->is_format_supported(fbdpy->base.screen,
             fbdpy->config.color_format, PIPE_TEXTURE_2D, 0,
             PIPE_BIND_RENDER_TARGET)) {
+      fbdpy->fbdev_screen->destroy(fbdpy->fbdev_screen);
       fbdpy->base.screen->destroy(fbdpy->base.screen);
       fbdpy->base.screen = NULL;
+      printf("native_fbdev: color format for screen (%i) not supported by driver\n", fbdpy->config.color_format);
+      /* XXX try next driver */
       return FALSE;
    }
 
@@ -459,6 +625,8 @@ fbdev_display_init_config(struct native_display *ndpy)
    nconf->buffer_mask = (1 << NATIVE_ATTACHMENT_BACK_LEFT);
 
    nconf->window_bit = TRUE;
+
+   printf("fbdev_display succesful\n");
 
    return TRUE;
 }

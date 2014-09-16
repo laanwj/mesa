@@ -93,6 +93,10 @@ STATIC_TARGET_LIB_DEPS += \
 	$(NOUVEAU_LIBS)
 endif
 
+if HAVE_GALLIUM_ETNA
+STATIC_TARGET_CPPFLAGS += -DGALLIUM_ETNA
+endif
+
 if NEED_RADEON_DRM_WINSYS
 STATIC_TARGET_LIB_DEPS += \
 	$(top_builddir)/src/gallium/winsys/radeon/drm/libradeonwinsys.la

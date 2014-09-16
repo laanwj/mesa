@@ -233,6 +233,18 @@ egl_gallium_la_LIBADD += \
 
 endif
 
+if HAVE_GALLIUM_ETNA
+egl_gallium_la_CPPFLAGS += -DGALLIUM_ETNA
+AM_CPPFLAGS += -D_EGL_PIPE_ETNA=1
+egl_gallium_la_LIBADD += \
+	$(top_builddir)/src/gallium/winsys/etna/drm/libetnadrm.la \
+	$(top_builddir)/src/gallium/drivers/etna/libetna.la \
+	$(ETNA_LIBS)
+if HAVE_EGL_PLATFORM_FBDEV
+egl_gallium_la_LIBADD += $(top_builddir)/src/gallium/winsys/etna/fbdev/libetnafbdev.la
+endif
+endif
+
 if HAVE_GALLIUM_SOFTPIPE
 egl_gallium_la_CPPFLAGS += -DGALLIUM_SOFTPIPE
 egl_gallium_la_LIBADD += \

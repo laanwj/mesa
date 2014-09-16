@@ -79,7 +79,9 @@ util_gen_mipmap(struct pipe_context *pipe, struct pipe_resource *pt,
                                     pt->nr_samples,
                                     PIPE_BIND_SAMPLER_VIEW |
                                     (is_zs ? PIPE_BIND_DEPTH_STENCIL :
-                                     PIPE_BIND_RENDER_TARGET))) {
+                                     PIPE_BIND_RENDER_TARGET) |
+                                    (util_format_get_blocksize(pt->format) < 4 
+                                     && pt->height0 > pt->width0))) {
       return FALSE;
    }
 

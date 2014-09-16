@@ -4,6 +4,7 @@
 #include "state_tracker/drm_driver.h"
 #include "target-helpers/inline_debug_helper.h"
 #include "loader.h"
+#include <stdio.h>
 #if defined(DRI_TARGET)
 #include "dri_screen.h"
 #endif
@@ -58,6 +59,10 @@
 #include "vc4/drm/vc4_drm_public.h"
 #endif
 
+#if GALLIUM_ETNA
+#include "etna/drm/etna_drm_public.h"
+#endif
+
 static char* driver_name = NULL;
 
 /* XXX: We need to teardown the winsys if *screen_create() fails. */
@@ -89,6 +94,22 @@ kms_swrast_create_screen(int fd)
 }
 #endif
 #endif
+#endif
+
+#if defined(GALLIUM_ETNA)
+static struct pipe_screen *
+pipe_etna_create_screen(int fd)
+{
+   struct pipe_screen *screen;
+
+   screen = etna_drm_screen_create(fd);
+   if (!screen)
+      return NULL;
+
+   screen = debug_screen_wrap(screen);
+
+   return screen;
+}
 #endif
 
 #if defined(GALLIUM_I915)
@@ -335,9 +356,14 @@ pipe_vc4_create_screen(int fd)
 inline struct pipe_screen *
 dd_create_screen(int fd)
 {
+#if defined(GALLIUM_ETNA)
+   return pipe_etna_create_screen(fd);
+#else
    driver_name = loader_get_driver_for_fd(fd, _LOADER_GALLIUM);
+#if !defined(GALLIUM_ETNA)
    if (!driver_name)
       return NULL;
+#endif
 
 #if defined(GALLIUM_I915)
    if (strcmp(driver_name, "i915") == 0)
@@ -386,7 +412,7 @@ dd_create_screen(int fd)
 #if defined(USE_VC4_SIMULATOR)
    if (strcmp(driver_name, "i965") == 0)
       return pipe_vc4_create_screen(fd);
-   else
+#endif
 #endif
 #endif
       return NULL;
@@ -467,6 +493,10 @@ dd_configuration(enum drm_conf conf)
    if ((strcmp(driver_name, "kgsl") == 0) || (strcmp(driver_name, "msm") == 0))
       return NULL;
    else
+#endif
+#if defined(GALLIUM_ETNA)
+   if (strcmp(driver_name, "etna") == 0)
+      return configuration_query(conf);
 #endif
       return NULL;
 }

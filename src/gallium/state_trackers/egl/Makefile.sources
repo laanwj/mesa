@@ -28,7 +28,8 @@ drm_FILES := \
 	drm/native_drm.h
 
 fbdev_FILES := \
-	fbdev/native_fbdev.c
+	fbdev/native_fbdev.c \
+	fbdev/native_fbdev_swrast.c
 
 gdi_FILES := \
 	gdi/native_gdi.c

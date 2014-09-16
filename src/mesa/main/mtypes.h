@@ -2899,6 +2899,7 @@ struct gl_shader_compiler_options
    GLboolean EmitNoMainReturn;            /**< Emit CONT/RET opcodes? */
    GLboolean EmitNoNoise;                 /**< Emit NOISE opcodes? */
    GLboolean EmitNoPow;                   /**< Emit POW opcodes? */
+   GLboolean EmitNoLrp;                   /**< Emit LRP opcodes? */
    GLboolean LowerClipDistance; /**< Lower gl_ClipDistance from float[8] to vec4[2]? */
 
    /**
