@@ -40,6 +40,13 @@
 #include "etnaviv_zsa.h"
 #include "util/u_math.h"
 
+struct etna_coalesce
+{
+    uint32_t start;
+    uint32_t last_reg;
+    uint32_t last_fixp;
+};
+
 /* Queue a STALL command (queues 2 words) */
 static inline void CMD_STALL(struct etna_cmd_stream *stream, uint32_t from, uint32_t to)
 {

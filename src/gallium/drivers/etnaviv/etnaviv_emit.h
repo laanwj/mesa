@@ -106,43 +106,4 @@ static inline void etna_draw_indexed_primitives(struct etna_cmd_stream *stream, 
 void etna_emit_context_reset(struct etna_context *ctx);
 void etna_emit_state(struct etna_context *ctx);
 
-/* ETNA_COALESCE
- *
- * Mechanism to emit state changes and join consecutive
- * state updates into single SET_STATE commands when possible.
- *
- * Usage:
- * - Set state words with etna_coalsence_update.
- *
- * - Before starting the state update, reserve space using etna_coalesce_start(..),
- *   where max_updates is the maximum number of possible updates that will be emitted between
- *   this ETNA_COALESCE_STATE_OPEN .. ETNA_COALESCE_STATE_CLOSE pair.
- *
- * - When done with updating, call etna_coalesce_end(..).
- *
- * It works by keeping track of the last register that was written to plus one,
- * thus the next register that will be written. If the register number to be written
- * matches this next register, add it to the current span. If not, close the span
- * and open a new one.
- */
-
-struct etna_coalesce
-{
-    uint32_t start;
-    uint32_t last_reg;
-    uint32_t last_fixp;
-};
-
-#if 0
-void etna_coalesce_start(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce,
-        uint32_t max);
-void etna_coalsence_emit(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce,
-        uint32_t reg, uint32_t value);
-void etna_coalsence_emit_fixp(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce,
-        uint32_t reg, uint32_t value);
-void etna_coalsence_emit_reloc(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce,
-        uint32_t reg, const struct etna_reloc *r);
-void etna_coalesce_end(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce);
-#endif
-
 #endif
