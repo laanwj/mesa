@@ -19,10 +19,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Wladimir J. van der Laan <laanwj@gmail.com>
  */
-/* Clearing and blitting functionality */
-#ifndef H_ETNA_CLEAR_BLIT
-#define H_ETNA_CLEAR_BLIT
+
+#ifndef H_ETNAVIV_CLEAR_BLIT
+#define H_ETNAVIV_CLEAR_BLIT
 
 #include <stdint.h>
 

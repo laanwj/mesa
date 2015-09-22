@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Etnaviv Project
+ * Copyright (c) 2012-2015 Etnaviv Project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,12 +19,15 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Wladimir J. van der Laan <laanwj@gmail.com>
  */
-/* Utilities for generating low-level ISA instructions */
-#ifndef H_ETNA_ASM
-#define H_ETNA_ASM
-#include <stdint.h>
 
+#ifndef H_ETNAVIV_ASM
+#define H_ETNAVIV_ASM
+
+#include <stdint.h>
 #include "hw/isa.xml.h"
 
 /* Size of an instruction in 32-bit words */

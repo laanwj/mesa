@@ -19,10 +19,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Wladimir J. van der Laan <laanwj@gmail.com>
+ *    Christian Gmeiner <christian.gmeiner@gmail.com>
  */
 
-#ifndef ETNA_SCREEN_H_
-#define ETNA_SCREEN_H_
+#ifndef H_ETNAVIV_SCREEN
+#define H_ETNAVIV_SCREEN
 
 #include "etnaviv_internal.h"
 

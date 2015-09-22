@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Etnaviv Project
+ * Copyright (c) 2012-2015 Etnaviv Project
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -19,10 +19,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Wladimir J. van der Laan <laanwj@gmail.com>
  */
-/* Vivante specific surface tiling */
-#ifndef H_ETNA_TEX
-#define H_ETNA_TEX
+
+#ifndef H_ETNAVIV_TILING
+#define H_ETNAVIV_TILING
 
 #include <stdint.h>
 

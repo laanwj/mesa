@@ -19,9 +19,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Wladimir J. van der Laan <laanwj@gmail.com>
  */
 
-#ifndef H_ETNA_SHADER
+#ifndef H_ETNAVIV_SHADER
+#define H_ETNAVIV_SHADER
 
 #include "pipe/p_state.h"
 

@@ -19,10 +19,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Wladimir J. van der Laan <laanwj@gmail.com>
  */
 
-#ifndef H_ETNA_RASTERIZER
-#define H_ETNA_RASTERIZER
+#ifndef H_ETNAVIV_RASTERIZER
+#define H_ETNAVIV_RASTERIZER
 
 #include "pipe/p_state.h"
 #include "pipe/p_context.h"

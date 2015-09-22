@@ -19,10 +19,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Wladimir J. van der Laan <laanwj@gmail.com>
+ *    Rob Clark <robclark@freedesktop.org>
  */
 
-#ifndef ETNA_FENCE_H_
-#define ETNA_FENCE_H_
+#ifndef ETNAVIV_FENCE_H_
+#define ETNAVIV_FENCE_H_
 
 #include "pipe/p_context.h"
 
