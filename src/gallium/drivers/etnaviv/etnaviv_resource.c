@@ -23,7 +23,7 @@
 
 #include "etnaviv_resource.h"
 
-#include "common.xml.h"
+#include "hw/common.xml.h"
 
 #include "etnaviv_context.h"
 #include "etnaviv_screen.h"

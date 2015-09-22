@@ -23,8 +23,8 @@
 
 #include "etnaviv_rs.h"
 #include "etnaviv_tiling.h"
-#include "state.xml.h"
-#include "state_3d.xml.h"
+#include "hw/state.xml.h"
+#include "hw/state_3d.xml.h"
 
 #include <assert.h>
 

@@ -25,7 +25,7 @@
 #define H_ETNA_ASM
 #include <stdint.h>
 
-#include "isa.xml.h"
+#include "hw/isa.xml.h"
 
 /* Size of an instruction in 32-bit words */
 #define ETNA_INST_SIZE (4)

@@ -23,7 +23,7 @@
 
 #include "etnaviv_clear_blit.h"
 
-#include "common.xml.h"
+#include "hw/common.xml.h"
 
 #include "etnaviv_emit.h"
 #include "etnaviv_context.h"

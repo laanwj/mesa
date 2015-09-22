@@ -27,8 +27,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "state.xml.h"
-#include "state_3d.xml.h"
+#include "hw/state.xml.h"
+#include "hw/state_3d.xml.h"
 
 #include <libdrm/etnaviv_drmif.h>
 

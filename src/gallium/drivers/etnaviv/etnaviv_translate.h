@@ -28,9 +28,9 @@
 #include "pipe/p_format.h"
 #include "pipe/p_state.h"
 
-#include "cmdstream.xml.h"
-#include "state.xml.h"
-#include "state_3d.xml.h"
+#include "hw/cmdstream.xml.h"
+#include "hw/state.xml.h"
+#include "hw/state_3d.xml.h"
 #include "etnaviv_tiling.h"
 #include "etnaviv_debug.h"
 #include "etnaviv_util.h"

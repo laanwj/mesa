@@ -23,8 +23,8 @@
 
 #include "etnaviv_emit.h"
 
-#include "common.xml.h"
-#include "state.xml.h"
+#include "hw/common.xml.h"
+#include "hw/state.xml.h"
 #include "etnaviv_blend.h"
 #include "etnaviv_context.h"
 #include "etnaviv_rasterizer.h"

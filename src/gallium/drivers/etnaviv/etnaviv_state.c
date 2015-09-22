@@ -1,6 +1,6 @@
 #include "etnaviv_state.h"
 
-#include "common.xml.h"
+#include "hw/common.xml.h"
 
 #include "etnaviv_context.h"
 #include "etnaviv_surface.h"

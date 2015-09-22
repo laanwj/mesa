@@ -24,7 +24,7 @@
 #ifndef H_ETNA_EMIT
 #define H_ETNA_EMIT
 
-#include "cmdstream.xml.h"
+#include "hw/cmdstream.xml.h"
 #include "etnaviv_screen.h"
 
 struct etna_context;
