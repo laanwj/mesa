@@ -125,7 +125,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
             cs->PE_PIPE_COLOR_ADDR[0].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
             cs->PE_PIPE_COLOR_ADDR[1].bo = bo;
-            cs->PE_PIPE_COLOR_ADDR[1].offset = res->levels[0].offset / 2;
+            cs->PE_PIPE_COLOR_ADDR[1].offset = res->levels[0].offset + (res->levels[0].size / 2);
             cs->PE_PIPE_COLOR_ADDR[1].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
         cs->PE_COLOR_STRIDE = cbuf->surf.stride;
@@ -188,7 +188,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
             cs->PE_PIPE_DEPTH_ADDR[0].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
             cs->PE_PIPE_DEPTH_ADDR[1].bo = bo;
-            cs->PE_PIPE_DEPTH_ADDR[1].offset = res->levels[0].offset / 2;
+            cs->PE_PIPE_DEPTH_ADDR[1].offset = res->levels[0].offset + (res->levels[0].size / 2);
             cs->PE_PIPE_DEPTH_ADDR[1].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 	}
 
