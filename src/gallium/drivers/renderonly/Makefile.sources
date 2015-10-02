@@ -1,0 +1,4 @@
+C_SOURCES := \
+	renderonly_context.c \
+	renderonly_resource.c \
+	renderonly_screen.c
