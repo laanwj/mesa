@@ -103,7 +103,6 @@ static inline void etna_draw_indexed_primitives(struct etna_cmd_stream *stream, 
     etna_cmd_stream_emit(stream, 0);
 }
 
-void etna_emit_context_reset(struct etna_context *ctx);
 void etna_emit_state(struct etna_context *ctx);
 
 #endif

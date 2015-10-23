@@ -164,8 +164,6 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
     util_slab_create(&ctx->transfer_pool, sizeof(struct etna_transfer),
                      16, UTIL_SLAB_SINGLETHREADED);
 
-    etna_emit_context_reset(ctx);
-
     return pctx;
 
 fail:
