@@ -223,7 +223,7 @@ struct compiled_shader_state
     uint32_t PS_UNIFORMS[ETNA_MAX_UNIFORMS*4];
 };
 
-/* state of all 3d and common registers relevant to etna driver */
+/* state of some 3d and common registers relevant to etna driver */
 struct etna_3d_state
 {
     unsigned num_vertex_elements; /* number of elements in FE_VERTEX_ELEMENT_CONFIG */
@@ -233,102 +233,13 @@ struct etna_3d_state
     unsigned ps_inst_mem_size;
 
     uint32_t /*00600*/ FE_VERTEX_ELEMENT_CONFIG[VIVS_FE_VERTEX_ELEMENT_CONFIG__LEN];
-    /* reloc   00644   FE_INDEX_STREAM_BASE_ADDR */
-    uint32_t /*00648*/ FE_INDEX_STREAM_CONTROL;
-    /* reloc   0064C   FE_VERTEX_STREAM_BASE_ADDR */
-    uint32_t /*00650*/ FE_VERTEX_STREAM_CONTROL;
-    /* reloc   00680   FE_VERTEX_STREAMS_BASE_ADDR[VIVS_FE_VERTEX_STREAMS__LEN] */
-    uint32_t /*006A0*/ FE_VERTEX_STREAMS_CONTROL[VIVS_FE_VERTEX_STREAMS__LEN];
-
-    uint32_t /*00800*/ VS_END_PC;
-    uint32_t /*00804*/ VS_OUTPUT_COUNT;
-    uint32_t /*00808*/ VS_INPUT_COUNT;
-    uint32_t /*0080C*/ VS_TEMP_REGISTER_CONTROL;
-    uint32_t /*00810*/ VS_OUTPUT[VIVS_VS_OUTPUT__LEN];
-    uint32_t /*00820*/ VS_INPUT[VIVS_VS_INPUT__LEN];
-    uint32_t /*00830*/ VS_LOAD_BALANCING;
-    uint32_t /*00838*/ VS_START_PC;
-    uint32_t /*0085C*/ VS_RANGE;
-
-    uint32_t /*00A00*/ PA_VIEWPORT_SCALE_X;
-    uint32_t /*00A04*/ PA_VIEWPORT_SCALE_Y;
-    uint32_t /*00A08*/ PA_VIEWPORT_SCALE_Z;
-    uint32_t /*00A0C*/ PA_VIEWPORT_OFFSET_X;
-    uint32_t /*00A10*/ PA_VIEWPORT_OFFSET_Y;
-    uint32_t /*00A14*/ PA_VIEWPORT_OFFSET_Z;
-    uint32_t /*00A18*/ PA_LINE_WIDTH;
-    uint32_t /*00A1C*/ PA_POINT_SIZE;
-    uint32_t /*00A28*/ PA_SYSTEM_MODE;
     uint32_t /*00A2C*/ PA_W_CLIP_LIMIT;
-    uint32_t /*00A30*/ PA_ATTRIBUTE_ELEMENT_COUNT;
-    uint32_t /*00A34*/ PA_CONFIG;
-    uint32_t /*00A40*/ PA_SHADER_ATTRIBUTES[VIVS_PA_SHADER_ATTRIBUTES__LEN];
-
-    uint32_t /*00C00*/ SE_SCISSOR_LEFT; // fixp
-    uint32_t /*00C04*/ SE_SCISSOR_TOP; // fixp
-    uint32_t /*00C08*/ SE_SCISSOR_RIGHT; // fixp
-    uint32_t /*00C0C*/ SE_SCISSOR_BOTTOM; // fixp
-    uint32_t /*00C10*/ SE_DEPTH_SCALE;
-    uint32_t /*00C14*/ SE_DEPTH_BIAS;
-    uint32_t /*00C18*/ SE_CONFIG;
-
-    uint32_t /*00E00*/ RA_CONTROL;
-    uint32_t /*00E04*/ RA_MULTISAMPLE_UNK00E04;
     uint32_t /*00E08*/ RA_EARLY_DEPTH;
-    uint32_t /*00E10*/ RA_MULTISAMPLE_UNK00E10[VIVS_RA_MULTISAMPLE_UNK00E10__LEN];
-    uint32_t /*00E40*/ RA_CENTROID_TABLE[VIVS_RA_CENTROID_TABLE__LEN];
-
-    uint32_t /*01000*/ PS_END_PC;
-    uint32_t /*01004*/ PS_OUTPUT_REG;
     uint32_t /*01008*/ PS_INPUT_COUNT;
     uint32_t /*0100C*/ PS_TEMP_REGISTER_CONTROL;
-    uint32_t /*01010*/ PS_CONTROL;
-    uint32_t /*01018*/ PS_START_PC;
-    uint32_t /*0101C*/ PS_RANGE;
-
-    uint32_t /*01400*/ PE_DEPTH_CONFIG;
-    uint32_t /*01404*/ PE_DEPTH_NEAR;
-    uint32_t /*01408*/ PE_DEPTH_FAR;
-    uint32_t /*0140C*/ PE_DEPTH_NORMALIZE;
-    /* reloc   01410   PE_DEPTH_ADDR */
-    uint32_t /*01414*/ PE_DEPTH_STRIDE;
-    uint32_t /*01418*/ PE_STENCIL_OP;
-    uint32_t /*0141C*/ PE_STENCIL_CONFIG;
-    uint32_t /*01420*/ PE_ALPHA_OP;
-    uint32_t /*01424*/ PE_ALPHA_BLEND_COLOR;
-    uint32_t /*01428*/ PE_ALPHA_CONFIG;
-    uint32_t /*0142C*/ PE_COLOR_FORMAT;
-    /* reloc   01430   PE_COLOR_ADDR */
-    uint32_t /*01434*/ PE_COLOR_STRIDE;
-    uint32_t /*01454*/ PE_HDEPTH_CONTROL;
-    uint32_t /*014A0*/ PE_STENCIL_CONFIG_EXT;
-    uint32_t /*014A4*/ PE_LOGIC_OP;
-    uint32_t /*014A8*/ PE_DITHER[2];
-    /* reloc   01460   PE_PIPE_COLOR_ADDR[VIVS_PE_PIPE__LEN] */
-    /* reloc   01480   PE_PIPE_DEPTH_ADDR[VIVS_PE_PIPE__LEN] */
-
-    uint32_t /*01654*/ TS_MEM_CONFIG;
-    /* reloc   01658   TS_COLOR_STATUS_BASE */
-    /* reloc   0165C   TS_COLOR_SURFACE_BASE */
-    uint32_t /*01660*/ TS_COLOR_CLEAR_VALUE;
-    /* reloc   01664   TS_DEPTH_STATUS_BASE */
-    /* reloc   01668   TS_DEPTH_SURFACE_BASE */
-    uint32_t /*0166C*/ TS_DEPTH_CLEAR_VALUE;
-
-    uint32_t /*02000*/ TE_SAMPLER_CONFIG0[VIVS_TE_SAMPLER__LEN];
-    uint32_t /*02040*/ TE_SAMPLER_SIZE[VIVS_TE_SAMPLER__LEN];
-    uint32_t /*02080*/ TE_SAMPLER_LOG_SIZE[VIVS_TE_SAMPLER__LEN];
-    uint32_t /*020C0*/ TE_SAMPLER_LOD_CONFIG[VIVS_TE_SAMPLER__LEN];
-    uint32_t /*021C0*/ TE_SAMPLER_CONFIG1[VIVS_TE_SAMPLER__LEN];
-    uint32_t /*02400*/ TE_SAMPLER_LOD_ADDR[VIVS_TE_SAMPLER_LOD_ADDR__LEN][VIVS_TE_SAMPLER__LEN];
-
     uint32_t /*03814*/ GL_VERTEX_ELEMENT_CONFIG;
     uint32_t /*03818*/ GL_MULTI_SAMPLE_CONFIG;
-    uint32_t /*0381C*/ GL_VARYING_TOTAL_COMPONENTS;
-    uint32_t /*03820*/ GL_VARYING_NUM_COMPONENTS;
-    uint32_t /*03828*/ GL_VARYING_COMPONENT_USE[VIVS_GL_VARYING_COMPONENT_USE__LEN];
     uint32_t /*0384C*/ GL_API_MODE;
-
     uint32_t /*04000*/ VS_INST_MEM[VIVS_VS_INST_MEM__LEN];
     uint32_t /*05000*/ VS_UNIFORMS[VIVS_VS_UNIFORMS__LEN];
     uint32_t /*06000*/ PS_INST_MEM[VIVS_PS_INST_MEM__LEN];

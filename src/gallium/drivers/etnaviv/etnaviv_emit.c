@@ -281,8 +281,11 @@ void etna_emit_state(struct etna_context *ctx)
     {
         /* Need flush COLOR when changing PE.COLOR_FORMAT.OVERWRITE.
          */
+#if 0
+        /* TODO*/
         if ((ctx->gpu3d.PE_COLOR_FORMAT & VIVS_PE_COLOR_FORMAT_OVERWRITE) !=
            (etna_blend_state(ctx->blend)->PE_COLOR_FORMAT & VIVS_PE_COLOR_FORMAT_OVERWRITE))
+#endif
             to_flush |= VIVS_GL_FLUSH_CACHE_COLOR;
     }
     if (unlikely(dirty & (ETNA_DIRTY_TEXTURE_CACHES)))
@@ -313,23 +316,11 @@ void etna_emit_state(struct etna_context *ctx)
         }
     }
 
-    /*
-     * Cached state update emission.
-     * The etna_3d_state structure ctx->gpu3d is used to keep the current context.
-     * State is only emitted if the new value of the register is different from the cached value
-     * in the context. Update the state afterwards.
-     */
 #define EMIT_STATE(state_name, dest_field, src_value) \
-    if (unlikely(ctx->gpu3d.dest_field != (src_value))) { \
-        etna_coalsence_emit(ctx->stream, &coalesce, VIVS_##state_name, src_value); \
-        ctx->gpu3d.dest_field = (src_value); \
-    }
+    etna_coalsence_emit(ctx->stream, &coalesce, VIVS_##state_name, src_value); \
 
 #define EMIT_STATE_FIXP(state_name, dest_field, src_value) \
-    if (unlikely(ctx->gpu3d.dest_field != (src_value))) { \
-        etna_coalsence_emit_fixp(ctx->stream, &coalesce, VIVS_##state_name, src_value); \
-        ctx->gpu3d.dest_field = (src_value); \
-    }
+    etna_coalsence_emit_fixp(ctx->stream, &coalesce, VIVS_##state_name, src_value); \
 
 #define EMIT_STATE_RELOC(state_name, src_value) \
     etna_coalsence_emit_reloc(ctx->stream, &coalesce, VIVS_##state_name, src_value)

@@ -272,8 +272,7 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    if (src->levels[blit_info->src.level].ts_size) {
       struct etna_reloc reloc;
 
-      ctx->gpu3d.TS_MEM_CONFIG = VIVS_TS_MEM_CONFIG_COLOR_FAST_CLEAR | ts_mem_config;
-      etna_set_state(ctx->stream, VIVS_TS_MEM_CONFIG, ctx->gpu3d.TS_MEM_CONFIG);
+      etna_set_state(ctx->stream, VIVS_TS_MEM_CONFIG, VIVS_TS_MEM_CONFIG_COLOR_FAST_CLEAR | ts_mem_config);
 
       memset(&reloc, 0, sizeof(struct etna_reloc));
       reloc.bo = src->ts_bo;
@@ -287,11 +286,9 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
       reloc.flags = ETNA_RELOC_READ;
       etna_set_state_reloc(ctx->stream, VIVS_TS_COLOR_SURFACE_BASE, &reloc);
 
-      ctx->gpu3d.TS_COLOR_CLEAR_VALUE = src->levels[blit_info->src.level].clear_value;
-      etna_set_state(ctx->stream, VIVS_TS_COLOR_CLEAR_VALUE, ctx->gpu3d.TS_COLOR_CLEAR_VALUE);
+      etna_set_state(ctx->stream, VIVS_TS_COLOR_CLEAR_VALUE, src->levels[blit_info->src.level].clear_value);
    } else {
-      ctx->gpu3d.TS_MEM_CONFIG = ts_mem_config;
-      etna_set_state(ctx->stream, VIVS_TS_MEM_CONFIG, ctx->gpu3d.TS_MEM_CONFIG);
+      etna_set_state(ctx->stream, VIVS_TS_MEM_CONFIG, ts_mem_config);
    }
    ctx->dirty |= ETNA_DIRTY_TS;
 
