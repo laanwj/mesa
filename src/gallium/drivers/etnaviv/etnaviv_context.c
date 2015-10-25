@@ -113,14 +113,16 @@ static void etna_flush(struct pipe_context *pctx,
     /* TODO */
 }
 
-static void etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream)
+static void etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
 {
+    struct etna_context *ctx = priv;
+
     etna_set_state(stream, VIVS_GL_API_MODE, VIVS_GL_API_MODE_OPENGL);
     etna_set_state(stream, VIVS_GL_VERTEX_ELEMENT_CONFIG , 0x00000001);
     etna_set_state(stream, VIVS_RA_EARLY_DEPTH, 0x00000031);
     etna_set_state(stream, VIVS_PA_W_CLIP_LIMIT, 0x34000001);
 
-    /* TODO: mark everything dirty */
+    ctx->dirty = ~0UL;
 }
 
 struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
@@ -133,7 +135,7 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
         return NULL;
 
     screen = etna_screen(pscreen);
-    ctx->stream = etna_cmd_stream_new(screen->pipe, &etna_cmd_stream_reset_notify);
+    ctx->stream = etna_cmd_stream_new(screen->pipe, &etna_cmd_stream_reset_notify, ctx);
     if (ctx->stream == NULL)
         goto fail;
 
@@ -146,7 +148,7 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
     ctx->screen = screen;
 
     /*  Set sensible defaults for state */
-    etna_cmd_stream_reset_notify(ctx->stream);
+    etna_cmd_stream_reset_notify(ctx->stream, ctx);
 
     pctx->destroy = etna_context_destroy;
     pctx->draw_vbo = etna_draw_vbo;
