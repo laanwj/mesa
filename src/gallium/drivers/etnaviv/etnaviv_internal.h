@@ -233,13 +233,9 @@ struct etna_3d_state
     unsigned ps_inst_mem_size;
 
     uint32_t /*00600*/ FE_VERTEX_ELEMENT_CONFIG[VIVS_FE_VERTEX_ELEMENT_CONFIG__LEN];
-    uint32_t /*00A2C*/ PA_W_CLIP_LIMIT;
-    uint32_t /*00E08*/ RA_EARLY_DEPTH;
     uint32_t /*01008*/ PS_INPUT_COUNT;
     uint32_t /*0100C*/ PS_TEMP_REGISTER_CONTROL;
-    uint32_t /*03814*/ GL_VERTEX_ELEMENT_CONFIG;
     uint32_t /*03818*/ GL_MULTI_SAMPLE_CONFIG;
-    uint32_t /*0384C*/ GL_API_MODE;
     uint32_t /*04000*/ VS_INST_MEM[VIVS_VS_INST_MEM__LEN];
     uint32_t /*05000*/ VS_UNIFORMS[VIVS_VS_UNIFORMS__LEN];
     uint32_t /*06000*/ PS_INST_MEM[VIVS_PS_INST_MEM__LEN];
