@@ -783,6 +783,4 @@ void etna_emit_state(struct etna_context *ctx)
 #undef EMIT_STATE_FIXP
 #undef EMIT_STATE_RELOC
     ctx->dirty = 0;
-
-    etna_cmd_stream_finish(ctx->stream);
 }
