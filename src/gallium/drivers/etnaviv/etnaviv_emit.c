@@ -33,6 +33,7 @@
 #include "etnaviv_rasterizer.h"
 #include "etnaviv_resource.h"
 #include "etnaviv_rs.h"
+#include "etnaviv_screen.h"
 #include "etnaviv_shader.h"
 #include "etnaviv_texture.h"
 #include "etnaviv_translate.h"
@@ -386,6 +387,12 @@ void etna_emit_state(struct etna_context *ctx)
         if (ctx->index_buffer.index_size)
         {
             ctrl = translate_index_size(ctx->index_buffer.index_size);
+            if ((ctrl == VIVS_FE_INDEX_STREAM_CONTROL_TYPE_UNSIGNED_INT &&
+                 !VIV_FEATURE(ctx->screen, chipFeatures, 32_BIT_INDICES)) ||
+                ctrl == ETNA_NO_MATCH) {
+                BUG("Unsupported %u-bit indices", ctx->index_buffer.index_size * 8);
+                abort();
+            }
         }
 
         reloc.bo = bo;
