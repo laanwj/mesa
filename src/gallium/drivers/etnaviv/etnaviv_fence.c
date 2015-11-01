@@ -49,23 +49,11 @@ static void etna_screen_fence_reference(struct pipe_screen *pscreen,
     *ptr = fence;
 }
 
-static boolean etna_screen_fence_signalled(struct pipe_screen *pscreen,
-		struct pipe_fence_handle *fence)
-{
-    uint32_t timestamp = etna_cmd_stream_timestamp(fence->ctx->stream);
-
-    /* TODO util helper for compare w/ rollover? */
-    return timestamp >= fence->timestamp;
-}
-
 static boolean etna_screen_fence_finish(struct pipe_screen *pscreen,
                         struct pipe_fence_handle *fence,
                         uint64_t timeout)
 {
     uint32_t ms = timeout / 1000000ULL;
-
-    if (!timeout)
-        return etna_screen_fence_signalled(pscreen, fence);
 
     if (etna_pipe_wait(fence->screen->pipe, fence->timestamp, ms))
         return false;
