@@ -10,6 +10,8 @@ etna_drm_screen_create_fd(int fd)
 {
     struct etna_device *dev;
     struct etna_gpu *gpu;
+    uint64_t val;
+    int i;
 
     dev = etna_device_new(fd);
     if (!dev) {
@@ -17,11 +19,19 @@ etna_drm_screen_create_fd(int fd)
         return NULL;
     }
 
-    /* TODO: we assume that core 1 is a 3D capable one */
-    gpu = etna_gpu_new(dev, 1);
-    if (!gpu) {
-        fprintf(stderr, "Error creating gpu\n");
-        return NULL;
+    for (i = 0; ; i++) {
+        gpu = etna_gpu_new(dev, i);
+        if (!gpu) {
+            fprintf(stderr, "Error creating gpu\n");
+            return NULL;
+        }
+
+        /* Look for a 3D capable GPU */
+        if (etna_gpu_get_param(gpu, ETNA_GPU_FEATURES_0, &val) == 0 &&
+            val & (1 << 2))
+            break;
+
+        etna_gpu_del(gpu);
     }
     fprintf(stderr, "Succesfully opened device\n");
 
