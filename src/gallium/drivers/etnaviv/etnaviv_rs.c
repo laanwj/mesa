@@ -25,7 +25,9 @@
  */
 
 #include "etnaviv_rs.h"
+#include "etnaviv_screen.h"
 #include "etnaviv_tiling.h"
+#include "hw/common.xml.h"
 #include "hw/state.xml.h"
 #include "hw/state_3d.xml.h"
 
@@ -42,6 +44,13 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
     /* tiling == ETNA_LAYOUT_MULTI_TILED or ETNA_LAYOUT_MULTI_SUPERTILED? */
     bool source_multi = (rs->source_tiling & 0x4)?true:false;
     bool dest_multi = (rs->dest_tiling & 0x4)?true:false;
+
+    /* GC600 needs widths to be a multiple of 16 or bad things happen,
+     * such as scribbing over memory, or the GPU hanging, even for
+     * non-tiled formats.
+     */
+    if (ctx->screen->model == chipModel_GC600 && rs->width & 15)
+        abort();
 
     /* TODO could just pre-generate command buffer, would simply submit to one memcpy */
     cs->RS_CONFIG = VIVS_RS_CONFIG_SOURCE_FORMAT(rs->source_format) |
