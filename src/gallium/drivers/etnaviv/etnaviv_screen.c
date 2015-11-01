@@ -274,7 +274,9 @@ static int etna_screen_get_shader_param(struct pipe_screen *pscreen, unsigned sh
     case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
             return ETNA_MAX_DEPTH; /* XXX */
     case PIPE_SHADER_CAP_MAX_INPUTS:
-            return 16; /* XXX this amount is reserved */
+            return 16; /* see VIVS_VS_INPUT */
+    case PIPE_SHADER_CAP_MAX_OUTPUTS:
+            return 16; /* see VIVS_VS_OUTPUT */
     case PIPE_SHADER_CAP_MAX_TEMPS:
             return 64; /* Max native temporaries. */
     case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
