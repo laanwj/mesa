@@ -128,10 +128,12 @@ static void etna_flush(struct pipe_context *pctx,
              struct pipe_fence_handle **fence,
              enum pipe_flush_flags flags)
 {
+    struct etna_context *ctx = etna_context(pctx);
+
+    etna_cmd_stream_flush(ctx->stream);
+
     if (fence)
         *fence = etna_fence_create(pctx);
-
-    /* TODO */
 }
 
 static void etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
