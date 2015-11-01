@@ -256,6 +256,8 @@ static int etna_screen_get_shader_param(struct pipe_screen *pscreen, unsigned sh
             break;
     case PIPE_SHADER_COMPUTE:
     case PIPE_SHADER_GEOMETRY:
+    case PIPE_SHADER_TESS_CTRL:
+    case PIPE_SHADER_TESS_EVAL:
             /* maybe we could emulate.. */
             return 0;
     default:
@@ -299,6 +301,12 @@ static int etna_screen_get_shader_param(struct pipe_screen *pscreen, unsigned sh
             return PIPE_SHADER_IR_TGSI;
     case PIPE_SHADER_CAP_MAX_CONST_BUFFER_SIZE:
             return 4096;
+    case PIPE_SHADER_CAP_DOUBLES:
+    case PIPE_SHADER_CAP_TGSI_DROUND_SUPPORTED:
+    case PIPE_SHADER_CAP_TGSI_DFRACEXP_DLDEXP_SUPPORTED:
+    case PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED:
+    case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
+            return false;
     default:
             DBG("unknown shader param %d", param);
             return 0;
