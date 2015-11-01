@@ -70,6 +70,8 @@ struct etna_specs
     unsigned vertex_sampler_count;
     /* size of vertex shader output buffer */
     unsigned vertex_output_buffer_size;
+    /* maximum number of vertex element configurations */
+    unsigned vertex_max_elements;
     /* size of a cached vertex (?) */
     unsigned vertex_cache_size;
     /* number of shader cores */

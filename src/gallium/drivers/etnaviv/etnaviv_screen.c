@@ -512,7 +512,18 @@ static boolean etna_get_specs(struct etna_screen *screen)
         screen->specs.max_instructions = instruction_count/2;
     }
 
-    screen->specs.max_varyings = VIV_FEATURE(screen, chipMinorFeatures1, HALTI0)?12:8;
+    if (VIV_FEATURE(screen, chipMinorFeatures1, HALTI0))
+    {
+        screen->specs.max_varyings = 12;
+        screen->specs.vertex_max_elements = 16;
+    } else {
+        screen->specs.max_varyings = 8;
+        /* Etna_viv documentation seems confused over the correct value
+         * here so choose the lower to be safe: HALTI0 says 16 i.s.o.
+         * 10, but VERTEX_ELEMENT_CONFIG register says 16 i.s.o. 12.
+         */
+        screen->specs.vertex_max_elements = 10;
+    }
 
     if (screen->model < chipModel_GC4000) /* from QueryShaderCaps in kernel driver */
     {
