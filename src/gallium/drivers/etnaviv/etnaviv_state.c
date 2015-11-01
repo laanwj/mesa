@@ -469,6 +469,13 @@ static void *etna_vertex_elements_state_create(struct pipe_context *pctx,
     if (!cs)
         return NULL;
 
+    if (num_elements > ctx->specs.vertex_max_elements)
+    {
+        BUG("number of elements (%u) exceeds chip maximum (%u)",
+            num_elements, ctx->specs.vertex_max_elements);
+        return NULL;
+    }
+
     /* XXX could minimize number of consecutive stretches here by sorting, and
      * permuting the inputs in shader or does Mesa do this already? */
 
