@@ -34,6 +34,7 @@
 #include "etnaviv_emit.h"
 #include "etnaviv_fence.h"
 #include "etnaviv_rasterizer.h"
+#include "etnaviv_screen.h"
 #include "etnaviv_shader.h"
 #include "etnaviv_state.h"
 #include "etnaviv_surface.h"
@@ -47,9 +48,14 @@
 #include "util/u_memory.h"
 #include "util/u_prim.h"
 
+#include "hw/common.xml.h"
+
 static void etna_context_destroy(struct pipe_context *pctx)
 {
     struct etna_context *ctx = etna_context(pctx);
+
+    if (ctx->primconvert)
+        util_primconvert_destroy(ctx->primconvert);
 
     if (ctx->blitter)
         util_blitter_destroy(ctx->blitter);
@@ -69,6 +75,14 @@ static void etna_draw_vbo(struct pipe_context *pctx,
 
     if (ctx->vertex_elements == NULL || ctx->vertex_elements->num_elements == 0)
         return; /* Nothing to do */
+
+    if (!(ctx->prim_hwsupport & (1 << info->mode))) {
+        struct primconvert_context *primconvert = ctx->primconvert;
+        util_primconvert_save_index_buffer(primconvert, &ctx->index_buffer);
+        util_primconvert_save_rasterizer_state(primconvert, ctx->rasterizer);
+        util_primconvert_draw_vbo(primconvert, info);
+        return;
+    }
 
     int prims = u_decomposed_prims_for_vertices(info->mode, info->count);
     if (unlikely(prims <= 0))
@@ -168,6 +182,24 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
 
     ctx->blitter = util_blitter_create(pctx);
     if (!ctx->blitter)
+        goto fail;
+
+    /* Generate the bitmask of supported draw primitives. GPUs
+     * without the RECT_PRIMITIVE do not support PIPE_PRIM_QUADS.
+     */
+    ctx->prim_hwsupport = 1 << PIPE_PRIM_POINTS |
+                          1 << PIPE_PRIM_LINES |
+                          1 << PIPE_PRIM_LINE_LOOP |
+                          1 << PIPE_PRIM_LINE_STRIP |
+                          1 << PIPE_PRIM_TRIANGLES |
+                          1 << PIPE_PRIM_TRIANGLE_STRIP |
+                          1 << PIPE_PRIM_TRIANGLE_FAN;
+
+    if (VIV_FEATURE(ctx->screen, chipMinorFeatures2, RECT_PRIMITIVE))
+        ctx->prim_hwsupport |= 1 << PIPE_PRIM_QUADS;
+
+    ctx->primconvert = util_primconvert_create(pctx, ctx->prim_hwsupport);
+    if (!ctx->primconvert)
         goto fail;
 
     util_slab_create(&ctx->transfer_pool, sizeof(struct etna_transfer),

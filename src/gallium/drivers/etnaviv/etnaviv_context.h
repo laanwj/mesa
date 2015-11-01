@@ -32,6 +32,7 @@
 
 #include "etnaviv_tiling.h"
 #include "etnaviv_resource.h"
+#include "indices/u_primconvert.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_format.h"
 #include "pipe/p_shader_tokens.h"
@@ -103,6 +104,9 @@ struct etna_context
         ETNA_DIRTY_TS              = (1 << 18), /* set after clear and when RS blit operations from other surface affect TS */
         ETNA_DIRTY_TEXTURE_CACHES  = (1 << 19), /* set when texture has been modified/uploaded */
     } dirty;
+
+    uint32_t prim_hwsupport;
+    struct primconvert_context *primconvert;
 
     struct util_slab_mempool transfer_pool;
     struct blitter_context *blitter;
