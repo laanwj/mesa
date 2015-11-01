@@ -49,7 +49,7 @@ static inline uint32_t translate_cull_face(unsigned cull_face, unsigned front_cc
     case PIPE_FACE_NONE: return VIVS_PA_CONFIG_CULL_FACE_MODE_OFF;
     case PIPE_FACE_BACK: return front_ccw ? VIVS_PA_CONFIG_CULL_FACE_MODE_CW : VIVS_PA_CONFIG_CULL_FACE_MODE_CCW;
     case PIPE_FACE_FRONT: return front_ccw ? VIVS_PA_CONFIG_CULL_FACE_MODE_CCW : VIVS_PA_CONFIG_CULL_FACE_MODE_CW;
-    default: DBG("Unhandled cull face mode %i\n", cull_face); return ETNA_NO_MATCH;
+    default: DBG("Unhandled cull face mode %i", cull_face); return ETNA_NO_MATCH;
     }
 }
 
@@ -60,7 +60,7 @@ static inline uint32_t translate_polygon_mode(unsigned polygon_mode)
     case PIPE_POLYGON_MODE_FILL: return VIVS_PA_CONFIG_FILL_MODE_SOLID;
     case PIPE_POLYGON_MODE_LINE: return VIVS_PA_CONFIG_FILL_MODE_WIREFRAME;
     case PIPE_POLYGON_MODE_POINT: return VIVS_PA_CONFIG_FILL_MODE_POINT;
-    default: DBG("Unhandled polygon mode %i\n", polygon_mode); return ETNA_NO_MATCH;
+    default: DBG("Unhandled polygon mode %i", polygon_mode); return ETNA_NO_MATCH;
     }
 }
 
@@ -87,7 +87,7 @@ static inline uint32_t translate_stencil_op(unsigned stencil_op)
     case PIPE_STENCIL_OP_INCR_WRAP: return STENCIL_OP_INCR_WRAP;
     case PIPE_STENCIL_OP_DECR_WRAP: return STENCIL_OP_DECR_WRAP;
     case PIPE_STENCIL_OP_INVERT:  return STENCIL_OP_INVERT;
-    default: DBG("Unhandled stencil op: %i\n", stencil_op); return ETNA_NO_MATCH;
+    default: DBG("Unhandled stencil op: %i", stencil_op); return ETNA_NO_MATCH;
     }
 }
 
@@ -100,7 +100,7 @@ static inline uint32_t translate_blend(unsigned blend)
     case PIPE_BLEND_REVERSE_SUBTRACT: return BLEND_EQ_REVERSE_SUBTRACT;
     case PIPE_BLEND_MIN: return BLEND_EQ_MIN;
     case PIPE_BLEND_MAX: return BLEND_EQ_MAX;
-    default: DBG("Unhandled blend: %i\n", blend); return ETNA_NO_MATCH;
+    default: DBG("Unhandled blend: %i", blend); return ETNA_NO_MATCH;
     }
 }
 
@@ -127,7 +127,7 @@ static inline uint32_t translate_blend_factor(unsigned blend_factor)
     case PIPE_BLENDFACTOR_SRC1_ALPHA:
     case PIPE_BLENDFACTOR_INV_SRC1_COLOR:
     case PIPE_BLENDFACTOR_INV_SRC1_ALPHA:
-    default: DBG("Unhandled blend factor: %i\n", blend_factor); return ETNA_NO_MATCH;
+    default: DBG("Unhandled blend factor: %i", blend_factor); return ETNA_NO_MATCH;
     }
 }
 
@@ -143,7 +143,7 @@ static inline uint32_t translate_texture_wrapmode(unsigned wrap)
     case PIPE_TEX_WRAP_MIRROR_CLAMP:    return TEXTURE_WRAPMODE_MIRRORED_REPEAT; /* XXX */
     case PIPE_TEX_WRAP_MIRROR_CLAMP_TO_EDGE:   return TEXTURE_WRAPMODE_MIRRORED_REPEAT; /* XXX */
     case PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER: return TEXTURE_WRAPMODE_MIRRORED_REPEAT; /* XXX */
-    default: DBG("Unhandled texture wrapmode: %i\n", wrap); return ETNA_NO_MATCH;
+    default: DBG("Unhandled texture wrapmode: %i", wrap); return ETNA_NO_MATCH;
     }
 }
 
@@ -154,7 +154,7 @@ static inline uint32_t translate_texture_mipfilter(unsigned filter)
     case PIPE_TEX_MIPFILTER_NEAREST: return TEXTURE_FILTER_NEAREST;
     case PIPE_TEX_MIPFILTER_LINEAR:  return TEXTURE_FILTER_LINEAR;
     case PIPE_TEX_MIPFILTER_NONE:    return TEXTURE_FILTER_NONE;
-    default: DBG("Unhandled texture mipfilter: %i\n", filter); return ETNA_NO_MATCH;
+    default: DBG("Unhandled texture mipfilter: %i", filter); return ETNA_NO_MATCH;
     }
 }
 
@@ -165,7 +165,7 @@ static inline uint32_t translate_texture_filter(unsigned filter)
     case PIPE_TEX_FILTER_NEAREST: return TEXTURE_FILTER_NEAREST;
     case PIPE_TEX_FILTER_LINEAR:  return TEXTURE_FILTER_LINEAR;
     /* What about anisotropic? */
-    default: DBG("Unhandled texture filter: %i\n", filter); return ETNA_NO_MATCH;
+    default: DBG("Unhandled texture filter: %i", filter); return ETNA_NO_MATCH;
     }
 }
 
@@ -197,7 +197,7 @@ static inline uint32_t translate_texture_format(enum pipe_format fmt, bool silen
     case PIPE_FORMAT_DXT3_RGBA: return TEXTURE_FORMAT_DXT2_DXT3;
     case PIPE_FORMAT_DXT5_RGBA: return TEXTURE_FORMAT_DXT4_DXT5;
     case PIPE_FORMAT_ETC1_RGB8: return TEXTURE_FORMAT_ETC1;
-    default: if(!silent) { DBG("Unhandled texture format: %i\n", fmt); } return ETNA_NO_MATCH;
+    default: if(!silent) { DBG("Unhandled texture format: %i", fmt); } return ETNA_NO_MATCH;
     }
 }
 
@@ -215,7 +215,7 @@ static inline uint32_t translate_rt_format(enum pipe_format fmt, bool silent)
     case PIPE_FORMAT_B8G8R8X8_UNORM: return RS_FORMAT_X8R8G8B8;
     case PIPE_FORMAT_B8G8R8A8_UNORM: return RS_FORMAT_A8R8G8B8;
     case PIPE_FORMAT_YUYV: return RS_FORMAT_YUY2;
-    default: if(!silent) { DBG("Unhandled rs surface format: %i\n", fmt); } return ETNA_NO_MATCH;
+    default: if(!silent) { DBG("Unhandled rs surface format: %i", fmt); } return ETNA_NO_MATCH;
     }
 }
 
@@ -252,7 +252,7 @@ static inline uint32_t translate_depth_format(enum pipe_format fmt, bool silent)
     case PIPE_FORMAT_Z16_UNORM: return VIVS_PE_DEPTH_CONFIG_DEPTH_FORMAT_D16;
     case PIPE_FORMAT_X8Z24_UNORM: return VIVS_PE_DEPTH_CONFIG_DEPTH_FORMAT_D24S8;
     case PIPE_FORMAT_S8_UINT_Z24_UNORM: return VIVS_PE_DEPTH_CONFIG_DEPTH_FORMAT_D24S8;
-    default: if(!silent) { DBG("Unhandled depth format: %i\n", fmt); } return ETNA_NO_MATCH;
+    default: if(!silent) { DBG("Unhandled depth format: %i", fmt); } return ETNA_NO_MATCH;
     }
 }
 
@@ -270,7 +270,7 @@ static inline uint32_t translate_msaa_format(enum pipe_format fmt, bool silent)
     case PIPE_FORMAT_B8G8R8X8_UNORM: return VIVS_TS_MEM_CONFIG_MSAA_FORMAT_X8R8G8B8;
     case PIPE_FORMAT_B8G8R8A8_UNORM: return VIVS_TS_MEM_CONFIG_MSAA_FORMAT_A8R8G8B8;
     /* MSAA with YUYV not supported */
-    default: if(!silent) { DBG("Unhandled msaa surface format: %i\n", fmt); } return ETNA_NO_MATCH;
+    default: if(!silent) { DBG("Unhandled msaa surface format: %i", fmt); } return ETNA_NO_MATCH;
     }
 }
 
@@ -280,7 +280,7 @@ static inline uint32_t translate_texture_target(enum pipe_texture_target tgt, bo
     {
     case PIPE_TEXTURE_2D: return TEXTURE_TYPE_2D;
     case PIPE_TEXTURE_CUBE: return TEXTURE_TYPE_CUBE_MAP;
-    default: DBG("Unhandled texture target: %i\n", tgt); return ETNA_NO_MATCH;
+    default: DBG("Unhandled texture target: %i", tgt); return ETNA_NO_MATCH;
     }
 }
 
@@ -411,7 +411,7 @@ static inline uint32_t translate_index_size(unsigned index_size)
     case 1: return VIVS_FE_INDEX_STREAM_CONTROL_TYPE_UNSIGNED_CHAR;
     case 2: return VIVS_FE_INDEX_STREAM_CONTROL_TYPE_UNSIGNED_SHORT;
     case 4: return VIVS_FE_INDEX_STREAM_CONTROL_TYPE_UNSIGNED_INT;
-    default: DBG("Unhandled index size %i\n", index_size); return ETNA_NO_MATCH;
+    default: DBG("Unhandled index size %i", index_size); return ETNA_NO_MATCH;
     }
 }
 
@@ -427,7 +427,7 @@ static inline uint32_t translate_draw_mode(unsigned mode)
     case PIPE_PRIM_TRIANGLE_STRIP: return PRIMITIVE_TYPE_TRIANGLE_STRIP;
     case PIPE_PRIM_TRIANGLE_FAN: return PRIMITIVE_TYPE_TRIANGLE_FAN;
     case PIPE_PRIM_QUADS: return PRIMITIVE_TYPE_QUADS;
-    default: DBG("Unhandled draw mode primitive %i\n", mode); return ETNA_NO_MATCH;
+    default: DBG("Unhandled draw mode primitive %i", mode); return ETNA_NO_MATCH;
     }
 }
 
@@ -472,7 +472,7 @@ static inline void etna_layout_multiple(unsigned layout, unsigned pixel_pipes,
         *paddingY = 64 * pixel_pipes;
         *halign = TEXTURE_HALIGN_SPLIT_SUPER_TILED;
         break;
-    default: DBG("Unhandled layout %i\n", layout);
+    default: DBG("Unhandled layout %i", layout);
     }
 }
 
@@ -512,7 +512,7 @@ static inline uint32_t translate_clear_color(enum pipe_format format, const unio
         clear_value |= clear_value << 16;
         break;
     default:
-        DBG("Unhandled pipe format for color clear: %i\n", format);
+        DBG("Unhandled pipe format for color clear: %i", format);
     }
     return clear_value;
 }
@@ -531,7 +531,7 @@ static inline uint32_t translate_clear_depth_stencil(enum pipe_format format, fl
         clear_value = (etna_cfloat_to_uintN(depth, 24) << 8) | (stencil & 0xFF);
         break;
     default:
-        DBG("Unhandled pipe format for depth stencil clear: %i\n", format);
+        DBG("Unhandled pipe format for depth stencil clear: %i", format);
     }
     return clear_value;
 }
