@@ -478,6 +478,16 @@ static boolean etna_get_specs(struct etna_screen *screen)
         DBG("could not get ETNA_GPU_PIXEL_PIPES");
         goto fail;
     }
+    if (val != 1 && val != 2) {
+        if (val == 0) {
+            fprintf(stderr, "Warning: zero pixel pipes (update kernel?)\n");
+            val = 1;
+        } else {
+            fprintf(stderr, "Error: bad pixel pipes value %u\n",
+                    (unsigned int)val);
+            goto fail;
+        }
+    }
     screen->specs.pixel_pipes = val;
 
     screen->specs.can_supertile = VIV_FEATURE(screen, chipMinorFeatures0, SUPER_TILED);
