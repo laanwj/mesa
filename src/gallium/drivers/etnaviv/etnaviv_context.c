@@ -72,6 +72,7 @@ static void etna_draw_vbo(struct pipe_context *pctx,
                  const struct pipe_draw_info *info)
 {
     struct etna_context *ctx = etna_context(pctx);
+    uint32_t draw_mode;
 
     if (ctx->vertex_elements == NULL || ctx->vertex_elements->num_elements == 0)
         return; /* Nothing to do */
@@ -101,14 +102,20 @@ static void etna_draw_vbo(struct pipe_context *pctx,
         return;
     }
 
+    draw_mode = translate_draw_mode(info->mode);
+    if (draw_mode == ETNA_NO_MATCH) {
+        BUG("Unsupported draw mode");
+        return;
+    }
+
     if (info->indexed)
     {
-        etna_draw_indexed_primitives(ctx->stream, translate_draw_mode(info->mode),
-                info->start, prims, info->index_bias);
-    } else
+        etna_draw_indexed_primitives(ctx->stream, draw_mode, info->start,
+                                     prims, info->index_bias);
+    }
+    else
     {
-        etna_draw_primitives(ctx->stream, translate_draw_mode(info->mode),
-                info->start, prims);
+        etna_draw_primitives(ctx->stream, draw_mode, info->start, prims);
     }
 
     if (DBG_ENABLED(ETNA_DBG_FLUSH_ALL))
