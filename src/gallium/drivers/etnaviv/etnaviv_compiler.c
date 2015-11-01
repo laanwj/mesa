@@ -1536,6 +1536,9 @@ static bool etna_compile_check_limits(struct etna_compile_data *cd)
         DBG("Number of varyings (%d) exceeds maximum %d", cd->num_varyings, cd->specs->max_varyings);
         return false;
     }
+    if (cd->imm_base > cd->specs->num_constants) {
+        DBG("Number of constants (%d) exceeds maximum %d", cd->imm_base, cd->specs->num_constants);
+    }
     return true;
 }
 
