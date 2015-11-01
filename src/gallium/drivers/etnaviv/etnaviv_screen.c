@@ -490,6 +490,16 @@ static boolean etna_get_specs(struct etna_screen *screen)
     }
     screen->specs.pixel_pipes = val;
 
+    if (etna_gpu_get_param(screen->gpu, ETNA_GPU_NUM_CONSTANTS, &val)) {
+        DBG("could not get %s", "ETNA_GPU_NUM_CONSTANTS");
+        goto fail;
+    }
+    if (val == 0) {
+        fprintf(stderr, "Warning: zero num constants (update kernel?)\n");
+        val = 168;
+    }
+    screen->specs.num_constants = val;
+
     screen->specs.can_supertile = VIV_FEATURE(screen, chipMinorFeatures0, SUPER_TILED);
     screen->specs.bits_per_tile = VIV_FEATURE(screen, chipMinorFeatures0, 2BITPERTILE)?2:4;
     screen->specs.ts_clear_value = VIV_FEATURE(screen, chipMinorFeatures0, 2BITPERTILE)?0x55555555:0x11111111;

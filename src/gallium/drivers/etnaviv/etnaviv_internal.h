@@ -98,6 +98,8 @@ struct etna_specs
     unsigned max_rendertarget_size;
     /* available pixel pipes */
     unsigned pixel_pipes;
+    /* number of constants */
+    unsigned num_constants;
 };
 
 /** Compiled Gallium state. All the different compiled state atoms are woven together and uploaded
