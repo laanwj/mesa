@@ -88,6 +88,10 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
         }
         cs->RS_WINDOW_SIZE = VIVS_RS_WINDOW_SIZE_WIDTH(rs->width) | VIVS_RS_WINDOW_SIZE_HEIGHT(rs->height / 2);
     }
+    else
+    {
+        abort();
+    }
     cs->RS_PIPE_OFFSET[0] = VIVS_RS_PIPE_OFFSET_X(0) | VIVS_RS_PIPE_OFFSET_Y(0);
     cs->RS_PIPE_OFFSET[1] = VIVS_RS_PIPE_OFFSET_X(0) | VIVS_RS_PIPE_OFFSET_Y(rs->height / 2);
     cs->RS_DITHER[0] = rs->dither[0];

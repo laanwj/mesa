@@ -170,6 +170,10 @@ void etna_submit_rs_state(struct etna_context *ctx, const struct compiled_rs_sta
         /*32*/ etna_emit_load_state(stream, VIVS_RS_KICKER>>2, 1, 0);
         /*33*/ etna_cmd_stream_emit(stream, 0xbeebbeeb);
     }
+    else
+    {
+        abort();
+    }
 }
 
 static void etna_coalesce_start(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce,
@@ -608,6 +612,10 @@ void etna_emit_state(struct etna_context *ctx)
             /*01464*/ EMIT_STATE_RELOC(PE_PIPE_COLOR_ADDR(1), &ctx->framebuffer.PE_PIPE_COLOR_ADDR[1]);
             /*01480*/ EMIT_STATE_RELOC(PE_PIPE_DEPTH_ADDR(0), &ctx->framebuffer.PE_PIPE_DEPTH_ADDR[0]);
             /*01484*/ EMIT_STATE_RELOC(PE_PIPE_DEPTH_ADDR(1), &ctx->framebuffer.PE_PIPE_DEPTH_ADDR[1]);
+        }
+        else
+        {
+            abort();
         }
     }
     if (unlikely(dirty & (ETNA_DIRTY_STENCIL_REF)))
