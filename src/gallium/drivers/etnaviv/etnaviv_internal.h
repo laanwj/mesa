@@ -230,7 +230,6 @@ struct compiled_shader_state
 /* state of some 3d and common registers relevant to etna driver */
 struct etna_3d_state
 {
-    unsigned num_vertex_elements; /* number of elements in FE_VERTEX_ELEMENT_CONFIG */
     unsigned vs_uniforms_size;
     unsigned ps_uniforms_size;
     unsigned vs_inst_mem_size;
