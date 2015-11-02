@@ -235,7 +235,6 @@ struct etna_3d_state
     unsigned vs_inst_mem_size;
     unsigned ps_inst_mem_size;
 
-    uint32_t /*00600*/ FE_VERTEX_ELEMENT_CONFIG[VIVS_FE_VERTEX_ELEMENT_CONFIG__LEN];
     uint32_t /*01008*/ PS_INPUT_COUNT;
     uint32_t /*0100C*/ PS_TEMP_REGISTER_CONTROL;
     uint32_t /*03818*/ GL_MULTI_SAMPLE_CONFIG;
