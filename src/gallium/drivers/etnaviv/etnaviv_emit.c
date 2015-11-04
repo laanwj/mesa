@@ -772,7 +772,11 @@ void etna_emit_state(struct etna_context *ctx)
             etna_coalesce_start(ctx->stream, &coalesce, ctx->shader_state.vs_uniforms_size); /* worst case */
             for (int x = 0; x < ctx->shader_state.vs_uniforms_size; ++x)
             {
-                /*05000*/ EMIT_STATE(VS_UNIFORMS(x), VS_UNIFORMS[x], ctx->shader_state.VS_UNIFORMS[x]);
+                if (ctx->gpu3d.VS_UNIFORMS[x] != ctx->shader_state.VS_UNIFORMS[x])
+                {
+                    /*05000*/ EMIT_STATE(VS_UNIFORMS(x), VS_UNIFORMS[x], ctx->shader_state.VS_UNIFORMS[x]);
+                    ctx->gpu3d.VS_UNIFORMS[x] = ctx->shader_state.VS_UNIFORMS[x];
+                }
             }
             etna_coalesce_end(ctx->stream, &coalesce);
         }
@@ -781,7 +785,11 @@ void etna_emit_state(struct etna_context *ctx)
             etna_coalesce_start(ctx->stream, &coalesce, ctx->shader_state.ps_uniforms_size); /* worst case */
             for (int x = 0; x < ctx->shader_state.ps_uniforms_size; ++x)
             {
-                /*07000*/ EMIT_STATE(PS_UNIFORMS(x), PS_UNIFORMS[x], ctx->shader_state.PS_UNIFORMS[x]);
+                if (ctx->gpu3d.PS_UNIFORMS[x] != ctx->shader_state.PS_UNIFORMS[x])
+                {
+                    /*07000*/ EMIT_STATE(PS_UNIFORMS(x), PS_UNIFORMS[x], ctx->shader_state.PS_UNIFORMS[x]);
+                    ctx->gpu3d.PS_UNIFORMS[x] = ctx->shader_state.PS_UNIFORMS[x];
+                }
             }
             etna_coalesce_end(ctx->stream, &coalesce);
         }
