@@ -159,6 +159,14 @@ static void etna_clear(struct pipe_context *pctx,
             surf->level->clear_value = new_clear_value;
         }
     }
+    /* Flush the color and depth caches before each RS clear operation
+     * This fixes a hang on GC600.
+     */
+    if (buffers & PIPE_CLEAR_DEPTHSTENCIL && buffers & PIPE_CLEAR_COLOR)
+    {
+        etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE,
+                       VIVS_GL_FLUSH_CACHE_COLOR | VIVS_GL_FLUSH_CACHE_DEPTH);
+    }
     if ((buffers & PIPE_CLEAR_DEPTHSTENCIL) && ctx->framebuffer_s.zsbuf != NULL)
     {
         struct etna_surface *surf = etna_surface(ctx->framebuffer_s.zsbuf);
