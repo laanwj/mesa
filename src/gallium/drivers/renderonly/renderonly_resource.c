@@ -252,6 +252,7 @@ renderonly_resource_destroy(struct pipe_screen *pscreen,
 	struct renderonly_resource *resource = to_renderonly_resource(presource);
 
 	pipe_resource_reference(&resource->gpu, NULL);
+	pipe_resource_reference(&resource->prime, NULL);
 	free(resource);
 }
 
