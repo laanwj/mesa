@@ -232,8 +232,6 @@ struct etna_3d_state
 {
     unsigned vs_uniforms_size;
     unsigned ps_uniforms_size;
-    unsigned vs_inst_mem_size;
-    unsigned ps_inst_mem_size;
 
     uint32_t /*01008*/ PS_INPUT_COUNT;
     uint32_t /*0100C*/ PS_TEMP_REGISTER_CONTROL;
