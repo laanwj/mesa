@@ -158,7 +158,7 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
         return NULL;
 
     screen = etna_screen(pscreen);
-    ctx->stream = etna_cmd_stream_new(screen->pipe, &etna_cmd_stream_reset_notify, ctx);
+    ctx->stream = etna_cmd_stream_new(screen->pipe, 0x2000, &etna_cmd_stream_reset_notify, ctx);
     if (ctx->stream == NULL)
         goto fail;
 
