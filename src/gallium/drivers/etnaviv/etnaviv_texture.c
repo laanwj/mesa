@@ -105,11 +105,27 @@ static struct pipe_sampler_view *etna_create_sampler_view(struct pipe_context *p
     sv->base.reference.count = 1;
     sv->base.context = pctx;
 
-    sv->TE_SAMPLER_CONFIG0 =
-                VIVS_TE_SAMPLER_CONFIG0_TYPE(translate_texture_target(res->base.target, false)) |
-                VIVS_TE_SAMPLER_CONFIG0_FORMAT(translate_texture_format(sv->base.format, false));
-                /* merged with sampler state */
+    /* merged with sampler state */
+    sv->TE_SAMPLER_CONFIG0 = VIVS_TE_SAMPLER_CONFIG0_FORMAT(translate_texture_format(sv->base.format, false));
     sv->TE_SAMPLER_CONFIG0_MASK = 0xffffffff;
+
+    switch (sv->base.target) {
+    case PIPE_TEXTURE_1D:
+        /* For 1D textures, we will have a height of 1, so we can use 2D
+	 * but set T wrap to repeat */
+        sv->TE_SAMPLER_CONFIG0_MASK = ~VIVS_TE_SAMPLER_CONFIG0_VWRAP__MASK;
+        sv->TE_SAMPLER_CONFIG0 |= VIVS_TE_SAMPLER_CONFIG0_VWRAP(TEXTURE_WRAPMODE_REPEAT);
+    case PIPE_TEXTURE_2D:
+        sv->TE_SAMPLER_CONFIG0 |= VIVS_TE_SAMPLER_CONFIG0_TYPE(TEXTURE_TYPE_2D);
+        break;
+    case PIPE_TEXTURE_CUBE:
+        sv->TE_SAMPLER_CONFIG0 |= VIVS_TE_SAMPLER_CONFIG0_TYPE(TEXTURE_TYPE_CUBE_MAP);
+        break;
+    default:
+        BUG("Unhandled texture target");
+        free(sv);
+        return NULL;
+    }
 
     sv->TE_SAMPLER_CONFIG1 =
                 VIVS_TE_SAMPLER_CONFIG1_SWIZZLE_R(so->swizzle_r) |

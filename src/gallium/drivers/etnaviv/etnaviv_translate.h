@@ -274,16 +274,6 @@ static inline uint32_t translate_msaa_format(enum pipe_format fmt, bool silent)
     }
 }
 
-static inline uint32_t translate_texture_target(enum pipe_texture_target tgt, bool silent)
-{
-    switch(tgt)
-    {
-    case PIPE_TEXTURE_2D: return TEXTURE_TYPE_2D;
-    case PIPE_TEXTURE_CUBE: return TEXTURE_TYPE_CUBE_MAP;
-    default: DBG("Unhandled texture target: %i", tgt); return ETNA_NO_MATCH;
-    }
-}
-
 /* Return type flags for vertex element format */
 static inline uint32_t translate_vertex_format_type(enum pipe_format fmt, bool silent)
 {
