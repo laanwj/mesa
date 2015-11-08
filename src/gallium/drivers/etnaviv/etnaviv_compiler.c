@@ -66,6 +66,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define ETNA_MAX_INNER_TEMPS 2
+
 /* Native register description structure */
 struct etna_native_reg
 {
@@ -140,7 +142,7 @@ struct etna_compile_data
      * only allocated when needed.
      */
     int inner_temps; /* number of inner temps used; only up to one available at this point */
-    struct etna_native_reg inner_temp;
+    struct etna_native_reg inner_temp[ETNA_MAX_INNER_TEMPS];
 
     /* Fields for handling nested conditionals */
     struct etna_compile_frame frame_stack[ETNA_MAX_DEPTH];
@@ -571,12 +573,16 @@ static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd, con
  */
 static struct etna_native_reg etna_compile_get_inner_temp(struct etna_compile_data *cd)
 {
-    if(cd->inner_temps)
-        BUG("Multiple inner temporaries (%i) requested in one instruction", cd->inner_temps + 1);
-    if(!cd->inner_temp.valid)
-        cd->inner_temp = alloc_new_native_reg(cd);
-    cd->inner_temps += 1;
-    return cd->inner_temp;
+    int inner_temp = cd->inner_temps;
+    if(inner_temp < ETNA_MAX_INNER_TEMPS) {
+        if(!cd->inner_temp[inner_temp].valid)
+            cd->inner_temp[inner_temp] = alloc_new_native_reg(cd);
+        /* alloc_new_native_reg() handles lack of registers */
+        cd->inner_temps += 1;
+    } else {
+        BUG("Too many inner temporaries (%i) requested in one instruction", inner_temp + 1);
+    }
+    return cd->inner_temp[inner_temp];
 }
 
 /* Emit instruction and append it to program */
