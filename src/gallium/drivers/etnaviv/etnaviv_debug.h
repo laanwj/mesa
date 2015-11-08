@@ -49,6 +49,7 @@
 #define ETNA_DBG_FINISH_ALL      0x80000 /* Finish on every flush */
 #define ETNA_DBG_FLUSH_ALL       0x100000 /* Flush after every rendered primitive */
 #define ETNA_DBG_ZERO            0x200000 /* Zero all resources after allocation */
+#define ETNA_DBG_DRAW_STALL      0x400000 /* Stall FE/PE after every draw op */
 
 extern int etna_mesa_debug; /* set in etna_screen.c from ETNA_DEBUG */
 
