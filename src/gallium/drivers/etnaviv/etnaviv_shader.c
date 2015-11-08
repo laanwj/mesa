@@ -94,10 +94,6 @@ void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* c
 
     cs->VS_END_PC = vs->code_size / 4;
     cs->VS_OUTPUT_COUNT = fs->num_inputs + 1; /* position + varyings */
-    /* Number of vertex elements determines number of VS inputs. Otherwise, the GPU crashes */
-    cs->VS_INPUT_COUNT = VIVS_VS_INPUT_COUNT_UNK8(vs->input_count_unk8);
-    cs->VS_TEMP_REGISTER_CONTROL =
-                              VIVS_VS_TEMP_REGISTER_CONTROL_NUM_TEMPS(vs->num_temps);
 
     /* link vs outputs to fs inputs */
     struct etna_shader_link_info link = {};
@@ -138,13 +134,6 @@ void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* c
         cs->PA_CONFIG = ~VIVS_PA_CONFIG_POINT_SIZE_ENABLE;
         cs->VS_OUTPUT_COUNT_PSIZE = cs->VS_OUTPUT_COUNT;
     }
-
-    /* vs inputs (attributes) */
-    uint32_t vs_input[4] = {0};
-    for(int idx=0; idx<vs->num_inputs; ++idx)
-        vs_input[idx/4] |= vs->inputs[idx].reg << ((idx%4)*8);
-    for(int idx=0; idx<4; ++idx)
-        cs->VS_INPUT[idx] = vs_input[idx];
 
     cs->VS_LOAD_BALANCING = vs->vs_load_balancing;
     cs->VS_START_PC = 0;
@@ -208,6 +197,45 @@ void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* c
     /* fetch any previous uniforms from buffer */
     etna_fetch_uniforms(ctx, PIPE_SHADER_VERTEX);
     etna_fetch_uniforms(ctx, PIPE_SHADER_FRAGMENT);
+}
+
+bool etna_shader_update_vs_inputs(struct etna_context *ctx,
+                              struct compiled_shader_state *cs,
+                              const struct etna_shader_object *vs,
+                              const struct compiled_vertex_elements_state *ves)
+{
+    unsigned num_temps, cur_temp, num_vs_inputs;
+
+    /* Number of vertex elements determines number of VS inputs. Otherwise,
+     * the GPU crashes. Allocate any unused vertex elements to VS temporary
+     * registers. */
+    num_vs_inputs = MAX2(ves->num_elements, vs->num_inputs);
+    if (num_vs_inputs != ves->num_elements)
+    {
+        BUG("Number of elements %i does not match the number of VS inputs %i",
+            ctx->vertex_elements->num_elements, ctx->vs->num_inputs);
+        return false;
+    }
+
+    cur_temp = vs->num_temps;
+    num_temps = num_vs_inputs - vs->num_inputs + cur_temp;
+
+    cs->VS_INPUT_COUNT = VIVS_VS_INPUT_COUNT_COUNT(num_vs_inputs) |
+                         VIVS_VS_INPUT_COUNT_UNK8(vs->input_count_unk8);
+    cs->VS_TEMP_REGISTER_CONTROL =
+                         VIVS_VS_TEMP_REGISTER_CONTROL_NUM_TEMPS(num_temps);
+
+    /* vs inputs (attributes) */
+    uint32_t vs_input[4] = {0};
+    for(int idx=0; idx<num_vs_inputs; ++idx)
+        if (idx < vs->num_inputs)
+            vs_input[idx/4] |= vs->inputs[idx].reg << ((idx%4)*8);
+        else
+            vs_input[idx/4] |= cur_temp++ << ((idx%4)*8);
+    for(int idx=0; idx<4; ++idx)
+        cs->VS_INPUT[idx] = vs_input[idx];
+
+    return true;
 }
 
 static void etna_set_constant_buffer(struct pipe_context *pctx,

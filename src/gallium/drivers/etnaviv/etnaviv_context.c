@@ -92,15 +92,14 @@ static void etna_draw_vbo(struct pipe_context *pctx,
         return;
     }
 
+    if (ctx->dirty & (ETNA_DIRTY_VERTEX_ELEMENTS | ETNA_DIRTY_SHADER))
+    {
+        if (!etna_shader_update_vs_inputs(ctx, &ctx->shader_state, ctx->vs, ctx->vertex_elements))
+            return;
+    }
+
     /* First, sync state, then emit DRAW_PRIMITIVES or DRAW_INDEXED_PRIMITIVES */
     etna_emit_state(ctx);
-
-    if (ctx->vs && ctx->vertex_elements->num_elements != ctx->vs->num_inputs)
-    {
-        BUG("Number of elements %i does not match the number of VS inputs %i",
-                ctx->vertex_elements->num_elements, ctx->vs->num_inputs);
-        return;
-    }
 
     draw_mode = translate_draw_mode(info->mode);
     if (draw_mode == ETNA_NO_MATCH) {
