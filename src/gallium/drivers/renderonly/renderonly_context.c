@@ -289,6 +289,15 @@ renderonly_set_stencil_ref(struct pipe_context *pcontext,
 }
 
 static void
+renderonly_set_clip_state(struct pipe_context *pcontext,
+                          const struct pipe_clip_state *pcs)
+{
+	struct renderonly_context *context = to_renderonly_context(pcontext);
+
+	context->gpu->set_clip_state(context->gpu, pcs);
+}
+
+static void
 renderonly_set_constant_buffer(struct pipe_context *pcontext,
 			  uint shader,
 			  uint index,
@@ -707,6 +716,7 @@ renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flag
 	context->base.delete_vertex_elements_state = renderonly_delete_vertex_elements_state;
 
 	context->base.set_stencil_ref = renderonly_set_stencil_ref;
+	context->base.set_clip_state = renderonly_set_clip_state;
 	context->base.set_constant_buffer = renderonly_set_constant_buffer;
 	context->base.set_framebuffer_state = renderonly_set_framebuffer_state;
 	context->base.set_polygon_stipple = renderonly_set_polygon_stipple;
