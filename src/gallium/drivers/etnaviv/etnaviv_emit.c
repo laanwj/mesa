@@ -731,7 +731,7 @@ void etna_emit_state(struct etna_context *ctx)
                 if ((1 << x) & active_samplers)
                 {
                     struct etna_sampler_view *sv = etna_sampler_view(ctx->sampler_view[x]);
-                    /*02400*/ EMIT_STATE(TE_SAMPLER_LOD_ADDR(x, y), TE_SAMPLER_LOD_ADDR[y][x], sv->TE_SAMPLER_LOD_ADDR[y]);
+                    /*02400*/ EMIT_STATE_RELOC(TE_SAMPLER_LOD_ADDR(x, y), &sv->TE_SAMPLER_LOD_ADDR[y]);
                 }
             }
         }
