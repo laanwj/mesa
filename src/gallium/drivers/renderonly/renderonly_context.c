@@ -488,6 +488,22 @@ renderonly_set_stream_output_targets(struct pipe_context *pcontext,
 }
 
 static void
+renderonly_resource_copy_region(struct pipe_context *pcontext,
+           struct pipe_resource *dst, unsigned dst_level,
+           unsigned dstx, unsigned dsty, unsigned dstz,
+           struct pipe_resource *src, unsigned src_level,
+           const struct pipe_box *src_box)
+{
+	struct renderonly_context *context = to_renderonly_context(pcontext);
+
+	context->gpu->resource_copy_region(context->gpu,
+					   renderonly_resource_unwrap(dst),
+					   dst_level, dstx, dsty, dstz,
+					   renderonly_resource_unwrap(src),
+					   src_level, src_box);
+}
+
+static void
 renderonly_blit(struct pipe_context *pcontext,
 	   const struct pipe_blit_info *pinfo)
 {
@@ -742,6 +758,7 @@ renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flag
 	context->base.stream_output_target_destroy = renderonly_stream_output_target_destroy;
 	context->base.set_stream_output_targets = renderonly_set_stream_output_targets;
 
+	context->base.resource_copy_region = renderonly_resource_copy_region;
 	context->base.blit = renderonly_blit;
 	context->base.clear = renderonly_clear;
 	context->base.flush = renderonly_flush;
