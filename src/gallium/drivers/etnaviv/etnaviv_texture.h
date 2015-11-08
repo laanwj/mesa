@@ -27,6 +27,8 @@
 #ifndef H_ETNAVIV_TEXTURE
 #define H_ETNAVIV_TEXTURE
 
+#include <libdrm/etnaviv_drmif.h>
+
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
 
@@ -59,7 +61,7 @@ struct etna_sampler_view
     uint32_t TE_SAMPLER_CONFIG1;
     uint32_t TE_SAMPLER_SIZE;
     uint32_t TE_SAMPLER_LOG_SIZE;
-    uint32_t TE_SAMPLER_LOD_ADDR[VIVS_TE_SAMPLER_LOD_ADDR__LEN];
+    struct etna_reloc TE_SAMPLER_LOD_ADDR[VIVS_TE_SAMPLER_LOD_ADDR__LEN];
     unsigned min_lod, max_lod; /* 5.5 fixp */
 };
 
