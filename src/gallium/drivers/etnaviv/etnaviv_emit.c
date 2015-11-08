@@ -428,19 +428,25 @@ void etna_emit_state(struct etna_context *ctx)
     }
     if (unlikely(dirty & (ETNA_DIRTY_VERTEX_ELEMENTS | ETNA_DIRTY_SHADER)))
     {
-        /*00808*/ EMIT_STATE(VS_INPUT_COUNT, VS_INPUT_COUNT, VIVS_VS_INPUT_COUNT_COUNT(ctx->vertex_elements->num_elements) | ctx->shader_state.VS_INPUT_COUNT);
+        /*00808*/ EMIT_STATE(VS_INPUT_COUNT, VS_INPUT_COUNT, ctx->shader_state.VS_INPUT_COUNT);
+        /*0080C*/ EMIT_STATE(VS_TEMP_REGISTER_CONTROL, VS_TEMP_REGISTER_CONTROL, ctx->shader_state.VS_TEMP_REGISTER_CONTROL);
     }
     if (unlikely(dirty & (ETNA_DIRTY_SHADER)))
     {
-        /*0080C*/ EMIT_STATE(VS_TEMP_REGISTER_CONTROL, VS_TEMP_REGISTER_CONTROL, ctx->shader_state.VS_TEMP_REGISTER_CONTROL);
         for (int x = 0; x < 4; ++x)
         {
             /*00810*/ EMIT_STATE(VS_OUTPUT(x), VS_OUTPUT[x], ctx->shader_state.VS_OUTPUT[x]);
         }
+    }
+    if (unlikely(dirty & (ETNA_DIRTY_VERTEX_ELEMENTS | ETNA_DIRTY_SHADER)))
+    {
         for (int x = 0; x < 4; ++x)
         {
             /*00820*/ EMIT_STATE(VS_INPUT(x), VS_INPUT[x], ctx->shader_state.VS_INPUT[x]);
         }
+    }
+    if (unlikely(dirty & (ETNA_DIRTY_SHADER)))
+    {
         /*00830*/ EMIT_STATE(VS_LOAD_BALANCING, VS_LOAD_BALANCING, ctx->shader_state.VS_LOAD_BALANCING);
         /*00838*/ EMIT_STATE(VS_START_PC, VS_START_PC, ctx->shader_state.VS_START_PC);
         if (ctx->specs.has_shader_range_registers)
