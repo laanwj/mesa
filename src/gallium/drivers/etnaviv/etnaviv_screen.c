@@ -59,6 +59,7 @@ static const struct debug_named_value debug_options[] = {
     //{"finish_all",     ETNA_DBG_FINISH_ALL,"Temporary flag to force GLSL 1.20 (rather than 1.30) on a3xx+"},
     {"flush_all",      ETNA_DBG_FLUSH_ALL, "Flush after every rendered primitive"},
     {"zero",           ETNA_DBG_ZERO, "Zero all resources after allocation"},
+    {"draw_stall",     ETNA_DBG_DRAW_STALL, "Stall FE/PE after each rendered primitive"},
     DEBUG_NAMED_VALUE_END
 };
 
