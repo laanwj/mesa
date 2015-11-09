@@ -97,6 +97,59 @@ void etna_rs_gen_clear_surface(struct etna_context *ctx, struct compiled_rs_stat
         });
 }
 
+static void etna_blit_clear_color(struct pipe_context *pctx,
+             struct pipe_surface *dst, const union pipe_color_union *color)
+{
+    struct etna_context *ctx = etna_context(pctx);
+    struct etna_surface *surf = etna_surface(dst);
+    uint32_t new_clear_value = translate_clear_color(surf->base.format, color);
+    if (surf->surf.ts_size) /* TS: use precompiled clear command */
+    {
+        /* Set new clear color */
+        ctx->framebuffer.TS_COLOR_CLEAR_VALUE = new_clear_value;
+        if (!DBG_ENABLED(ETNA_DBG_NO_AUTODISABLE))
+        {
+            /* Set number of color tiles to be filled */
+            etna_set_state(ctx->stream, VIVS_TS_COLOR_AUTO_DISABLE_COUNT, surf->surf.padded_width*surf->surf.padded_height/16);
+            ctx->framebuffer.TS_MEM_CONFIG |= VIVS_TS_MEM_CONFIG_COLOR_AUTO_DISABLE;
+        }
+        ctx->dirty |= ETNA_DIRTY_TS;
+    }
+    else if (unlikely(new_clear_value != surf->level->clear_value)) /* Queue normal RS clear for non-TS surfaces */
+    {
+        /* If clear color changed, re-generate stored command */
+        etna_rs_gen_clear_surface(ctx, &surf->clear_command, surf, new_clear_value);
+    }
+    etna_submit_rs_state(ctx, &surf->clear_command);
+    surf->level->clear_value = new_clear_value;
+}
+
+static void etna_blit_clear_zs(struct pipe_context *pctx,
+             struct pipe_surface *dst, double depth, unsigned stencil)
+{
+    struct etna_context *ctx = etna_context(pctx);
+    struct etna_surface *surf = etna_surface(dst);
+    uint32_t new_clear_value = translate_clear_depth_stencil(surf->base.format, depth, stencil);
+    if (surf->surf.ts_size) /* TS: use precompiled clear command */
+    {
+        /* Set new clear depth value */
+        ctx->framebuffer.TS_DEPTH_CLEAR_VALUE = new_clear_value;
+        if (!DBG_ENABLED(ETNA_DBG_NO_AUTODISABLE))
+        {
+            /* Set number of depth tiles to be filled */
+            etna_set_state(ctx->stream, VIVS_TS_DEPTH_AUTO_DISABLE_COUNT, surf->surf.padded_width*surf->surf.padded_height/16);
+            ctx->framebuffer.TS_MEM_CONFIG |= VIVS_TS_MEM_CONFIG_DEPTH_AUTO_DISABLE;
+        }
+        ctx->dirty |= ETNA_DIRTY_TS;
+    } else if (unlikely(new_clear_value != surf->level->clear_value)) /* Queue normal RS clear for non-TS surfaces */
+    {
+        /* If clear depth value changed, re-generate stored command */
+        etna_rs_gen_clear_surface(ctx, &surf->clear_command, surf, new_clear_value);
+    }
+    etna_submit_rs_state(ctx, &surf->clear_command);
+    surf->level->clear_value = new_clear_value;
+}
+
 static void etna_clear(struct pipe_context *pctx,
              unsigned buffers,
              const union pipe_color_union *color,
@@ -136,27 +189,7 @@ static void etna_clear(struct pipe_context *pctx,
     {
         for (int idx = 0; idx < ctx->framebuffer_s.nr_cbufs; ++idx)
         {
-            struct etna_surface *surf = etna_surface(ctx->framebuffer_s.cbufs[idx]);
-            uint32_t new_clear_value = translate_clear_color(surf->base.format, &color[idx]);
-            if (surf->surf.ts_size) /* TS: use precompiled clear command */
-            {
-                /* Set new clear color */
-                ctx->framebuffer.TS_COLOR_CLEAR_VALUE = new_clear_value;
-                if (!DBG_ENABLED(ETNA_DBG_NO_AUTODISABLE))
-                {
-                    /* Set number of color tiles to be filled */
-                    etna_set_state(ctx->stream, VIVS_TS_COLOR_AUTO_DISABLE_COUNT, surf->surf.padded_width*surf->surf.padded_height/16);
-                    ctx->framebuffer.TS_MEM_CONFIG |= VIVS_TS_MEM_CONFIG_COLOR_AUTO_DISABLE;
-                }
-                ctx->dirty |= ETNA_DIRTY_TS;
-            }
-            else if (unlikely(new_clear_value != surf->level->clear_value)) /* Queue normal RS clear for non-TS surfaces */
-            {
-                /* If clear color changed, re-generate stored command */
-                etna_rs_gen_clear_surface(ctx, &surf->clear_command, surf, new_clear_value);
-            }
-            etna_submit_rs_state(ctx, &surf->clear_command);
-            surf->level->clear_value = new_clear_value;
+            etna_blit_clear_color(pctx, ctx->framebuffer_s.cbufs[idx], &color[idx]);
         }
     }
     /* Flush the color and depth caches before each RS clear operation
@@ -169,26 +202,7 @@ static void etna_clear(struct pipe_context *pctx,
     }
     if ((buffers & PIPE_CLEAR_DEPTHSTENCIL) && ctx->framebuffer_s.zsbuf != NULL)
     {
-        struct etna_surface *surf = etna_surface(ctx->framebuffer_s.zsbuf);
-        uint32_t new_clear_value = translate_clear_depth_stencil(surf->base.format, depth, stencil);
-        if (surf->surf.ts_size) /* TS: use precompiled clear command */
-        {
-            /* Set new clear depth value */
-            ctx->framebuffer.TS_DEPTH_CLEAR_VALUE = new_clear_value;
-            if (!DBG_ENABLED(ETNA_DBG_NO_AUTODISABLE))
-            {
-                /* Set number of depth tiles to be filled */
-                etna_set_state(ctx->stream, VIVS_TS_DEPTH_AUTO_DISABLE_COUNT, surf->surf.padded_width*surf->surf.padded_height/16);
-                ctx->framebuffer.TS_MEM_CONFIG |= VIVS_TS_MEM_CONFIG_DEPTH_AUTO_DISABLE;
-            }
-            ctx->dirty |= ETNA_DIRTY_TS;
-        } else if (unlikely(new_clear_value != surf->level->clear_value)) /* Queue normal RS clear for non-TS surfaces */
-        {
-            /* If clear depth value changed, re-generate stored command */
-            etna_rs_gen_clear_surface(ctx, &surf->clear_command, surf, new_clear_value);
-        }
-        etna_submit_rs_state(ctx, &surf->clear_command);
-        surf->level->clear_value = new_clear_value;
+        etna_blit_clear_zs(pctx, ctx->framebuffer_s.zsbuf, depth, stencil);
     }
     etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
 }
