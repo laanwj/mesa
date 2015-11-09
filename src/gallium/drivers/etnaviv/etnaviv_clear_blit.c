@@ -125,11 +125,40 @@ static void etna_blit_clear_color(struct pipe_context *pctx,
 }
 
 static void etna_blit_clear_zs(struct pipe_context *pctx,
-             struct pipe_surface *dst, double depth, unsigned stencil)
+             struct pipe_surface *dst, unsigned buffers,
+             double depth, unsigned stencil)
 {
     struct etna_context *ctx = etna_context(pctx);
     struct etna_surface *surf = etna_surface(dst);
     uint32_t new_clear_value = translate_clear_depth_stencil(surf->base.format, depth, stencil);
+    uint32_t new_clear_bits = 0, clear_bits_depth, clear_bits_stencil;
+
+    /* Get the channels to clear */
+    switch (surf->base.format) {
+    case PIPE_FORMAT_Z16_UNORM:
+        clear_bits_depth = 0xffff;
+        clear_bits_stencil = 0;
+        break;
+    case PIPE_FORMAT_X8Z24_UNORM:
+    case PIPE_FORMAT_S8_UINT_Z24_UNORM:
+        clear_bits_depth = 0xeeee;
+        clear_bits_stencil = 0x1111;
+        break;
+    default:
+        clear_bits_depth = clear_bits_stencil = 0xffff;
+        break;
+    }
+    if (buffers & PIPE_CLEAR_DEPTH)
+        new_clear_bits |= clear_bits_depth;
+    if (buffers & PIPE_CLEAR_STENCIL)
+        new_clear_bits |= clear_bits_stencil;
+
+    /* FIXME: when tile status is enabled, this becomes more complex as
+     * we may separately clear the depth from the stencil.  In this case,
+     * we want to resolve the surface, and avoid using the tile status.
+     * We may be better off recording the pending clear operation,
+     * delaying the actual clear to the first use.  This way, we can merge
+     * consecutive clears together. */
     if (surf->surf.ts_size) /* TS: use precompiled clear command */
     {
         /* Set new clear depth value */
@@ -141,10 +170,14 @@ static void etna_blit_clear_zs(struct pipe_context *pctx,
             ctx->framebuffer.TS_MEM_CONFIG |= VIVS_TS_MEM_CONFIG_DEPTH_AUTO_DISABLE;
         }
         ctx->dirty |= ETNA_DIRTY_TS;
-    } else if (unlikely(new_clear_value != surf->level->clear_value)) /* Queue normal RS clear for non-TS surfaces */
-    {
-        /* If clear depth value changed, re-generate stored command */
-        etna_rs_gen_clear_surface(ctx, &surf->clear_command, surf, new_clear_value);
+    } else {
+        if (unlikely(new_clear_value != surf->level->clear_value)) /* Queue normal RS clear for non-TS surfaces */
+        {
+            /* If clear depth value changed, re-generate stored command */
+            etna_rs_gen_clear_surface(ctx, &surf->clear_command, surf, new_clear_value);
+        }
+        /* Update the channels to be cleared */
+        etna_modify_rs_clearbits(&surf->clear_command, new_clear_bits);
     }
     etna_submit_rs_state(ctx, &surf->clear_command);
     surf->level->clear_value = new_clear_value;
@@ -202,7 +235,7 @@ static void etna_clear(struct pipe_context *pctx,
     }
     if ((buffers & PIPE_CLEAR_DEPTHSTENCIL) && ctx->framebuffer_s.zsbuf != NULL)
     {
-        etna_blit_clear_zs(pctx, ctx->framebuffer_s.zsbuf, depth, stencil);
+        etna_blit_clear_zs(pctx, ctx->framebuffer_s.zsbuf, buffers, depth, stencil);
     }
     etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
 }
