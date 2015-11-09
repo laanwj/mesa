@@ -77,4 +77,7 @@ struct compiled_rs_state
 /* compile RS state struct */
 void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *cs, const struct rs_state *rs);
 
+/* modify the clear bits value in the compiled RS state */
+void etna_modify_rs_clearbits(struct compiled_rs_state *cs, uint32_t clear_bits);
+
 #endif

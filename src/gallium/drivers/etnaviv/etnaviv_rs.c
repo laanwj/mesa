@@ -112,3 +112,9 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
     cs->RS_FILL_VALUE[3] = rs->clear_value[3];
     cs->RS_EXTRA_CONFIG = VIVS_RS_EXTRA_CONFIG_AA(rs->aa) | VIVS_RS_EXTRA_CONFIG_ENDIAN(rs->endian_mode);
 }
+
+void etna_modify_rs_clearbits(struct compiled_rs_state *cs, uint32_t clear_bits)
+{
+    cs->RS_CLEAR_CONTROL &= ~VIVS_RS_CLEAR_CONTROL_BITS__MASK;
+    cs->RS_CLEAR_CONTROL |= VIVS_RS_CLEAR_CONTROL_BITS(clear_bits);
+}
