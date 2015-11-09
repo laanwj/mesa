@@ -224,6 +224,7 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
                 struct winsys_handle *handle,
                 unsigned usage)
 {
+    struct etna_screen *screen = etna_screen(pscreen);
     struct etna_resource *rsc = CALLOC_STRUCT(etna_resource);
     struct etna_resource_level *level = &rsc->levels[0];
     struct pipe_resource *prsc = &rsc->base;
@@ -247,8 +248,28 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
     if (!rsc->bo)
         goto fail;
 
-    rsc->levels[0].width = tmpl->width0;
-    rsc->levels[0].height = tmpl->height0;
+    level->width = tmpl->width0;
+    level->height = tmpl->height0;
+
+    /* We will be using the RS to copy with this resource, so we must
+     * ensure that it is appropriately aligned for the RS requirements. */
+    unsigned paddingX = ETNA_RS_WIDTH_MASK + 1;
+    unsigned paddingY = (ETNA_RS_HEIGHT_MASK + 1) * screen->specs.pixel_pipes;
+
+    level->padded_width = align(level->width, paddingX);
+    level->padded_height = align(level->height, paddingY);
+
+    /* The DDX must give us a BO which conforms to our padding size.
+     * The stride of the BO must be greater or equal to our padded
+     * stride. The size of the BO must accomodate the padded height. */
+    if (level->stride < util_format_get_stride(tmpl->format, level->padded_width)) {
+        BUG("BO stride is too small for RS engine width padding");
+        goto fail;
+    }
+    if (etna_bo_size(rsc->bo) < level->stride * level->padded_height) {
+        BUG("BO size is too small for RS engine height padding");
+        goto fail;
+    }
 
     return prsc;
 
