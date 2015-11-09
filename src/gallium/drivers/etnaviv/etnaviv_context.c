@@ -98,14 +98,14 @@ static void etna_draw_vbo(struct pipe_context *pctx,
             return;
     }
 
-    /* First, sync state, then emit DRAW_PRIMITIVES or DRAW_INDEXED_PRIMITIVES */
-    etna_emit_state(ctx);
-
     draw_mode = translate_draw_mode(info->mode);
     if (draw_mode == ETNA_NO_MATCH) {
         BUG("Unsupported draw mode");
         return;
     }
+
+    /* First, sync state, then emit DRAW_PRIMITIVES or DRAW_INDEXED_PRIMITIVES */
+    etna_emit_state(ctx);
 
     if (info->indexed)
     {
