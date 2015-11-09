@@ -508,6 +508,7 @@ static void *etna_vertex_elements_state_create(struct pipe_context *pctx,
     {
         unsigned element_size = util_format_get_blocksize(elements[idx].src_format);
         unsigned end_offset = elements[idx].src_offset + element_size;
+        uint32_t format_type, normalize;
 
         if (nonconsecutive)
             start_offset = elements[idx].src_offset;
@@ -518,11 +519,17 @@ static void *etna_vertex_elements_state_create(struct pipe_context *pctx,
                     elements[idx+1].vertex_buffer_index != elements[idx].vertex_buffer_index ||
                     end_offset != elements[idx+1].src_offset;
 
+        format_type = translate_vertex_format_type(elements[idx].src_format, false);
+        normalize = translate_vertex_format_normalize(elements[idx].src_format);
+
+        assert(format_type != ETNA_NO_MATCH);
+        assert(normalize != ETNA_NO_MATCH);
+
         cs->FE_VERTEX_ELEMENT_CONFIG[idx] =
                 (nonconsecutive ? VIVS_FE_VERTEX_ELEMENT_CONFIG_NONCONSECUTIVE : 0) |
-                translate_vertex_format_type(elements[idx].src_format, false) |
+                format_type |
                 VIVS_FE_VERTEX_ELEMENT_CONFIG_NUM(util_format_get_nr_components(elements[idx].src_format)) |
-                translate_vertex_format_normalize(elements[idx].src_format) |
+                normalize |
                 VIVS_FE_VERTEX_ELEMENT_CONFIG_ENDIAN(ENDIAN_MODE_NO_SWAP) |
                 VIVS_FE_VERTEX_ELEMENT_CONFIG_STREAM(elements[idx].vertex_buffer_index) |
                 VIVS_FE_VERTEX_ELEMENT_CONFIG_START(elements[idx].src_offset) |
