@@ -375,7 +375,7 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     if (usage & PIPE_BIND_VERTEX_BUFFER)
     {
         /* must be supported vertex format */
-        if(translate_vertex_format_type(format, true) == ETNA_NO_MATCH)
+        if(translate_vertex_format_type(format, true) != ETNA_NO_MATCH)
         {
             allowed |= PIPE_BIND_VERTEX_BUFFER;
         }
