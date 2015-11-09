@@ -33,7 +33,6 @@ etna_drm_screen_create_fd(int fd)
 
         etna_gpu_del(gpu);
     }
-    fprintf(stderr, "Succesfully opened device\n");
 
     return etna_screen_create(dev, gpu);
 }
