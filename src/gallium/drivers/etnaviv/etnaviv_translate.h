@@ -423,7 +423,7 @@ static inline uint32_t translate_draw_mode(unsigned mode)
 
 /* Get size multiple for size of texture/rendertarget with a certain layout
  * This is affected by many different parameters:
- *   -  A horizontal multiple of 16 is used when possible as in this case tile status and resolve can be used
+ *   - A horizontal multiple of 16 is used when possible as resolve can be used
  *       at the cost of only a little bit extra memory usage.
  *   - If the surface is a texture, and HALIGN can not be specified on thie GPU, set tex_no_halign to 1
  *       If set, an horizontal multiple of 4 will be used for tiled and linear surfaces, otherwise one of 16.
@@ -438,12 +438,12 @@ static inline void etna_layout_multiple(unsigned layout, unsigned pixel_pipes,
     switch(layout)
     {
     case ETNA_LAYOUT_LINEAR:
-        *paddingX = tex_no_halign ? 4 : 16;
+        *paddingX = 16;
         *paddingY = 1;
         *halign = tex_no_halign ? TEXTURE_HALIGN_FOUR : TEXTURE_HALIGN_SIXTEEN;
         break;
     case ETNA_LAYOUT_TILED:
-        *paddingX = tex_no_halign ? 4 : 16;
+        *paddingX = 16;
         *paddingY = 4;
         *halign = tex_no_halign ? TEXTURE_HALIGN_FOUR : TEXTURE_HALIGN_SIXTEEN;
         break;

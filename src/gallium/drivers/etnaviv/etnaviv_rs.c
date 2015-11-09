@@ -45,11 +45,11 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
     bool source_multi = (rs->source_tiling & 0x4)?true:false;
     bool dest_multi = (rs->dest_tiling & 0x4)?true:false;
 
-    /* GC600 needs widths to be a multiple of 16 or bad things happen,
-     * such as scribbing over memory, or the GPU hanging, even for
-     * non-tiled formats.
+    /* Vivante RS needs widths to be a multiple of 16 or bad things
+     * happen, such as scribbing over memory, or the GPU hanging,
+     * even for non-tiled formats.  As this is serious, use abort().
      */
-    if (ctx->screen->model == chipModel_GC600 && rs->width & 15)
+    if (rs->width & ETNA_RS_WIDTH_MASK)
         abort();
 
     /* TODO could just pre-generate command buffer, would simply submit to one memcpy */

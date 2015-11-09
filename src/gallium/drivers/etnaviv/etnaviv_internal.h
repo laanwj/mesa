@@ -38,7 +38,7 @@
 #define ETNA_NUM_LAYERS (6)
 #define ETNA_MAX_UNIFORMS (256)
 
-/* RS tiled operations must have width%16 = 0 */
+/* All RS operations must have width%16 = 0 */
 #define ETNA_RS_WIDTH_MASK (16-1)
 /* RS tiled operations must have height%4 = 0 */
 #define ETNA_RS_HEIGHT_MASK (3)
