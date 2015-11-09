@@ -116,7 +116,7 @@ static void etna_draw_vbo(struct pipe_context *pctx,
     {
         etna_draw_primitives(ctx->stream, draw_mode, info->start, prims);
     }
-etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
+
     if (DBG_ENABLED(ETNA_DBG_DRAW_STALL))
     {
         /* Stall the FE after every draw operation.  This allows better
