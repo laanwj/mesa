@@ -231,7 +231,7 @@ static void etna_resource_copy_region(struct pipe_context *pctx,
     /* The resource must be of the same format. */
     assert(src->format == dst->format);
     /* Resources with nr_samples > 1 are not allowed. */
-    assert(src->nr_samples == 1 && dst->nr_samples == 1);
+    assert(src->nr_samples <= 1 && dst->nr_samples <= 1);
     /* XXX we can use the RS as a literal copy engine here
      * the only complexity is tiling; the size of the boxes needs to be aligned to the tile size
      * how to handle the case where a resource is copied from/to a non-aligned position?
