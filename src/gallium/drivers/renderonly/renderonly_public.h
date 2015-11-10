@@ -21,26 +21,17 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef RENDERONLY_SCREEN_H
-#define RENDERONLY_SCREEN_H
+#ifndef RENDERONLY_PUBLIC_H
+#define RENDERONLY_PUBLIC_H
 
-#include "pipe/p_screen.h"
-#include "renderonly_public.h"
+struct renderonly_ops {
+	struct pipe_screen *(*open)(int fd);
+	int (*tiling)(int fd, uint32_t handle);
 
-struct renderonly_screen {
-	struct pipe_screen base;
-	int fd;
-
-	struct pipe_screen *gpu;
-	int gpu_fd;
-
-	const struct renderonly_ops *ops;
+	bool intermediate_rendering;
 };
 
-static inline struct renderonly_screen *
-to_renderonly_screen(struct pipe_screen *pscreen)
-{
-   return (struct renderonly_screen *)pscreen;
-}
+struct pipe_screen *renderonly_screen_create(int fd,
+	const struct renderonly_ops *ops);
 
-#endif /* RENDERONLY_SCREEN_H */
+#endif /* RENDERONLY_PUBLIC_H */
