@@ -44,8 +44,8 @@ struct rs_state
     struct etna_bo *source[2];
     uint32_t source_offset[2];
     uint32_t source_stride;
-    struct etna_bo * dest[2];
-    uint32_t dest_offset[2];
+    struct etna_bo *dest;
+    uint32_t dest_offset;
     uint32_t dest_stride;
     uint16_t width; // source width
     uint16_t height; // source height
