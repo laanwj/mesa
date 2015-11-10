@@ -690,6 +690,7 @@ static struct etna_inst_src convert_src(struct etna_compile_data *cd, const stru
  *    MUL dst0.x__w, src0.xyzw, 2/PI
  *    SIN dst0.x__w, dst0.xyzw
  */
+#if 0
 static struct etna_inst_src convert_dst_to_src(struct etna_compile_data *cd,  const struct tgsi_full_dst_register *in)
 {
     struct etna_inst_src rv = {
@@ -704,6 +705,7 @@ static struct etna_inst_src convert_dst_to_src(struct etna_compile_data *cd,  co
     rv.reg = native_reg.id;
     return rv;
 }
+#endif
 
 /* create a new label */
 static struct etna_compile_label *alloc_new_label(struct etna_compile_data *cd)
@@ -1001,20 +1003,29 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
             case TGSI_OPCODE_SIN:
                 if(cd->specs->has_sin_cos_sqrt)
                 {
-                    /* add divide by PI/2, re-use dest register, this works even in src=dst case
-                     * because second instruction only uses output of first. */
+                    struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+                    /* add divide by PI/2, using a temp register. GC2000
+                     * fails with src==dst for the trig instruction. */
                     emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_MUL,
                         .sat = 0,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
+                        .dst.use = 1,
+                        .dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z
+| INST_COMPS_W,
+                        .dst.reg = temp.id,
                         .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY), /* any swizzling happens here */
-                        .src[1] = alloc_imm_u32(cd, 2.0f/M_PI),
+                        .src[1] = alloc_imm_f32(cd, 2.0f/M_PI),
                     });
                     emit_inst(cd, &(struct etna_inst) {
                         .opcode = inst->Instruction.Opcode == TGSI_OPCODE_COS ? INST_OPCODE_COS : INST_OPCODE_SIN,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_dst_to_src(cd, &inst->Dst[0]),
+                        .src[2].use = 1,
+                        .src[2].swiz = INST_SWIZ_IDENTITY,
+                        .src[2].neg = 0,
+                        .src[2].abs = 0,
+                        .src[2].rgroup = temp.rgroup,
+                        .src[2].reg = temp.id,
                     });
                 } else {
                     /* XXX fall back to Taylor series if not HAS_SQRT_TRIG,
