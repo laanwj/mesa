@@ -41,8 +41,8 @@ struct rs_state
     uint8_t dest_format;  // RS_FORMAT_XXX
     uint8_t swap_rb;
     uint8_t flip;
-    struct etna_bo *source[2];
-    uint32_t source_offset[2];
+    struct etna_bo *source;
+    uint32_t source_offset;
     uint32_t source_stride;
     struct etna_bo *dest;
     uint32_t dest_offset;
