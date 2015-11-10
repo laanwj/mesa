@@ -80,14 +80,14 @@ void etna_rs_gen_clear_surface(struct etna_context *ctx, struct compiled_rs_stat
     /* use tiled clear if width is multiple of 16 */
     bool tiled_clear = (surf->surf.padded_width & ETNA_RS_WIDTH_MASK) == 0 &&
                        (surf->surf.padded_height & ETNA_RS_HEIGHT_MASK) == 0;
-    struct etna_bo *dest_bo = etna_resource(surf->base.texture)->bo;
+    struct etna_resource *dst = etna_resource(surf->base.texture);
     etna_compile_rs_state(ctx, rs_state, &(struct rs_state){
             .source_format = format,
             .dest_format = format,
-            .dest = dest_bo,
+            .dest = dst->bo,
             .dest_offset = surf->surf.offset,
             .dest_stride = surf->surf.stride,
-            .dest_tiling = tiled_clear ? surf->layout : ETNA_LAYOUT_LINEAR,
+            .dest_tiling = tiled_clear ? dst->layout : ETNA_LAYOUT_LINEAR,
             .dither = {0xffffffff, 0xffffffff},
             .width = surf->surf.padded_width, /* These must be padded to 16x4 if !LINEAR, otherwise RS will hang */
             .height = surf->surf.padded_height,

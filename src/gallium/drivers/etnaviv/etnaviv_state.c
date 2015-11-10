@@ -90,8 +90,9 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
     if (sv->nr_cbufs > 0) /* at least one color buffer? */
     {
         struct etna_surface *cbuf = etna_surface(sv->cbufs[0]);
-        bool color_supertiled = (cbuf->layout & 2)!=0;
-        assert(cbuf->layout & 1); /* Cannot render to linear surfaces */
+        struct etna_resource *res = etna_resource(cbuf->base.texture);
+        bool color_supertiled = (res->layout & 2)!=0;
+        assert(res->layout & 1); /* Cannot render to linear surfaces */
 
         pipe_surface_reference(&cs->cbuf, &cbuf->base);
         cs->PE_COLOR_FORMAT =
@@ -109,7 +110,6 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
                     cbuf->surf.offset, cbuf->surf.stride*4);
         }
 
-        struct etna_resource *res = etna_resource(cbuf->base.texture);
         struct etna_bo *bo = res->bo;
 
         if (ctx->specs.pixel_pipes == 1)
@@ -162,12 +162,13 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
     if (sv->zsbuf != NULL)
     {
         struct etna_surface *zsbuf = etna_surface(sv->zsbuf);
+        struct etna_resource *res = etna_resource(zsbuf->base.texture);
 
         pipe_surface_reference(&cs->zsbuf, &zsbuf->base);
-        assert(zsbuf->layout & 1); /* Cannot render to linear surfaces */
+        assert(res->layout & 1); /* Cannot render to linear surfaces */
         uint32_t depth_format = translate_depth_format(zsbuf->base.format, false);
         unsigned depth_bits = depth_format == VIVS_PE_DEPTH_CONFIG_DEPTH_FORMAT_D16 ? 16 : 24;
-        bool depth_supertiled = (zsbuf->layout & 2)!=0;
+        bool depth_supertiled = (res->layout & 2)!=0;
 
         cs->PE_DEPTH_CONFIG =
                 depth_format |
@@ -176,7 +177,6 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
                 /* VIVS_PE_DEPTH_CONFIG_ONLY_DEPTH */
                 /* merged with depth_stencil_alpha */
 
-        struct etna_resource *res = etna_resource(zsbuf->base.texture);
         struct etna_bo *bo = res->bo;
 
         if (ctx->specs.pixel_pipes == 1)

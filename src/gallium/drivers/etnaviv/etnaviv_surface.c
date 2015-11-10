@@ -77,7 +77,6 @@ static struct pipe_surface *etna_create_surface(struct pipe_context *pctx,
     surf->base.writable = templat->writable; // what is this for anyway
     surf->base.u = templat->u;
 
-    surf->layout = rsc->layout;
     surf->level = &rsc->levels[level]; /* Keep pointer to actual level to set clear color on */
                                             /* underlying resource instead of surface */
     surf->surf = rsc->levels[level]; /* Make copy of level to narrow down address to layer */
