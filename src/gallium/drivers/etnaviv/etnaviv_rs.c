@@ -65,8 +65,8 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
     cs->RS_SOURCE_STRIDE =  (rs->source_stride << source_stride_shift) |
                             ((rs->source_tiling&2)?VIVS_RS_SOURCE_STRIDE_TILING:0) |
                             ((source_multi)?VIVS_RS_SOURCE_STRIDE_MULTI:0);
-    cs->source[0].bo = rs->source[0];
-    cs->source[0].offset = rs->source_offset[0];
+    cs->source[0].bo = rs->source;
+    cs->source[0].offset = rs->source_offset;
     cs->source[0].flags = ETNA_RELOC_READ;
 
     cs->dest[0].bo = rs->dest;
@@ -85,8 +85,8 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
         assert((rs->height&7) == 0); /* GPU hangs happen if height not 8-aligned */
         if (source_multi)
         {
-            cs->source[1].bo = rs->source[1];
-            cs->source[1].offset = rs->source_offset[1];
+            cs->source[1].bo = rs->source;
+            cs->source[1].offset = rs->source_offset + rs->source_stride * rs->height / 2;
             cs->source[1].flags = ETNA_RELOC_READ;
         }
         if (dest_multi)
