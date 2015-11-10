@@ -207,9 +207,35 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 	if (!resource)
 		return NULL;
 
-	resource->gpu = screen->gpu->resource_from_handle(screen->gpu,
-							  template,
-							  handle);
+	if (handle->type == DRM_API_HANDLE_TYPE_SHARED &&
+	    template->bind & PIPE_BIND_RENDER_TARGET) {
+		/* Render targets are linear on Xorg but must be tiled
+		 * here. It would be nice if dri_drawable_get_format()
+		 * set scanout for these buffers too.
+		 */
+		resource->gpu = screen->gpu->resource_create(screen->gpu,
+							     template);
+		if (!resource->gpu) {
+			free(resource);
+			return false;
+		}
+
+		resource->prime = screen->gpu->resource_from_handle(screen->gpu,
+								    template,
+								    handle);
+		if (!resource->prime) {
+			screen->gpu->resource_destroy(screen->gpu, resource->gpu);
+			free(resource);
+			return false;
+		}
+
+		resource->scanout = true;
+	} else {
+		resource->gpu = screen->gpu->resource_from_handle(screen->gpu,
+								  template,
+								  handle);
+	}
+
 	if (!resource->gpu) {
 		free(resource);
 		return NULL;
