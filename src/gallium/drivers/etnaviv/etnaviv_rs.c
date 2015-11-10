@@ -69,8 +69,8 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
     cs->source[0].offset = rs->source_offset[0];
     cs->source[0].flags = ETNA_RELOC_READ;
 
-    cs->dest[0].bo = rs->dest[0];
-    cs->dest[0].offset = rs->dest_offset[0];
+    cs->dest[0].bo = rs->dest;
+    cs->dest[0].offset = rs->dest_offset;
     cs->dest[0].flags = ETNA_RELOC_WRITE;
 
     cs->RS_DEST_STRIDE = (rs->dest_stride << dest_stride_shift) |
@@ -91,8 +91,8 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
         }
         if (dest_multi)
         {
-            cs->dest[1].bo = rs->dest[1];
-            cs->dest[1].offset = rs->dest_offset[1];
+            cs->dest[1].bo = rs->dest;
+            cs->dest[1].offset = rs->dest_offset + rs->dest_stride * rs->height / 2;
             cs->dest[1].flags = ETNA_RELOC_WRITE;
         }
         cs->RS_WINDOW_SIZE = VIVS_RS_WINDOW_SIZE_WIDTH(rs->width) | VIVS_RS_WINDOW_SIZE_HEIGHT(rs->height / 2);
