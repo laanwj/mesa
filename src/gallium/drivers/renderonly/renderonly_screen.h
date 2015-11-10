@@ -32,7 +32,6 @@ struct renderonly_screen {
 	int fd;
 
 	struct pipe_screen *gpu;
-	int gpu_fd;
 
 	const struct renderonly_ops *ops;
 };

@@ -131,6 +131,7 @@ struct pipe_screen *
 renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 {
 	struct renderonly_screen *screen;
+	int gpu_fd;
 
 	screen = calloc(1, sizeof(*screen));
 	if (!screen)
@@ -140,8 +141,8 @@ renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 	screen->ops = ops;
 	assert(screen->ops);
 
-	screen->gpu_fd = renderonly_open_render_node(screen->fd);
-	if (screen->gpu_fd < 0) {
+	gpu_fd = renderonly_open_render_node(screen->fd);
+	if (gpu_fd < 0) {
 		fprintf(stderr, "failed to open GPU device: %s\n",
 			strerror(errno));
 		free(screen);
@@ -149,10 +150,10 @@ renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 	}
 
 	assert(screen->ops->open);
-	screen->gpu = screen->ops->open(screen->gpu_fd);
+	screen->gpu = screen->ops->open(gpu_fd);
 	if (!screen->gpu) {
 		fprintf(stderr, "failed to create GPU screen\n");
-		close(screen->gpu_fd);
+		close(gpu_fd);
 		free(screen);
 		return NULL;
 	}
