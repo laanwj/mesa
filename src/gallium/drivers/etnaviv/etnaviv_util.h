@@ -61,6 +61,15 @@ static inline uint32_t etna_f32_to_u32(float value)
     return x.u32;
 }
 
+static inline float etna_u32_to_f32(uint32_t value)
+{
+    union {
+        uint32_t u32;
+        float f32;
+    } x = { .u32 = value };
+    return x.f32;
+}
+
 /* 1/log10(2) */
 #define RCPLOG2 (1.4426950408889634f)
 

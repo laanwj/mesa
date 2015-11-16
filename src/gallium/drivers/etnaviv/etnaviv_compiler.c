@@ -316,6 +316,13 @@ static struct etna_inst_src alloc_imm_u32(struct etna_compile_data *cd, uint32_t
     return imm_src;
 }
 
+static uint32_t get_imm_u32(struct etna_compile_data *cd, const struct etna_inst_src *imm, unsigned swiz_idx)
+{
+    assert(imm->use == 1 && imm->rgroup == INST_RGROUP_UNIFORM_0);
+    unsigned int idx = imm->reg * 4 + ((imm->swiz >> (swiz_idx * 2)) & 3);
+    return cd->imm_data[idx];
+}
+
 /* Allocate immediate with a certain float value. If there is already an
  * immediate with that value, return that.
  */
@@ -798,20 +805,76 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         });
                 break;
             case TGSI_OPCODE_LIT: {
-                /*
-                LOG tmp.x, void, void, src.yyyy
-                MUL tmp.x, tmp.xxxx, src.wwww, void
-                LITP dst, src.xxyy, src.xxxx, tmp.xxxx
+                /* SELECT.LT tmp._y__, 0, src.yyyy, 0
+                 *  - can be eliminated if src.y is a uniform and >= 0
+                 * SELECT.GT tmp.___w, 128, src.wwww, 128
+                 * SELECT.LT tmp.___w, -128, tmp.wwww, -128
+                 *  - can be eliminated if src.w is a uniform and fits clamp
+                 * LOG tmp.x, void, void, tmp.yyyy
+                 * MUL tmp.x, tmp.xxxx, tmp.wwww, void
+                 * LITP dst, undef, src.xxxx, tmp.xxxx
                  */
                 struct etna_native_reg inner_temp = etna_compile_get_inner_temp(cd);
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_LOG,
-                        .sat = 0,
-                        .dst.use = 1,
-                        .dst.comps = INST_COMPS_X, /* tmp.x */
-                        .dst.reg = inner_temp.id,
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_BROADCAST(1)), /* src.yyyy */
-                        });
+                struct etna_inst_src src_y = { };
+                if (!etna_rgroup_is_uniform(src[0].rgroup))
+                {
+                     src_y.use = 1;
+                     src_y.swiz = INST_SWIZ_BROADCAST(1);
+                     src_y.rgroup = inner_temp.rgroup;
+                     src_y.reg = inner_temp.id;
+
+                     struct etna_inst ins = { };
+                     ins.opcode = INST_OPCODE_SELECT;
+                     ins.cond = INST_CONDITION_LT;
+                     ins.dst.use = 1;
+                     ins.dst.comps = INST_COMPS_Y;
+                     ins.dst.reg = inner_temp.id;
+                     ins.src[0] = ins.src[2] = alloc_imm_f32(cd, 0.0);
+                     etna_src_swiz(&ins.src[1], &src[0], INST_SWIZ_BROADCAST(1));
+                     emit_inst(cd, &ins);
+                }
+                else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 1)) < 0)
+                     src_y = alloc_imm_f32(cd, 0.0);
+                else
+                     etna_src_swiz(&src_y, &src[0], INST_SWIZ_BROADCAST(1));
+
+                struct etna_inst_src src_w = { };
+                if (!etna_rgroup_is_uniform(src[0].rgroup))
+                {
+                     src_w.use = 1;
+                     src_w.swiz = INST_SWIZ_BROADCAST(3);
+                     src_w.rgroup = inner_temp.rgroup;
+                     src_w.reg = inner_temp.id;
+
+                     struct etna_inst ins = { };
+                     ins.opcode = INST_OPCODE_SELECT;
+                     ins.cond = INST_CONDITION_GT;
+                     ins.dst.use = 1;
+                     ins.dst.comps = INST_COMPS_W;
+                     ins.dst.reg = inner_temp.id;
+                     ins.src[0] = ins.src[2] = alloc_imm_f32(cd, -128.);
+                     etna_src_swiz(&ins.src[1], &src[0], INST_SWIZ_BROADCAST(3));
+                     emit_inst(cd, &ins);
+                     ins.cond = INST_CONDITION_LT;
+                     ins.src[0] = ins.src[2] = alloc_imm_f32(cd, 128.);
+                     ins.src[1] = src_w;
+                     emit_inst(cd, &ins);
+                }
+                else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 3)) < -128.)
+                     src_w = alloc_imm_f32(cd, -128.);
+                else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 3)) > 128.)
+                     src_w = alloc_imm_f32(cd, 128.);
+                else
+                     etna_src_swiz(&src_w, &src[0], INST_SWIZ_BROADCAST(3));
+
+                struct etna_inst ins[3] = { };
+                ins[0].opcode = INST_OPCODE_LOG;
+                ins[0].dst.use = 1;
+                ins[0].dst.comps = INST_COMPS_X;
+                ins[0].dst.reg = inner_temp.id;
+                ins[0].src[2] = src_y;
+
+                emit_inst(cd, &ins[0]);
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_MUL,
                         .sat = 0,
@@ -824,13 +887,13 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .src[0].abs = 0,
                         .src[0].rgroup = inner_temp.rgroup,
                         .src[0].reg = inner_temp.id,
-                        .src[1] = convert_src(cd, &inst->Src[0], INST_SWIZ_BROADCAST(3)), /* src.wwww */
+                        .src[1] = src_w,
                         });
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_LITP,
                         .sat = 0,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ(0,0,1,1)), /* src.xxyy */
+                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ(0,0,0,0)), /* src.xxyy */
                         .src[1] = convert_src(cd, &inst->Src[0], INST_SWIZ_BROADCAST(0)), /* src.xxxx */
                         .src[2].use = 1,
                         .src[2].swiz = INST_SWIZ_BROADCAST(0), /* tmp.xxxx */
