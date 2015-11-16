@@ -182,7 +182,7 @@ static void etna_set_sampler_views(struct pipe_context *pctx,
 
     /* TODO: add switch to handle different shader types */
 
-    ctx->dirty |= ETNA_DIRTY_SAMPLER_VIEWS;
+    ctx->dirty |= ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_TEXTURE_CACHES;
     ctx->num_fragment_sampler_views = num_views;
 
     for(idx=0; idx<num_views; ++idx)
