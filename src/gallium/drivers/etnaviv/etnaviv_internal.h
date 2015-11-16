@@ -54,6 +54,8 @@ struct etna_specs
     unsigned vs_need_z_div:1;
     /* supports trigonometric instructions */
     unsigned has_sin_cos_sqrt:1;
+    /* has SIGN/FLOOR/CEIL instructions */
+    unsigned has_sign_floor_ceil:1;
     /* can use VS_RANGE, PS_RANGE registers*/
     unsigned has_shader_range_registers:1;
     /* can use any kind of wrapping mode on npot textures */

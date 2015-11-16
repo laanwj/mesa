@@ -509,6 +509,7 @@ static boolean etna_get_specs(struct etna_screen *screen)
     screen->specs.vertex_sampler_count = 4;
     screen->specs.vs_need_z_div = screen->model < 0x1000 && screen->model != 0x880;
     screen->specs.has_sin_cos_sqrt = VIV_FEATURE(screen, chipMinorFeatures0, HAS_SQRT_TRIG);
+    screen->specs.has_sign_floor_ceil = VIV_FEATURE(screen, chipMinorFeatures0, HAS_SIGN_FLOOR_CEIL);
     screen->specs.has_shader_range_registers = screen->model >= 0x1000 || screen->model == 0x880;
     screen->specs.npot_tex_any_wrap = VIV_FEATURE(screen, chipMinorFeatures1, NON_POWER_OF_TWO);
 
