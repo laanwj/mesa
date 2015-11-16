@@ -603,11 +603,13 @@ renderonly_flush_resource(struct pipe_context *pcontext,
 	blit.src.level = 0;
 	blit.src.box.width = resource->gpu->width0;
 	blit.src.box.height = resource->gpu->height0;
+	blit.src.box.depth = 1;
 	blit.dst.resource = resource->prime;
 	blit.dst.format = resource->prime->format;
 	blit.dst.level = 0;
 	blit.dst.box.width = resource->prime->width0;
 	blit.dst.box.height = resource->prime->height0;
+	blit.dst.box.depth = 1;
 
 	context->gpu->blit(context->gpu, &blit);
 }
