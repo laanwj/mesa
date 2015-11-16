@@ -1162,6 +1162,66 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .src[2] = src[0],
                         });
                 break;
+            case TGSI_OPCODE_XPD: {
+                /*
+                 * MUL tTEMP.xyzw, src0.zxyw, src1.yzxw, void
+                 * MAD tDST.xyz_, src0.yzxw, src1.zxyw, -tTEMP.xyzw
+                 * MOV tDST.___w, void, void, 1
+                 */
+                struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+                struct etna_inst_dst dst = convert_dst(cd, &inst->Dst[0]);
+                /* If we have two uniforms, sort it out here so we don't
+                 * emit additional unnecessary MOVs */
+                if(etna_rgroup_is_uniform(src[0].rgroup) &&
+                   etna_rgroup_is_uniform(src[1].rgroup) &&
+                   (src[0].rgroup != src[1].rgroup || src[0].reg != src[1].reg))
+                {
+                    struct etna_inst mov = { };
+                    mov.opcode = INST_OPCODE_MOV;
+                    mov.sat = 0;
+                    mov.dst.use = 1;
+                    mov.dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z |
+INST_COMPS_W;
+                    mov.dst.reg = temp.id;
+                    mov.src[2] = src[1];
+                    emit_inst(cd, &mov);
+
+                    src[1].swiz = INST_SWIZ_IDENTITY;
+                    src[1].neg = src[1].abs = 0;
+                    src[1].rgroup = temp.rgroup;
+                    src[1].reg = temp.id;
+                    temp = etna_compile_get_inner_temp(cd);
+                }
+                struct etna_inst ins[3] = { };
+                ins[0].opcode = INST_OPCODE_MUL;
+                ins[0].sat = 0;
+                ins[0].dst.use = 1;
+                ins[0].dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W;
+                ins[0].dst.reg = temp.id;
+                etna_src_swiz(&ins[0].src[0], &src[0], INST_SWIZ(2, 0, 1, 3));
+                etna_src_swiz(&ins[0].src[1], &src[1], INST_SWIZ(1, 2, 0, 3));
+
+                ins[1].opcode = INST_OPCODE_MAD;
+                ins[1].sat = sat;
+                ins[1].dst = dst;
+                ins[1].dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z;
+                etna_src_swiz(&ins[1].src[0], &src[0], INST_SWIZ(1, 2, 0, 3));
+                etna_src_swiz(&ins[1].src[1], &src[1], INST_SWIZ(2, 0, 1, 3));
+                ins[1].src[2].use = 1;
+                ins[1].src[2].swiz = INST_SWIZ_IDENTITY;
+                ins[1].src[2].neg = 1;
+                ins[1].src[2].rgroup = temp.rgroup;
+                ins[1].src[2].reg = temp.id;
+
+                ins[2].opcode = INST_OPCODE_MOV;
+                ins[2].dst = dst;
+                ins[2].dst.comps = INST_COMPS_W;
+                ins[2].src[2] = alloc_imm_f32(cd, 1.0f);
+
+                emit_inst(cd, &ins[0]);
+                emit_inst(cd, &ins[1]);
+                emit_inst(cd, &ins[2]);
+                } break;
             case TGSI_OPCODE_ABS: /* XXX can be propagated into uses of destination operand */
                 src[0].abs = 1;
                 emit_inst(cd, &(struct etna_inst) {
@@ -1366,7 +1426,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
             case TGSI_OPCODE_PK4B:
             case TGSI_OPCODE_PK4UB:
             case TGSI_OPCODE_POW: /* lowered by mesa to ex2(y*lg2(x)) */
-            case TGSI_OPCODE_XPD:
             case TGSI_OPCODE_ROUND:
             case TGSI_OPCODE_CLAMP:
             case TGSI_OPCODE_DP2A:
