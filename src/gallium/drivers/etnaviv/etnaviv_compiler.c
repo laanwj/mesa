@@ -1130,6 +1130,33 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .src[2] = src[0],
                         });
                 break;
+            case TGSI_OPCODE_DPH: { /* src0.x * src1.x + src0.y * src1.y + src0.z * src1.z + src1.w */
+                /*
+                DP3 tmp.xyzw, src0.xyzw, src1,xyzw, void
+                ADD dst.xyzw, tmp.xyzw, void, src1.wwww
+                */
+                struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+                struct etna_inst ins[2] = { };
+                ins[0].opcode = INST_OPCODE_DP3;
+                ins[0].dst.use = 1;
+                ins[0].dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z
+| INST_COMPS_W;
+                ins[0].dst.reg = temp.id;
+                ins[0].src[0] = src[0];
+                ins[0].src[1] = src[1];
+
+                ins[1].opcode = INST_OPCODE_ADD;
+                ins[1].sat = sat;
+                ins[1].dst = convert_dst(cd, &inst->Dst[0]);
+                ins[1].src[0].use = 1;
+                ins[1].src[0].swiz = INST_SWIZ_IDENTITY;
+                ins[1].src[0].rgroup = temp.rgroup;
+                ins[1].src[0].reg = temp.id;
+                etna_src_swiz(&ins[1].src[2], &src[1], INST_SWIZ_BROADCAST(3));
+
+                emit_inst(cd, &ins[0]);
+                emit_inst(cd, &ins[1]);
+                } break;
             case TGSI_OPCODE_COS: /* fall through */
             case TGSI_OPCODE_SIN:
                 if(cd->specs->has_sin_cos_sqrt)
@@ -1297,7 +1324,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
             case TGSI_OPCODE_PK2US:
             case TGSI_OPCODE_PK4B:
             case TGSI_OPCODE_PK4UB:
-            case TGSI_OPCODE_DPH: /* src0.x * src1.x + src0.y * src1.y + src0.z * src1.z + src1.w */
             case TGSI_OPCODE_POW: /* lowered by mesa to ex2(y*lg2(x)) */
             case TGSI_OPCODE_XPD:
             case TGSI_OPCODE_ROUND:
