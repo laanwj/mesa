@@ -775,7 +775,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                 inst_idx++;
                 continue;
             }
-            int sat = 0;
+            int sat = inst->Instruction.Saturate;
 
             /* Lookup the TGSI information and generate the source arguments */
             struct etna_inst_src src[ETNA_NUM_SRC];
