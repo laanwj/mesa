@@ -955,6 +955,15 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .src[1] = src[1],
                         });
                 break;
+            case TGSI_OPCODE_DST:
+                emit_inst(cd, &(struct etna_inst) {
+                        .opcode = INST_OPCODE_DST,
+                        .sat = sat,
+                        .dst = convert_dst(cd, &inst->Dst[0]),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
+                        });
+                break;
             case TGSI_OPCODE_MIN:
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_SELECT,
@@ -1330,7 +1339,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
             case TGSI_OPCODE_CLAMP:
             case TGSI_OPCODE_DP2A:
             case TGSI_OPCODE_LRP: /* lowered by mesa to (op2 * (1.0f - op0)) + (op1 * op0) */
-            case TGSI_OPCODE_DST: /* XXX INST_OPCODE_DST */
             case TGSI_OPCODE_DP2: /* Either MUL+MAD or DP3 with a zeroed channel, but we don't have a 'zero' swizzle */
             case TGSI_OPCODE_EXP:
             case TGSI_OPCODE_LOG:
