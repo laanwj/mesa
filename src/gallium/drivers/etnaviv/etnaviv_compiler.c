@@ -1032,6 +1032,38 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                 inst_out.src[2].neg = !inst_out.src[2].neg;
                 emit_inst(cd, &inst_out);
                 } break;
+            case TGSI_OPCODE_LRP: {
+                /* dst = src0 * src1 + (1 - src0) * src2
+                 *     => src0 * src1 - (src0 - 1) * src2
+                 *     => src0 * src1 - (src0 * src2 - src2)
+                 * MAD tTEMP.xyzw, tSRC0.xyzw, tSRC2.xyzw, -tSRC2.xyzw
+                 * MAD tDST.xyzw, tSRC0.xyzw, tSRC1.xyzw, -tTEMP.xyzw
+                 */
+                struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+                struct etna_inst mad[2] = { };
+                mad[0].opcode = INST_OPCODE_MAD;
+                mad[0].sat = 0;
+                mad[0].dst.use = 1;
+                mad[0].dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W;
+                mad[0].dst.reg = temp.id;
+                mad[0].src[0] = src[0];
+                mad[0].src[1] = src[2];
+                mad[0].src[2] = src[2];
+                mad[0].src[2].neg = 1;
+                mad[1].opcode = INST_OPCODE_MAD;
+                mad[1].sat = sat;
+                mad[1].dst = convert_dst(cd, &inst->Dst[0]),
+                mad[1].src[0] = src[0];
+                mad[1].src[1] = src[1];
+                mad[1].src[2].use = 1;
+                mad[1].src[2].swiz = INST_SWIZ_IDENTITY;
+                mad[1].src[2].neg = 1;
+                mad[1].src[2].rgroup = temp.rgroup;
+                mad[1].src[2].reg = temp.id;
+
+                emit_inst(cd, &mad[0]);
+                emit_inst(cd, &mad[1]);
+                } break;
             case TGSI_OPCODE_SQRT: /* only generated if HAS_SQRT_TRIG */
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_SQRT,
@@ -1338,7 +1370,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
             case TGSI_OPCODE_ROUND:
             case TGSI_OPCODE_CLAMP:
             case TGSI_OPCODE_DP2A:
-            case TGSI_OPCODE_LRP: /* lowered by mesa to (op2 * (1.0f - op0)) + (op1 * op0) */
             case TGSI_OPCODE_DP2: /* Either MUL+MAD or DP3 with a zeroed channel, but we don't have a 'zero' swizzle */
             case TGSI_OPCODE_EXP:
             case TGSI_OPCODE_LOG:
