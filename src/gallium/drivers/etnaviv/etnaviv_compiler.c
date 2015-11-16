@@ -1017,12 +1017,12 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         });
                 break;
             case TGSI_OPCODE_ABS: /* XXX can be propagated into uses of destination operand */
+                src[0].abs = 1;
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_MOV,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
                         .src[2] = src[0],
-                        .src[2].abs = 1
                         });
                 break;
             case TGSI_OPCODE_COS: /* fall through */
