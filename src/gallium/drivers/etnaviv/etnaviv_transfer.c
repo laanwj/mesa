@@ -115,12 +115,17 @@ static void *etna_transfer_map(struct pipe_context *pctx,
 
     struct etna_resource_level *res_level = &resource_priv->levels[level];
     /* map buffer object */
-    void *mapped = etna_bo_map(resource_priv->bo) + res_level->offset;
+    void *mapped = etna_bo_map(resource_priv->bo);
+    if (!mapped) {
+        util_slab_free(&ctx->transfer_pool, ptrans);
+        return NULL;
+    }
+
     if(likely(ptrans->in_place))
     {
         ptrans->base.stride = res_level->stride;
         ptrans->base.layer_stride = res_level->layer_stride;
-        ptrans->buffer = mapped + etna_compute_offset(resource->format, box, res_level->stride, res_level->layer_stride);
+        ptrans->buffer = mapped + res_level->offset + etna_compute_offset(resource->format, box, res_level->stride, res_level->layer_stride);
     } else {
         unsigned divSizeX = util_format_get_blockwidth(format);
         unsigned divSizeY = util_format_get_blockheight(format);
@@ -131,6 +136,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
             return NULL;
         }
 
+        mapped += res_level->offset;
         ptrans->base.stride = align(box->width, divSizeX) * util_format_get_blocksize(format); /* row stride in bytes */
         ptrans->base.layer_stride = align(box->height, divSizeY) * ptrans->base.stride;
         size_t size = ptrans->base.layer_stride * box->depth;
