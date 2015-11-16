@@ -603,8 +603,13 @@ void etna_emit_state(struct etna_context *ctx)
     }
     if (unlikely(dirty & (ETNA_DIRTY_BLEND | ETNA_DIRTY_FRAMEBUFFER)))
     {
-        uint32_t val = etna_blend_state(ctx->blend)->PE_COLOR_FORMAT;
-        /*0142C*/ EMIT_STATE(PE_COLOR_FORMAT, PE_COLOR_FORMAT, val | ctx->framebuffer.PE_COLOR_FORMAT);
+        uint32_t val;
+        /* Use the components and overwrite bits in framebuffer.PE_COLOR_FORMAT
+         * as a mask to enable the bits from blend PE_COLOR_FORMAT */
+        val = ~(VIVS_PE_COLOR_FORMAT_COMPONENTS__MASK | VIVS_PE_COLOR_FORMAT_OVERWRITE);
+        val |= etna_blend_state(ctx->blend)->PE_COLOR_FORMAT;
+        val &= ctx->framebuffer.PE_COLOR_FORMAT;
+        /*0142C*/ EMIT_STATE(PE_COLOR_FORMAT, PE_COLOR_FORMAT, val);
     }
     if (unlikely(dirty & (ETNA_DIRTY_FRAMEBUFFER)))
     {

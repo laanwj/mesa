@@ -97,8 +97,12 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
         pipe_surface_reference(&cs->cbuf, &cbuf->base);
         cs->PE_COLOR_FORMAT =
                 VIVS_PE_COLOR_FORMAT_FORMAT(translate_rt_format(cbuf->base.format, false)) |
+                VIVS_PE_COLOR_FORMAT_COMPONENTS__MASK |
+                VIVS_PE_COLOR_FORMAT_OVERWRITE |
                 (color_supertiled ? VIVS_PE_COLOR_FORMAT_SUPER_TILED : 0);
-                /* XXX VIVS_PE_COLOR_FORMAT_OVERWRITE and the rest comes from blend_state / depth_stencil_alpha */
+                /* VIVS_PE_COLOR_FORMAT_COMPONENTS() and
+                 * VIVS_PE_COLOR_FORMAT_OVERWRITE comes from blend_state
+                 * but only if we set the bits above. */
                 /* merged with depth_stencil_alpha */
         if ((cbuf->surf.offset & 63) || (((cbuf->surf.stride*4) & 63) && cbuf->surf.height > 4))
         {
@@ -156,7 +160,10 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
         nr_samples_color = cbuf->base.texture->nr_samples;
     } else {
         pipe_surface_reference(&cs->cbuf, NULL);
-        cs->PE_COLOR_FORMAT = 0; /* Is this enough to render without color? */
+        /* Clearing VIVS_PE_COLOR_FORMAT_COMPONENTS__MASK and
+         * VIVS_PE_COLOR_FORMAT_OVERWRITE prevents us from overwriting the
+         * color target */
+        cs->PE_COLOR_FORMAT = 0;
     }
 
     if (sv->zsbuf != NULL)
