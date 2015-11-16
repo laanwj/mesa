@@ -667,22 +667,32 @@ static struct etna_inst_tex convert_tex(struct etna_compile_data *cd, const stru
 }
 
 /* convert source operand */
-static struct etna_inst_src convert_src(struct etna_compile_data *cd, const struct tgsi_full_src_register *in, uint32_t swizzle)
+static struct etna_inst_src etna_create_src(const struct tgsi_src_register *tgsi, const struct etna_native_reg *native, uint32_t swizzle)
 {
     struct etna_inst_src rv = {
         .use = 1,
         .swiz = inst_swiz_compose(
-                    INST_SWIZ(in->Register.SwizzleX, in->Register.SwizzleY, in->Register.SwizzleZ, in->Register.SwizzleW),
+                    INST_SWIZ(tgsi->SwizzleX, tgsi->SwizzleY, tgsi->SwizzleZ, tgsi->SwizzleW),
                     swizzle),
-        .neg = in->Register.Negate,
-        .abs = in->Register.Absolute,
+        .neg = tgsi->Negate,
+        .abs = tgsi->Absolute,
+        .rgroup = native->rgroup,
+        .reg = native->id,
         // XXX .amode
     };
-    struct etna_native_reg native_reg = cd->file[in->Register.File][in->Register.Index].native;
-    assert(native_reg.valid && !native_reg.is_tex);
-    rv.rgroup = native_reg.rgroup;
-    rv.reg = native_reg.id;
+    assert(native->valid && !native->is_tex);
     return rv;
+}
+
+static void etna_src_swiz(struct etna_inst_src *res, const struct etna_inst_src *src, unsigned swizzle)
+{
+    *res = *src;
+    res->swiz = inst_swiz_compose(src->swiz, swizzle);
+}
+
+static struct etna_inst_src convert_src(struct etna_compile_data *cd, const struct tgsi_full_src_register *in, uint32_t swizzle)
+{
+    return etna_create_src(&in->Register, &cd->file[in->Register.File][in->Register.Index].native, swizzle);
 }
 
 /* convert destination to source operand (for operation in place)
@@ -759,6 +769,22 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                 continue;
             }
             int sat = 0;
+
+            /* Lookup the TGSI information and generate the source arguments */
+            struct etna_inst_src src[ETNA_NUM_SRC];
+            memset(src, 0, sizeof(src));
+
+            const struct tgsi_opcode_info *tgsi = tgsi_get_opcode_info(inst->Instruction.Opcode);
+            for(int i = 0; i < tgsi->num_src && i < ETNA_NUM_SRC; i++)
+            {
+                const struct tgsi_src_register *reg = &inst->Src[i].Register;
+                const struct etna_native_reg *n = &cd->file[reg->File][reg->Index].native;
+                if (!n->valid || n->is_tex)
+                    continue;
+
+                src[i] = etna_create_src(reg, n, INST_SWIZ_IDENTITY);
+            }
+
             /* Use a naive switch statement to get up and running, later on when we have more experience with
              * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
             switch(inst->Instruction.Opcode)
@@ -768,7 +794,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_MOV,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_LIT: {
@@ -819,7 +845,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_RCP,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_RSQ:
@@ -827,7 +853,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_RSQ,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_MUL:
@@ -835,8 +861,8 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_MUL,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[1] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
                         });
                 break;
             case TGSI_OPCODE_ADD:
@@ -844,8 +870,8 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_ADD,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[2] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[2] = src[1],
                         });
                 break;
             case TGSI_OPCODE_DP3:
@@ -853,8 +879,8 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_DP3,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[1] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
                         });
                 break;
             case TGSI_OPCODE_DP4:
@@ -862,8 +888,8 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_DP4,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[1] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
                         });
                 break;
             case TGSI_OPCODE_MIN:
@@ -872,9 +898,9 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .cond = INST_CONDITION_GT,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[1] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_MAX:
@@ -883,9 +909,9 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .cond = INST_CONDITION_LT,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[1] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_SLT:
@@ -909,8 +935,8 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .cond = cond,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[1] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
                         });
                 } break;
             case TGSI_OPCODE_MAD:
@@ -918,9 +944,9 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_MAD,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[1] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
-                        .src[2] = convert_src(cd, &inst->Src[2], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
+                        .src[2] = src[2],
                         });
                 break;
             case TGSI_OPCODE_SUB: { /* ADD with negated SRC1 */
@@ -928,8 +954,8 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                     .opcode = INST_OPCODE_ADD,
                     .sat = sat,
                     .dst = convert_dst(cd, &inst->Dst[0]),
-                    .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                    .src[2] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
+                    .src[0] = src[0],
+                    .src[2] = src[1],
                 };
                 inst_out.src[2].neg = !inst_out.src[2].neg;
                 emit_inst(cd, &inst_out);
@@ -939,7 +965,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_SQRT,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_FRC:
@@ -947,7 +973,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_FRC,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_FLR: /* XXX HAS_SIGN_FLOOR_CEIL */
@@ -955,7 +981,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_FLOOR,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_CEIL: /* XXX HAS_SIGN_FLOOR_CEIL */
@@ -963,7 +989,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_CEIL,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_SSG: /* XXX HAS_SIGN_FLOOR_CEIL */
@@ -971,7 +997,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_SIGN,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_EX2:
@@ -979,7 +1005,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_EXP,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_LG2:
@@ -987,7 +1013,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_LOG,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_ABS: /* XXX can be propagated into uses of destination operand */
@@ -995,7 +1021,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = INST_OPCODE_MOV,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[2] = src[0],
                         .src[2].abs = 1
                         });
                 break;
@@ -1013,7 +1039,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z
 | INST_COMPS_W,
                         .dst.reg = temp.id,
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY), /* any swizzling happens here */
+                        .src[0] = src[0], /* any swizzling happens here */
                         .src[1] = alloc_imm_f32(cd, 2.0f/M_PI),
                     });
                     emit_inst(cd, &(struct etna_inst) {
@@ -1040,8 +1066,8 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .opcode = inst->Instruction.Opcode == TGSI_OPCODE_DDX ? INST_OPCODE_DSX : INST_OPCODE_DSY,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[2] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[2] = src[0],
                         });
                 break;
             case TGSI_OPCODE_KILL_IF:
@@ -1049,7 +1075,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_TEXKILL,
                         .cond = INST_CONDITION_LZ,
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY)
+                        .src[0] = src[0]
                         });
                 break;
             case TGSI_OPCODE_KILL:
@@ -1065,7 +1091,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .sat = 0,
                         .dst = convert_dst(cd, &inst->Dst[0]),
                         .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
                         });
                 break;
             case TGSI_OPCODE_TXP: { /* divide src.xyz by src.w */
@@ -1090,7 +1116,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .src[0].abs = 0,
                         .src[0].rgroup = temp.rgroup,
                         .src[0].reg = temp.id,
-                        .src[1] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY), /* src.xyzw */
+                        .src[1] = src[0], /* src.xyzw */
                 });
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_TEXLD,
@@ -1111,9 +1137,9 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .cond = INST_CONDITION_LZ,
                         .sat = sat,
                         .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
-                        .src[1] = convert_src(cd, &inst->Src[1], INST_SWIZ_IDENTITY),
-                        .src[2] = convert_src(cd, &inst->Src[2], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
+                        .src[1] = src[1],
+                        .src[2] = src[2],
                         });
                 break;
             case TGSI_OPCODE_IF:  {
@@ -1129,7 +1155,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_BRANCH,
                         .cond = INST_CONDITION_EQ,
-                        .src[0] = convert_src(cd, &inst->Src[0], INST_SWIZ_IDENTITY),
+                        .src[0] = src[0],
                         .src[1] = alloc_imm_f32(cd, 0.0f),
                         /* imm is filled in later */
                         });
