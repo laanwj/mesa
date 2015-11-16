@@ -319,8 +319,17 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
       return FALSE;
    }
 
-   etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, VIVS_GL_FLUSH_CACHE_COLOR);
-   etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
+   uint32_t to_flush = 0;
+
+   if (src->base.bind & PIPE_BIND_RENDER_TARGET)
+       to_flush |= VIVS_GL_FLUSH_CACHE_COLOR;
+   if (src->base.bind & PIPE_BIND_DEPTH_STENCIL)
+       to_flush |= VIVS_GL_FLUSH_CACHE_DEPTH;
+
+   if (to_flush) {
+       etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, to_flush);
+       etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
+   }
 
    /* Set up color TS to source surface before blit, if needed */
    if (src->base.nr_samples > 1)
