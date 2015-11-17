@@ -375,8 +375,8 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
       .swap_rb = translate_rb_src_dst_swap(src->base.format, dst->base.format),
       .dither = {0xffffffff, 0xffffffff}, // XXX dither when going from 24 to 16 bit?
       .clear_mode = VIVS_RS_CLEAR_CONTROL_MODE_DISABLED,
-      .width = dst->levels[blit_info->dst.level].padded_width * msaa_xscale,
-      .height = dst->levels[blit_info->dst.level].padded_height * msaa_yscale
+      .width = src->levels[blit_info->dst.level].padded_width * msaa_xscale,
+      .height = src->levels[blit_info->dst.level].padded_height * msaa_yscale
    });
 
    etna_submit_rs_state(ctx, &copy_to_screen);
