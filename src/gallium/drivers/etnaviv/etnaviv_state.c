@@ -34,6 +34,7 @@
 #include "etnaviv_translate.h"
 #include "etnaviv_util.h"
 #include "util/u_math.h"
+#include "util/u_helpers.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 
@@ -389,21 +390,16 @@ static void etna_set_vertex_buffers( struct pipe_context *pctx,
 {
     struct etna_context *ctx = etna_context(pctx);
     assert((start_slot + num_buffers) <= PIPE_MAX_ATTRIBS);
-    struct pipe_vertex_buffer zero_vb = {};
+    uint32_t enabled = 0;
 
-    for (unsigned idx = 0; idx < num_buffers; ++idx)
+    util_set_vertex_buffers_mask(ctx->vertex_buffer_s, &enabled,
+                                 vb, start_slot, num_buffers);
+
+    for (unsigned idx = start_slot; idx < start_slot + num_buffers; ++idx)
     {
-        unsigned slot = start_slot + idx; /* copy from vb[idx] to priv->...[slot] */
-        const struct pipe_vertex_buffer *vbi = vb ? &vb[idx] : &zero_vb;
-        struct compiled_set_vertex_buffer *cs = &ctx->vertex_buffer[slot];
-
+        struct compiled_set_vertex_buffer *cs = &ctx->vertex_buffer[idx];
+        struct pipe_vertex_buffer *vbi = &ctx->vertex_buffer_s[idx];
         assert(!vbi->user_buffer); /* XXX support user_buffer using etna_usermem_map */
-        /* copy pipe_vertex_buffer structure and take reference */
-        ctx->vertex_buffer_s[slot].stride = vbi->stride;
-        ctx->vertex_buffer_s[slot].buffer_offset = vbi->buffer_offset;
-        pipe_resource_reference(&ctx->vertex_buffer_s[slot].buffer, vbi->buffer);
-        ctx->vertex_buffer_s[slot].user_buffer = vbi->user_buffer;
-
         if (vbi->buffer) /* GPU buffer */
         {
             cs->FE_VERTEX_STREAM_BASE_ADDR.bo = etna_resource(vbi->buffer)->bo;
