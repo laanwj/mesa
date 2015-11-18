@@ -168,86 +168,62 @@ void etna_submit_rs_state(struct etna_context *ctx, const struct compiled_rs_sta
 {
     struct etna_screen *screen = etna_screen(ctx->base.screen);
     struct etna_cmd_stream *stream = ctx->stream;
+    struct etna_coalesce coalesce;
 
     if (screen->specs.pixel_pipes == 1)
     {
-        etna_cmd_stream_reserve(stream, 22);
-        /*0 */ etna_emit_load_state(stream, VIVS_RS_CONFIG>>2, 5, 0);
-        /*1 */ etna_cmd_stream_emit(stream, cs->RS_CONFIG);
-        /*2 */ etna_emit_reloc(stream, &cs->source[0]);
-        /*3 */ etna_cmd_stream_emit(stream, cs->RS_SOURCE_STRIDE);
-        /*4 */ etna_emit_reloc(stream, &cs->dest[0]);
-        /*5 */ etna_cmd_stream_emit(stream, cs->RS_DEST_STRIDE);
-        /*6 */ etna_emit_load_state(stream, VIVS_RS_WINDOW_SIZE>>2, 1, 0);
-        /*7 */ etna_cmd_stream_emit(stream, cs->RS_WINDOW_SIZE);
-        /*8 */ etna_emit_load_state(stream, VIVS_RS_DITHER(0)>>2, 2, 0);
-        /*9 */ etna_cmd_stream_emit(stream, cs->RS_DITHER[0]);
-        /*10*/ etna_cmd_stream_emit(stream, cs->RS_DITHER[1]);
-        /*11*/ etna_cmd_stream_emit(stream, 0xbabb1e); /* pad */
-        /*12*/ etna_emit_load_state(stream, VIVS_RS_CLEAR_CONTROL>>2, 5, 0);
-        /*13*/ etna_cmd_stream_emit(stream, cs->RS_CLEAR_CONTROL);
-        /*14*/ etna_cmd_stream_emit(stream, cs->RS_FILL_VALUE[0]);
-        /*15*/ etna_cmd_stream_emit(stream, cs->RS_FILL_VALUE[1]);
-        /*16*/ etna_cmd_stream_emit(stream, cs->RS_FILL_VALUE[2]);
-        /*17*/ etna_cmd_stream_emit(stream, cs->RS_FILL_VALUE[3]);
-        /*18*/ etna_emit_load_state(stream, VIVS_RS_EXTRA_CONFIG>>2, 1, 0);
-        /*19*/ etna_cmd_stream_emit(stream, cs->RS_EXTRA_CONFIG);
-        /*20*/ etna_emit_load_state(stream, VIVS_RS_KICKER>>2, 1, 0);
-        /*21*/ etna_cmd_stream_emit(stream, 0xbeebbeeb);
+        etna_coalesce_start(stream, &coalesce, 22);
+        /* 0/1 */ EMIT_STATE(RS_CONFIG, cs->RS_CONFIG);
+        /* 2   */ EMIT_STATE_RELOC(RS_SOURCE_ADDR, &cs->source[0]);
+        /* 3   */ EMIT_STATE(RS_SOURCE_STRIDE, cs->RS_SOURCE_STRIDE);
+        /* 4   */ EMIT_STATE_RELOC(RS_DEST_ADDR, &cs->dest[0]);
+        /* 5   */ EMIT_STATE(RS_DEST_STRIDE, cs->RS_DEST_STRIDE);
+        /* 6/7 */ EMIT_STATE(RS_WINDOW_SIZE, cs->RS_WINDOW_SIZE);
+        /* 8/9 */ EMIT_STATE(RS_DITHER(0), cs->RS_DITHER[0]);
+        /*10   */ EMIT_STATE(RS_DITHER(1), cs->RS_DITHER[1]);
+        /*11 - pad */
+        /*12/13*/ EMIT_STATE(RS_CLEAR_CONTROL, cs->RS_CLEAR_CONTROL);
+        /*14   */ EMIT_STATE(RS_FILL_VALUE(0), cs->RS_FILL_VALUE[0]);
+        /*15   */ EMIT_STATE(RS_FILL_VALUE(1), cs->RS_FILL_VALUE[1]);
+        /*16   */ EMIT_STATE(RS_FILL_VALUE(2), cs->RS_FILL_VALUE[2]);
+        /*17   */ EMIT_STATE(RS_FILL_VALUE(3), cs->RS_FILL_VALUE[3]);
+        /*18/19*/ EMIT_STATE(RS_EXTRA_CONFIG, cs->RS_EXTRA_CONFIG);
+        /*20/21*/ EMIT_STATE(RS_KICKER, 0xbeebbeeb);
+        etna_coalesce_end(stream, &coalesce);
     }
     else if (screen->specs.pixel_pipes == 2)
     {
-        etna_cmd_stream_reserve(stream, 34); /* worst case - both pipes multi=1 */
-        /*0 */ etna_emit_load_state(stream, VIVS_RS_CONFIG>>2, 1, 0);
-        /*1 */ etna_cmd_stream_emit(stream, cs->RS_CONFIG);
-        /*2 */ etna_emit_load_state(stream, VIVS_RS_SOURCE_STRIDE>>2, 1, 0);
-        /*3 */ etna_cmd_stream_emit(stream, cs->RS_SOURCE_STRIDE);
-        /*4 */ etna_emit_load_state(stream, VIVS_RS_DEST_STRIDE>>2, 1, 0);
-        /*5 */ etna_cmd_stream_emit(stream, cs->RS_DEST_STRIDE);
+        etna_coalesce_start(stream, &coalesce, 34); /* worst case - both pipes multi=1 */
+        /* 0/1 */ EMIT_STATE(RS_CONFIG, cs->RS_CONFIG);
+        /* 2/3 */ EMIT_STATE(RS_SOURCE_STRIDE, cs->RS_SOURCE_STRIDE);
+        /* 4/5 */ EMIT_STATE(RS_DEST_STRIDE, cs->RS_DEST_STRIDE);
+        /* 6/7 */ EMIT_STATE_RELOC(RS_PIPE_SOURCE_ADDR(0), &cs->source[0]);
         if (cs->RS_SOURCE_STRIDE & VIVS_RS_SOURCE_STRIDE_MULTI)
         {
-            /*6 */ etna_emit_load_state(stream, VIVS_RS_PIPE_SOURCE_ADDR(0)>>2, 2, 0);
-            /*7 */ etna_emit_reloc(stream, &cs->source[0]);
-            /*8 */ etna_emit_reloc(stream, &cs->source[1]);
-            /*9 */ etna_cmd_stream_emit(stream, 0x00000000); /* pad */
+            /*8 */ EMIT_STATE_RELOC(RS_PIPE_SOURCE_ADDR(1), &cs->source[1]);
+            /*9 - pad */
         }
-        else
-        {
-            /*6 */ etna_emit_load_state(stream, VIVS_RS_PIPE_SOURCE_ADDR(0)>>2, 1, 0);
-            /*7 */ etna_emit_reloc(stream, &cs->source[0]);
-        }
+        /*10/11*/ EMIT_STATE_RELOC(RS_PIPE_DEST_ADDR(0), &cs->dest[0]);
         if (cs->RS_DEST_STRIDE & VIVS_RS_DEST_STRIDE_MULTI)
         {
-            /*10*/ etna_emit_load_state(stream, VIVS_RS_PIPE_DEST_ADDR(0)>>2, 2, 0);
-            /*11*/ etna_emit_reloc(stream, &cs->dest[0]);
-            /*12*/ etna_emit_reloc(stream, &cs->dest[1]);
-            /*13*/ etna_cmd_stream_emit(stream, 0x00000000); /* pad */
+            /*12*/ EMIT_STATE_RELOC(RS_PIPE_DEST_ADDR(1), &cs->dest[1]);
+            /*13 - pad */
         }
-        else
-        {
-            /*10 */ etna_emit_load_state(stream, VIVS_RS_PIPE_DEST_ADDR(0)>>2, 1, 0);
-            /*11 */ etna_emit_reloc(stream, &cs->dest[0]);
-        }
-        /*14*/ etna_emit_load_state(stream, VIVS_RS_PIPE_OFFSET(0)>>2, 2, 0);
-        /*15*/ etna_cmd_stream_emit(stream, cs->RS_PIPE_OFFSET[0]);
-        /*16*/ etna_cmd_stream_emit(stream, cs->RS_PIPE_OFFSET[1]);
-        /*17*/ etna_cmd_stream_emit(stream, 0x00000000); /* pad */
-        /*18*/ etna_emit_load_state(stream, VIVS_RS_WINDOW_SIZE>>2, 1, 0);
-        /*19*/ etna_cmd_stream_emit(stream, cs->RS_WINDOW_SIZE);
-        /*20*/ etna_emit_load_state(stream, VIVS_RS_DITHER(0)>>2, 2, 0);
-        /*21*/ etna_cmd_stream_emit(stream, cs->RS_DITHER[0]);
-        /*22*/ etna_cmd_stream_emit(stream, cs->RS_DITHER[1]);
-        /*23*/ etna_cmd_stream_emit(stream, 0xbabb1e); /* pad */
-        /*24*/ etna_emit_load_state(stream, VIVS_RS_CLEAR_CONTROL>>2, 5, 0);
-        /*25*/ etna_cmd_stream_emit(stream, cs->RS_CLEAR_CONTROL);
-        /*26*/ etna_cmd_stream_emit(stream, cs->RS_FILL_VALUE[0]);
-        /*27*/ etna_cmd_stream_emit(stream, cs->RS_FILL_VALUE[1]);
-        /*28*/ etna_cmd_stream_emit(stream, cs->RS_FILL_VALUE[2]);
-        /*29*/ etna_cmd_stream_emit(stream, cs->RS_FILL_VALUE[3]);
-        /*30*/ etna_emit_load_state(stream, VIVS_RS_EXTRA_CONFIG>>2, 1, 0);
-        /*31*/ etna_cmd_stream_emit(stream, cs->RS_EXTRA_CONFIG);
-        /*32*/ etna_emit_load_state(stream, VIVS_RS_KICKER>>2, 1, 0);
-        /*33*/ etna_cmd_stream_emit(stream, 0xbeebbeeb);
+        /*14/15*/ EMIT_STATE(RS_PIPE_OFFSET(0), cs->RS_PIPE_OFFSET[0]);
+        /*16   */ EMIT_STATE(RS_PIPE_OFFSET(1), cs->RS_PIPE_OFFSET[1]);
+        /*17 - pad */
+        /*18/19*/ EMIT_STATE(RS_WINDOW_SIZE, cs->RS_WINDOW_SIZE);
+        /*20/21*/ EMIT_STATE(RS_DITHER(0), cs->RS_DITHER[0]);
+        /*22   */ EMIT_STATE(RS_DITHER(1), cs->RS_DITHER[1]);
+        /*23 - pad */
+        /*24/25*/ EMIT_STATE(RS_CLEAR_CONTROL, cs->RS_CLEAR_CONTROL);
+        /*26   */ EMIT_STATE(RS_FILL_VALUE(0), cs->RS_FILL_VALUE[0]);
+        /*27   */ EMIT_STATE(RS_FILL_VALUE(1), cs->RS_FILL_VALUE[1]);
+        /*28   */ EMIT_STATE(RS_FILL_VALUE(2), cs->RS_FILL_VALUE[2]);
+        /*29   */ EMIT_STATE(RS_FILL_VALUE(3), cs->RS_FILL_VALUE[3]);
+        /*30/31*/ EMIT_STATE(RS_EXTRA_CONFIG, cs->RS_EXTRA_CONFIG);
+        /*32/33*/ EMIT_STATE(RS_KICKER, 0xbeebbeeb);
+        etna_coalesce_end(stream, &coalesce);
     }
     else
     {
