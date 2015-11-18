@@ -149,8 +149,10 @@ static inline void etna_coalsence_emit_fixp(struct etna_cmd_stream *stream, stru
 static inline void etna_coalsence_emit_reloc(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce,
         uint32_t reg, const struct etna_reloc *r)
 {
-    check_coalsence(stream, coalesce, reg, 0);
-    etna_emit_reloc(stream, r);
+    if (r->bo) {
+        check_coalsence(stream, coalesce, reg, 0);
+        etna_emit_reloc(stream, r);
+    }
 }
 
 #define EMIT_STATE(state_name, src_value) \
