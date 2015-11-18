@@ -409,9 +409,13 @@ static void etna_set_vertex_buffers( struct pipe_context *pctx,
             cs->FE_VERTEX_STREAM_BASE_ADDR.bo = etna_resource(vbi->buffer)->bo;
             cs->FE_VERTEX_STREAM_BASE_ADDR.offset = vbi->buffer_offset;
             cs->FE_VERTEX_STREAM_BASE_ADDR.flags = ETNA_RELOC_READ;
+            cs->FE_VERTEX_STREAM_CONTROL = FE_VERTEX_STREAM_CONTROL_VERTEX_STRIDE(vbi->stride);
         }
-
-        cs->FE_VERTEX_STREAM_CONTROL = FE_VERTEX_STREAM_CONTROL_VERTEX_STRIDE(vbi->stride);
+        else
+        {
+            cs->FE_VERTEX_STREAM_BASE_ADDR.bo = NULL;
+            cs->FE_VERTEX_STREAM_CONTROL = 0;
+        }
     }
 
     ctx->dirty |= ETNA_DIRTY_VERTEX_BUFFERS;
