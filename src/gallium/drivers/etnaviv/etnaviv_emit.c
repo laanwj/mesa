@@ -73,17 +73,6 @@ void etna_stall(struct etna_cmd_stream *stream, uint32_t from, uint32_t to)
     }
 }
 
-static void etna_emit_reloc(struct etna_cmd_stream *stream, const struct etna_reloc *reloc)
-{
-    /* push into libdrm */
-    if (!reloc->bo) {
-        etna_cmd_stream_emit(stream, 0x0);
-        return;
-    }
-
-    etna_cmd_stream_reloc(stream, reloc);
-}
-
 static void etna_coalesce_start(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce,
         uint32_t max)
 {
@@ -151,7 +140,7 @@ static inline void etna_coalsence_emit_reloc(struct etna_cmd_stream *stream, str
 {
     if (r->bo) {
         check_coalsence(stream, coalesce, reg, 0);
-        etna_emit_reloc(stream, r);
+        etna_cmd_stream_reloc(stream, r);
     }
 }
 
