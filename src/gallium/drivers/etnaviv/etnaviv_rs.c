@@ -42,8 +42,8 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
     unsigned dest_stride_shift = (rs->dest_tiling != ETNA_LAYOUT_LINEAR) ? 2 : 0;
 
     /* tiling == ETNA_LAYOUT_MULTI_TILED or ETNA_LAYOUT_MULTI_SUPERTILED? */
-    bool source_multi = (rs->source_tiling & 0x4)?true:false;
-    bool dest_multi = (rs->dest_tiling & 0x4)?true:false;
+    bool source_multi = (rs->source_tiling & ETNA_LAYOUT_BIT_MULTI)?true:false;
+    bool dest_multi = (rs->dest_tiling & ETNA_LAYOUT_BIT_MULTI)?true:false;
 
     /* Vivante RS needs widths to be a multiple of 16 or bad things
      * happen, such as scribbing over memory, or the GPU hanging,
