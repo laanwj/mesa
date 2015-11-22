@@ -44,11 +44,45 @@
 #include "etnaviv_zsa.h"
 
 #include "pipe/p_context.h"
+#include "pipe/p_state.h"
 #include "util/u_blitter.h"
 #include "util/u_memory.h"
 #include "util/u_prim.h"
 
 #include "hw/common.xml.h"
+
+static void
+resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
+        enum etna_resource_status status)
+{
+    struct etna_resource *rsc;
+
+    if (!prsc)
+        return;
+
+    rsc = etna_resource(prsc);
+    rsc->status |= status;
+
+    /* TODO resources can actually be shared across contexts,
+      * so I'm not sure a single list-head will do the trick?
+      */
+    debug_assert((rsc->pending_ctx == ctx) || !rsc->pending_ctx);
+    list_delinit(&rsc->list);
+    list_addtail(&rsc->list, &ctx->used_resources);
+    rsc->pending_ctx = ctx;
+}
+
+static void
+resource_read(struct etna_context *ctx, struct pipe_resource *prsc)
+{
+    resource_used(ctx, prsc, ETNA_PENDING_READ);
+}
+
+static void
+resource_written(struct etna_context *ctx, struct pipe_resource *prsc)
+{
+    resource_used(ctx, prsc, ETNA_PENDING_WRITE);
+}
 
 static void etna_context_destroy(struct pipe_context *pctx)
 {
@@ -72,7 +106,9 @@ static void etna_draw_vbo(struct pipe_context *pctx,
                  const struct pipe_draw_info *info)
 {
     struct etna_context *ctx = etna_context(pctx);
+    struct pipe_framebuffer_state *pfb = &ctx->framebuffer_s;
     uint32_t draw_mode;
+    unsigned i;
 
     if (ctx->vertex_elements == NULL || ctx->vertex_elements->num_elements == 0)
         return; /* Nothing to do */
@@ -103,6 +139,43 @@ static void etna_draw_vbo(struct pipe_context *pctx,
         BUG("Unsupported draw mode");
         return;
     }
+
+    /*
+     * Figure out the buffers/features we need:
+     */
+    if (etna_depth_enabled(ctx))
+        resource_written(ctx, pfb->zsbuf->texture);
+
+    if (etna_stencil_enabled(ctx))
+        resource_written(ctx, pfb->zsbuf->texture);
+
+    for (i = 0; i < pfb->nr_cbufs; i++) {
+        struct pipe_resource *surf;
+
+        if (!pfb->cbufs[i])
+            continue;
+
+        surf = pfb->cbufs[i]->texture;
+        resource_written(ctx, surf);
+    }
+
+    /* Mark constant buffers as being read */
+    resource_read(ctx, ctx->vs_cbuf_s.buffer);
+    resource_read(ctx, ctx->fs_cbuf_s.buffer);
+
+    /* Mark VBOs as being read */
+    for (i = 0; i < ctx->vertex_buffer.count; i++) {
+        assert(!ctx->vertex_buffer.vb[i].user_buffer);
+        resource_read(ctx, ctx->vertex_buffer.vb[i].buffer);
+    }
+
+    /* Mark index buffer as being read */
+    resource_read(ctx, ctx->index_buffer.buffer);
+
+    /* Mark textures as being read */
+    for (i = 0; i < PIPE_MAX_SAMPLERS; i++)
+        if (ctx->sampler_view[i])
+                resource_read(ctx, ctx->sampler_view[i]->texture);
 
     /* First, sync state, then emit DRAW_PRIMITIVES or DRAW_INDEXED_PRIMITIVES */
     etna_emit_state(ctx);
@@ -146,6 +219,7 @@ static void etna_flush(struct pipe_context *pctx,
 static void etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
 {
     struct etna_context *ctx = priv;
+    struct etna_resource *rsc, *rsc_tmp;
 
     etna_set_state(stream, VIVS_GL_API_MODE, VIVS_GL_API_MODE_OPENGL);
     etna_set_state(stream, VIVS_GL_VERTEX_ELEMENT_CONFIG , 0x00000001);
@@ -153,6 +227,16 @@ static void etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *p
     etna_set_state(stream, VIVS_PA_W_CLIP_LIMIT, 0x34000001);
 
     ctx->dirty = ~0UL;
+
+    /* go through all the used resources and clear their status flag */
+    LIST_FOR_EACH_ENTRY_SAFE(rsc, rsc_tmp, &ctx->used_resources, list) {
+        debug_assert(rsc->status != 0);
+        rsc->status = 0;
+        rsc->pending_ctx = NULL;
+        list_delinit(&rsc->list);
+    }
+
+    assert(LIST_IS_EMPTY(&ctx->used_resources));
 }
 
 struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
@@ -176,6 +260,8 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
     /* context ctxate setup */
     ctx->specs = screen->specs;
     ctx->screen = screen;
+
+    list_inithead(&ctx->used_resources);
 
     /*  Set sensible defaults for state */
     etna_cmd_stream_reset_notify(ctx->stream, ctx);

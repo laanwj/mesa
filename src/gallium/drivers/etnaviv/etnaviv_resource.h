@@ -27,6 +27,7 @@
 #ifndef H_ETNAVIV_RESOURCE
 #define H_ETNAVIV_RESOURCE
 
+#include "util/list.h"
 #include "etnaviv_internal.h"
 #include "etnaviv_tiling.h"
 #include "pipe/p_state.h"
@@ -47,6 +48,15 @@ struct etna_resource_level
    uint32_t clear_value; /* clear value of resource level (mainly for TS) */
 };
 
+/* status of queued up but not flushed reads and write operations.
+ * In _transfer_map() we need to know if queued up rendering needs
+ * to be flushed to preserve the order of cpu and gpu access.
+ */
+enum etna_resource_status {
+    ETNA_PENDING_WRITE = 0x01,
+    ETNA_PENDING_READ  = 0x02,
+};
+
 struct etna_resource
 {
     struct pipe_resource base;
@@ -60,6 +70,14 @@ struct etna_resource
     struct etna_bo *ts_bo; /* Tile status video memory */
 
     struct etna_resource_level levels[ETNA_NUM_LOD];
+
+    enum etna_resource_status status;
+
+    /* resources accessed by queued but not flushed draws are tracked
+      * in the used_resources list.
+      */
+    struct list_head list;
+    struct etna_context *pending_ctx;
 };
 
 static inline struct etna_resource *
