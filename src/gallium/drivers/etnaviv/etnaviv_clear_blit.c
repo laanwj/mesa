@@ -302,6 +302,10 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    uint32_t ts_mem_config = 0;
    int msaa_xscale = 1, msaa_yscale = 1;
 
+   /* Ensure that the level is valid */
+   assert(blit_info->src.level <= src->base.last_level);
+   assert(blit_info->dst.level <= dst->base.last_level);
+
    if (!translate_samples_to_xyscale(src->base.nr_samples, &msaa_xscale,
                                     &msaa_yscale, NULL))
       return FALSE;
