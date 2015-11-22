@@ -115,12 +115,9 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
                     cbuf->surf.offset, cbuf->surf.stride*4);
         }
 
-        struct etna_bo *bo = res->bo;
-
         if (ctx->specs.pixel_pipes == 1)
         {
-            cs->PE_COLOR_ADDR.bo = bo;
-            cs->PE_COLOR_ADDR.offset = cbuf->surf.offset;
+            cs->PE_COLOR_ADDR = cbuf->reloc[0];
             cs->PE_COLOR_ADDR.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
         else if (ctx->specs.pixel_pipes == 2)
@@ -145,8 +142,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
             cs->TS_COLOR_STATUS_BASE = cbuf->ts_reloc;
             cs->TS_COLOR_STATUS_BASE.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
-            cs->TS_COLOR_SURFACE_BASE.bo = bo;
-            cs->TS_COLOR_SURFACE_BASE.offset = cbuf->surf.offset;
+            cs->TS_COLOR_SURFACE_BASE = cbuf->reloc[0];
             cs->TS_COLOR_SURFACE_BASE.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
 
@@ -186,12 +182,9 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
                 /* VIVS_PE_DEPTH_CONFIG_ONLY_DEPTH */
                 /* merged with depth_stencil_alpha */
 
-        struct etna_bo *bo = res->bo;
-
         if (ctx->specs.pixel_pipes == 1)
         {
-            cs->PE_DEPTH_ADDR.bo = bo;
-            cs->PE_DEPTH_ADDR.offset = zsbuf->surf.offset;
+            cs->PE_DEPTH_ADDR = zsbuf->reloc[0];
             cs->PE_DEPTH_ADDR.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
         else if (ctx->specs.pixel_pipes == 2)
@@ -219,8 +212,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
             cs->TS_DEPTH_STATUS_BASE = zsbuf->ts_reloc;
             cs->TS_DEPTH_STATUS_BASE.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
-            cs->TS_DEPTH_SURFACE_BASE.bo = bo;
-            cs->TS_DEPTH_SURFACE_BASE.offset = zsbuf->surf.offset;
+            cs->TS_DEPTH_SURFACE_BASE = zsbuf->reloc[0];
             cs->TS_DEPTH_SURFACE_BASE.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
 
