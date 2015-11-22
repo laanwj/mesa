@@ -115,6 +115,9 @@ struct etna_context
     uint32_t prim_hwsupport;
     struct primconvert_context *primconvert;
 
+    /* list of resources used by currently-unsubmitted renders */
+    struct list_head used_resources;
+
     struct util_slab_mempool transfer_pool;
     struct blitter_context *blitter;
 

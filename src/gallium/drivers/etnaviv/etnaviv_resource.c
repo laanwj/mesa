@@ -194,6 +194,7 @@ static struct pipe_resource *etna_resource_create(struct pipe_screen *pscreen,
     rsc->bo = bo;
     rsc->ts_bo = 0; /* TS is only created when first bound to surface */
     pipe_reference_init(&rsc->base.reference, 1);
+    list_inithead(&rsc->list);
 
     if (DBG_ENABLED(ETNA_DBG_ZERO))
     {
@@ -242,6 +243,7 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
     *prsc = *tmpl;
 
     pipe_reference_init(&prsc->reference, 1);
+    list_inithead(&rsc->list);
     prsc->screen = pscreen;
 
     rsc->bo = etna_screen_bo_from_handle(pscreen, handle, &level->stride);
