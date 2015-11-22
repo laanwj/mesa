@@ -40,6 +40,8 @@ struct etna_surface
     struct compiled_rs_state clear_command;
     /* Keep pointer to resource level, for fast clear */
     struct etna_resource_level *level;
+    struct etna_reloc reloc[2];
+    struct etna_reloc ts_reloc;
 };
 
 static inline struct etna_surface *

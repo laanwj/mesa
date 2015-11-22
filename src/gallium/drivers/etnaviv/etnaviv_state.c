@@ -125,12 +125,10 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
         }
         else if (ctx->specs.pixel_pipes == 2)
         {
-            cs->PE_PIPE_COLOR_ADDR[0].bo = bo;
-            cs->PE_PIPE_COLOR_ADDR[0].offset = res->levels[0].offset;
+            cs->PE_PIPE_COLOR_ADDR[0] = cbuf->reloc[0];
             cs->PE_PIPE_COLOR_ADDR[0].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
-            cs->PE_PIPE_COLOR_ADDR[1].bo = bo;
-            cs->PE_PIPE_COLOR_ADDR[1].offset = res->levels[0].offset + (res->levels[0].size / 2);
+            cs->PE_PIPE_COLOR_ADDR[1] = cbuf->reloc[1];
             cs->PE_PIPE_COLOR_ADDR[1].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
         else
@@ -141,12 +139,10 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
 
         if (cbuf->surf.ts_size)
         {
-            struct etna_bo *ts_bo = etna_resource(cbuf->base.texture)->ts_bo;
             ts_mem_config |= VIVS_TS_MEM_CONFIG_COLOR_FAST_CLEAR;
             cs->TS_COLOR_CLEAR_VALUE = cbuf->level->clear_value;
 
-            cs->TS_COLOR_STATUS_BASE.bo = ts_bo;
-            cs->TS_COLOR_STATUS_BASE.offset = cbuf->surf.ts_offset;
+            cs->TS_COLOR_STATUS_BASE = cbuf->ts_reloc;
             cs->TS_COLOR_STATUS_BASE.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
             cs->TS_COLOR_SURFACE_BASE.bo = bo;
@@ -200,12 +196,10 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
         }
         else if (ctx->specs.pixel_pipes == 2)
         {
-            cs->PE_PIPE_DEPTH_ADDR[0].bo = bo;
-            cs->PE_PIPE_DEPTH_ADDR[0].offset = res->levels[0].offset;
+            cs->PE_PIPE_DEPTH_ADDR[0] = zsbuf->reloc[0];
             cs->PE_PIPE_DEPTH_ADDR[0].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
-            cs->PE_PIPE_DEPTH_ADDR[1].bo = bo;
-            cs->PE_PIPE_DEPTH_ADDR[1].offset = res->levels[0].offset + (res->levels[0].size / 2);
+            cs->PE_PIPE_DEPTH_ADDR[1] = zsbuf->reloc[1];
             cs->PE_PIPE_DEPTH_ADDR[1].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 	}
 	else
@@ -219,12 +213,10 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
 
         if (zsbuf->surf.ts_size)
         {
-            struct etna_bo *ts_bo = etna_resource(zsbuf->base.texture)->ts_bo;
             ts_mem_config |= VIVS_TS_MEM_CONFIG_DEPTH_FAST_CLEAR;
             cs->TS_DEPTH_CLEAR_VALUE = zsbuf->level->clear_value;
 
-            cs->TS_DEPTH_STATUS_BASE.bo = ts_bo;
-            cs->TS_DEPTH_STATUS_BASE.offset = zsbuf->surf.ts_offset;
+            cs->TS_DEPTH_STATUS_BASE = zsbuf->ts_reloc;
             cs->TS_DEPTH_STATUS_BASE.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
             cs->TS_DEPTH_SURFACE_BASE.bo = bo;

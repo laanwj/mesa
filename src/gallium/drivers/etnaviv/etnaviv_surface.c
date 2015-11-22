@@ -83,8 +83,22 @@ static struct pipe_surface *etna_create_surface(struct pipe_context *pctx,
                                         /* XXX we don't really need a copy but it's convenient */
     surf->surf.offset += layer * surf->surf.layer_stride;
 
+    struct etna_resource_level *lev = &rsc->levels[level];
+
+    /* Setup template relocations for this surface */
+    surf->reloc[0].bo = rsc->bo;
+    surf->reloc[0].offset = rsc->levels[0].offset;
+    surf->reloc[0].flags = 0;
+    surf->reloc[1].bo = rsc->bo;
+    surf->reloc[1].offset = rsc->levels[0].offset + (rsc->levels[0].size / 2);
+    surf->reloc[1].flags = 0;
+
     if (surf->surf.ts_size)
     {
+        surf->ts_reloc.bo = rsc->ts_bo;
+        surf->ts_reloc.offset = surf->surf.ts_offset;
+        surf->ts_reloc.flags = 0;
+
         /* This (ab)uses the RS as a plain buffer memset().
            Currently uses a fixed row size of 64 bytes. Some benchmarking with different sizes may be in order.
          */
