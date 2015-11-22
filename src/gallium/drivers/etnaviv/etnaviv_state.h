@@ -29,6 +29,17 @@
 #define ETNAVIV_STATE_H_
 
 #include "pipe/p_context.h"
+#include "etnaviv_context.h"
+
+static inline bool etna_depth_enabled(struct etna_context *ctx)
+{
+    return ctx->zsa && ctx->zsa->depth.enabled;
+}
+
+static inline bool etna_stencil_enabled(struct etna_context *ctx)
+{
+    return ctx->zsa && ctx->zsa->stencil[0].enabled;
+}
 
 void etna_state_init(struct pipe_context *pctx);
 
