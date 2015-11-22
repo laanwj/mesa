@@ -87,10 +87,10 @@ static struct pipe_surface *etna_create_surface(struct pipe_context *pctx,
 
     /* Setup template relocations for this surface */
     surf->reloc[0].bo = rsc->bo;
-    surf->reloc[0].offset = rsc->levels[0].offset;
+    surf->reloc[0].offset = surf->surf.offset;
     surf->reloc[0].flags = 0;
     surf->reloc[1].bo = rsc->bo;
-    surf->reloc[1].offset = rsc->levels[0].offset + (rsc->levels[0].size / 2);
+    surf->reloc[1].offset = surf->surf.offset + lev->stride * lev->padded_height / 2;
     surf->reloc[1].flags = 0;
 
     if (surf->surf.ts_size)
