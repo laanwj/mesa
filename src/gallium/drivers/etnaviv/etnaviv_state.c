@@ -384,21 +384,20 @@ static void etna_set_viewport_states(struct pipe_context *pctx,
 }
 
 static void etna_set_vertex_buffers( struct pipe_context *pctx,
-                           unsigned start_slot,
-                           unsigned num_buffers,
+                           unsigned start_slot, unsigned num_buffers,
                            const struct pipe_vertex_buffer *vb)
 {
     struct etna_context *ctx = etna_context(pctx);
-    assert((start_slot + num_buffers) <= PIPE_MAX_ATTRIBS);
-    uint32_t enabled = 0;
+    struct etna_vertexbuf_state *so = &ctx->vertex_buffer;
 
-    util_set_vertex_buffers_mask(ctx->vertex_buffer_s, &enabled,
-                                 vb, start_slot, num_buffers);
+    util_set_vertex_buffers_mask(so->vb, &so->enabled_mask, vb, start_slot, num_buffers);
+    so->count = util_last_bit(so->enabled_mask);
 
     for (unsigned idx = start_slot; idx < start_slot + num_buffers; ++idx)
     {
-        struct compiled_set_vertex_buffer *cs = &ctx->vertex_buffer[idx];
-        struct pipe_vertex_buffer *vbi = &ctx->vertex_buffer_s[idx];
+        struct compiled_set_vertex_buffer *cs = &so->cvb[idx];
+        struct pipe_vertex_buffer *vbi = &so->vb[idx];
+
         assert(!vbi->user_buffer); /* XXX support user_buffer using etna_usermem_map */
         if (vbi->buffer) /* GPU buffer */
         {

@@ -73,6 +73,13 @@ struct etna_transfer
     bool in_place;
 };
 
+struct etna_vertexbuf_state {
+    struct pipe_vertex_buffer vb[PIPE_MAX_ATTRIBS];
+    struct compiled_set_vertex_buffer cvb[PIPE_MAX_ATTRIBS];
+    unsigned count;
+    uint32_t enabled_mask;
+};
+
 /* private opaque context structure */
 struct etna_context
 {
@@ -132,7 +139,7 @@ struct etna_context
     unsigned num_fragment_sampler_views;
     unsigned num_vertex_sampler_views;
     struct pipe_sampler_view *sampler_view[PIPE_MAX_SAMPLERS];
-    struct compiled_set_vertex_buffer vertex_buffer[PIPE_MAX_ATTRIBS];
+    struct etna_vertexbuf_state vertex_buffer;
     struct pipe_index_buffer index_buffer;
 
     /* pointers to the bound state. these are mainly kept around for the blitter. */
@@ -144,7 +151,6 @@ struct etna_context
     struct pipe_stencil_ref stencil_ref_s;
     struct pipe_viewport_state viewport_s;
     struct pipe_scissor_state scissor_s;
-    struct pipe_vertex_buffer vertex_buffer_s[PIPE_MAX_ATTRIBS];
     struct pipe_constant_buffer vs_cbuf_s;
     struct pipe_constant_buffer fs_cbuf_s;
 
