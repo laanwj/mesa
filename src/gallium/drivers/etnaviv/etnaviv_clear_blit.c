@@ -45,7 +45,7 @@
 /* Save current state for blitter operation */
 static void etna_blit_save_state(struct etna_context *ctx)
 {
-    util_blitter_save_vertex_buffer_slot(ctx->blitter, &ctx->vertex_buffer_s[0]);
+    util_blitter_save_vertex_buffer_slot(ctx->blitter, ctx->vertex_buffer.vb);
     util_blitter_save_vertex_elements(ctx->blitter, ctx->vertex_elements);
     util_blitter_save_vertex_shader(ctx->blitter, ctx->vs);
     util_blitter_save_rasterizer(ctx->blitter, ctx->rasterizer);
