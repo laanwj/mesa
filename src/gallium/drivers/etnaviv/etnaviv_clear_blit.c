@@ -335,6 +335,12 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
        etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
    }
 
+   struct etna_resource_level *src_lev = &src->levels[blit_info->src.level];
+   struct etna_resource_level *dst_lev = &dst->levels[blit_info->dst.level];
+
+   unsigned src_offset = src_lev->offset;
+   unsigned dst_offset = dst_lev->offset;
+
    /* Set up color TS to source surface before blit, if needed */
    if (src->base.nr_samples > 1)
       ts_mem_config |= VIVS_TS_MEM_CONFIG_MSAA |
@@ -346,13 +352,13 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
 
       memset(&reloc, 0, sizeof(struct etna_reloc));
       reloc.bo = src->ts_bo;
-      reloc.offset = src->levels[blit_info->src.level].ts_offset;
+      reloc.offset = src_lev->ts_offset;
       reloc.flags = ETNA_RELOC_READ;
       etna_set_state_reloc(ctx->stream, VIVS_TS_COLOR_STATUS_BASE, &reloc);
 
       memset(&reloc, 0, sizeof(struct etna_reloc));
       reloc.bo = src->bo;
-      reloc.offset = src->levels[blit_info->src.level].offset;
+      reloc.offset = src_offset;
       reloc.flags = ETNA_RELOC_READ;
       etna_set_state_reloc(ctx->stream, VIVS_TS_COLOR_SURFACE_BASE, &reloc);
 
@@ -367,13 +373,13 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
       .source_format = translate_rt_format(blit_info->src.format, false),
       .source_tiling = src->layout,
       .source = src->bo,
-      .source_offset = src->levels[blit_info->src.level].offset,
-      .source_stride = src->levels[blit_info->src.level].stride,
+      .source_offset = src_offset,
+      .source_stride = src_lev->stride,
       .dest_format = translate_rt_format(blit_info->dst.format, false),
       .dest_tiling = dst->layout,
       .dest = dst->bo,
-      .dest_offset = 0,
-      .dest_stride = dst->levels[blit_info->dst.level].stride,
+      .dest_offset = dst_offset,
+      .dest_stride = dst_lev->stride,
       .downsample_x = msaa_xscale > 1,
       .downsample_y = msaa_yscale > 1,
       .swap_rb = translate_rb_src_dst_swap(src->base.format, dst->base.format),
