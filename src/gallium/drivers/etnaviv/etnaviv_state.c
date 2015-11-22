@@ -92,8 +92,8 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
     {
         struct etna_surface *cbuf = etna_surface(sv->cbufs[0]);
         struct etna_resource *res = etna_resource(cbuf->base.texture);
-        bool color_supertiled = (res->layout & 2)!=0;
-        assert(res->layout & 1); /* Cannot render to linear surfaces */
+        bool color_supertiled = (res->layout & ETNA_LAYOUT_BIT_SUPER)!=0;
+        assert(res->layout & ETNA_LAYOUT_BIT_TILE); /* Cannot render to linear surfaces */
 
         pipe_surface_reference(&cs->cbuf, &cbuf->base);
         cs->PE_COLOR_FORMAT =
@@ -178,10 +178,10 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
         struct etna_resource *res = etna_resource(zsbuf->base.texture);
 
         pipe_surface_reference(&cs->zsbuf, &zsbuf->base);
-        assert(res->layout & 1); /* Cannot render to linear surfaces */
+        assert(res->layout & ETNA_LAYOUT_BIT_TILE); /* Cannot render to linear surfaces */
         uint32_t depth_format = translate_depth_format(zsbuf->base.format, false);
         unsigned depth_bits = depth_format == VIVS_PE_DEPTH_CONFIG_DEPTH_FORMAT_D16 ? 16 : 24;
-        bool depth_supertiled = (res->layout & 2)!=0;
+        bool depth_supertiled = (res->layout & ETNA_LAYOUT_BIT_SUPER)!=0;
 
         cs->PE_DEPTH_CONFIG =
                 depth_format |
