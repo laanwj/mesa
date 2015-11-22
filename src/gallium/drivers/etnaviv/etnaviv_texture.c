@@ -171,45 +171,57 @@ static void etna_sampler_view_destroy(struct pipe_context *pctx,
     FREE(view);
 }
 
-static void etna_set_sampler_views(struct pipe_context *pctx,
-                                        unsigned shader,
-                                        unsigned start_slot, unsigned num_views,
-                                        struct pipe_sampler_view **info)
+static void set_sampler_views(struct etna_context *ctx, unsigned start, unsigned end,
+                                        unsigned nr, struct pipe_sampler_view **views)
 {
-    /* fragment sampler */
-    struct etna_context *ctx = etna_context(pctx);
-    unsigned idx;
+    unsigned i;
 
-    /* TODO: add switch to handle different shader types */
+    for (i = start; i < nr; i++)
+        pipe_sampler_view_reference(&ctx->sampler_view[i], views[i]);
+
+    for (; i < end; i++)
+        pipe_sampler_view_reference(&ctx->sampler_view[i], NULL);
+}
+
+static inline void etna_fragtex_set_sampler_views(struct etna_context *ctx, unsigned nr,
+                                        struct pipe_sampler_view **views)
+{
+    unsigned start = 0;
+    unsigned end = start + ctx->specs.fragment_sampler_count;
+
+    set_sampler_views(ctx, start, end, nr, views);
+    ctx->num_fragment_sampler_views = nr;
+}
+
+
+static inline void etna_vertex_set_sampler_views(struct etna_context *ctx, unsigned nr,
+                                        struct pipe_sampler_view **views)
+{
+    unsigned start = ctx->specs.vertex_sampler_offset;
+    unsigned end = start + ctx->specs.vertex_sampler_count;
+
+    set_sampler_views(ctx, start, end, nr, views);
+    ctx->num_vertex_sampler_views = nr;
+}
+
+static void etna_set_sampler_views(struct pipe_context *pctx, unsigned shader,
+                                        unsigned start_slot, unsigned num_views,
+                                        struct pipe_sampler_view **views)
+{
+    struct etna_context *ctx = etna_context(pctx);
+    assert(start_slot == 0);
 
     ctx->dirty |= ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_TEXTURE_CACHES;
-    ctx->num_fragment_sampler_views = num_views;
 
-    for(idx=0; idx<num_views; ++idx)
-    {
-        pipe_sampler_view_reference(&ctx->sampler_view[idx], info[idx]);
-        if (info[idx]) /* TODO: if needed? */
-            ctx->sampler_view[idx] = info[idx];
-    }
-
-    for(; idx<ctx->specs.fragment_sampler_count; ++idx)
-    {
-        pipe_sampler_view_reference(&ctx->sampler_view[idx], NULL);
-    }
-
-    /* vertex sampler */
-    unsigned offset = ctx->specs.vertex_sampler_offset;
-
-    for(idx=0; idx<num_views; ++idx)
-    {
-        pipe_sampler_view_reference(&ctx->sampler_view[offset + idx], info[idx]);
-        if(info[idx])  /* TODO: if needed? */
-            ctx->sampler_view[offset + idx] = info[idx];
-    }
-
-    for(; idx<ctx->specs.vertex_sampler_count; ++idx)
-    {
-        pipe_sampler_view_reference(&ctx->sampler_view[offset + idx], NULL);
+    switch (shader) {
+    case PIPE_SHADER_FRAGMENT:
+        etna_fragtex_set_sampler_views(ctx, num_views, views);
+        break;
+    case PIPE_SHADER_VERTEX:
+        etna_vertex_set_sampler_views(ctx, num_views, views);
+        break;
+    default:
+        ;
     }
 }
 
