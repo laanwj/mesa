@@ -45,10 +45,11 @@
 bool etna_screen_resource_alloc_ts(struct pipe_screen *pscreen, struct etna_resource *rsc)
 {
     struct etna_screen *screen = etna_screen(pscreen);
-    size_t rt_ts_size;
+    size_t rt_ts_size, ts_layer_stride;
     assert(!rsc->ts_bo);
     /* TS only for level 0 -- XXX is this formula correct? */
-    rt_ts_size = align(rsc->levels[0].size*screen->specs.bits_per_tile/0x80, 0x100);
+    ts_layer_stride = align(rsc->levels[0].layer_stride*screen->specs.bits_per_tile/0x80, 0x100);
+    rt_ts_size = ts_layer_stride * rsc->base.array_size;
     if (rt_ts_size == 0)
         return true;
 
@@ -61,6 +62,7 @@ bool etna_screen_resource_alloc_ts(struct pipe_screen *pscreen, struct etna_reso
     }
     rsc->ts_bo = rt_ts;
     rsc->levels[0].ts_offset = 0;
+    rsc->levels[0].ts_layer_stride = ts_layer_stride;
     rsc->levels[0].ts_size = etna_bo_size(rsc->ts_bo);
     /* It is important to initialize the TS, as random pattern
      * can result in crashes. Do this on the CPU as this only happens once

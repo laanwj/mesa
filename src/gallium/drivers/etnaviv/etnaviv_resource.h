@@ -44,6 +44,7 @@ struct etna_resource_level
    unsigned size; /* total size of memory area */
 
    uint32_t ts_offset;
+   uint32_t ts_layer_stride;
    uint32_t ts_size;
    uint32_t clear_value; /* clear value of resource level (mainly for TS) */
 };
