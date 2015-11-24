@@ -115,7 +115,7 @@ static void etna_draw_vbo(struct pipe_context *pctx,
 
     if (!(ctx->prim_hwsupport & (1 << info->mode))) {
         struct primconvert_context *primconvert = ctx->primconvert;
-        util_primconvert_save_index_buffer(primconvert, &ctx->index_buffer);
+        util_primconvert_save_index_buffer(primconvert, &ctx->index_buffer.ib);
         util_primconvert_save_rasterizer_state(primconvert, ctx->rasterizer);
         util_primconvert_draw_vbo(primconvert, info);
         return;
@@ -137,6 +137,11 @@ static void etna_draw_vbo(struct pipe_context *pctx,
     draw_mode = translate_draw_mode(info->mode);
     if (draw_mode == ETNA_NO_MATCH) {
         BUG("Unsupported draw mode");
+        return;
+    }
+
+    if (info->indexed && !ctx->index_buffer.FE_INDEX_STREAM_BASE_ADDR.bo) {
+        BUG("Unsupported or no index buffer");
         return;
     }
 
@@ -170,7 +175,7 @@ static void etna_draw_vbo(struct pipe_context *pctx,
     }
 
     /* Mark index buffer as being read */
-    resource_read(ctx, ctx->index_buffer.buffer);
+    resource_read(ctx, ctx->index_buffer.ib.buffer);
 
     /* Mark textures as being read */
     for (i = 0; i < PIPE_MAX_SAMPLERS; i++)

@@ -43,6 +43,13 @@
 struct pipe_screen;
 struct etna_shader_object;
 
+struct etna_index_buffer
+{
+    struct pipe_index_buffer ib;
+    struct etna_reloc FE_INDEX_STREAM_BASE_ADDR;
+    uint32_t FE_INDEX_STREAM_CONTROL;
+};
+
 struct etna_shader_input
 {
     int vs_reg; /* VS input register */
@@ -143,7 +150,7 @@ struct etna_context
     unsigned num_vertex_sampler_views;
     struct pipe_sampler_view *sampler_view[PIPE_MAX_SAMPLERS];
     struct etna_vertexbuf_state vertex_buffer;
-    struct pipe_index_buffer index_buffer;
+    struct etna_index_buffer index_buffer;
 
     /* pointers to the bound state. these are mainly kept around for the blitter. */
     struct etna_shader_object *vs;

@@ -342,30 +342,10 @@ void etna_emit_state(struct etna_context *ctx)
 
         /*03818*/ EMIT_STATE(GL_MULTI_SAMPLE_CONFIG, val);
     }
-    if (likely(dirty & (ETNA_DIRTY_INDEX_BUFFER)) && ctx->index_buffer.buffer)
+    if (likely(dirty & (ETNA_DIRTY_INDEX_BUFFER)) && ctx->index_buffer.ib.buffer)
     {
-        struct etna_bo *bo = etna_resource(ctx->index_buffer.buffer)->bo;
-        struct etna_reloc reloc;
-        uint32_t ctrl = 0;
-
-        memset(&reloc, 0, sizeof(struct etna_reloc));
-        if (ctx->index_buffer.index_size)
-        {
-            ctrl = translate_index_size(ctx->index_buffer.index_size);
-            if ((ctrl == VIVS_FE_INDEX_STREAM_CONTROL_TYPE_UNSIGNED_INT &&
-                 !VIV_FEATURE(ctx->screen, chipFeatures, 32_BIT_INDICES)) ||
-                ctrl == ETNA_NO_MATCH) {
-                BUG("Unsupported %u-bit indices", ctx->index_buffer.index_size * 8);
-                abort();
-            }
-        }
-
-        reloc.bo = bo;
-        reloc.offset = ctx->index_buffer.offset;
-        reloc.flags = ETNA_RELOC_READ;
-
-        /*00644*/ EMIT_STATE_RELOC(FE_INDEX_STREAM_BASE_ADDR, &reloc);
-        /*00648*/ EMIT_STATE(FE_INDEX_STREAM_CONTROL, ctrl);
+        /*00644*/ EMIT_STATE_RELOC(FE_INDEX_STREAM_BASE_ADDR, &ctx->index_buffer.FE_INDEX_STREAM_BASE_ADDR);
+        /*00648*/ EMIT_STATE(FE_INDEX_STREAM_CONTROL, ctx->index_buffer.FE_INDEX_STREAM_CONTROL);
     }
     if (likely(dirty & (ETNA_DIRTY_VERTEX_BUFFERS)))
     {
