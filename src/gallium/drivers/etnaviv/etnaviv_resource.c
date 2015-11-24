@@ -37,6 +37,11 @@
 #include "util/u_inlines.h"
 #include "util/u_transfer.h" /* u_default_resource_get_handle */
 
+/* A tile is 4x4 pixels, having 'screen->specs.bits_per_tile' of tile status.
+ * So, in a buffer of N pixels, there are N / (4 * 4) tiles.
+ * We need N * screen->specs.bits_per_tile / (4 * 4) bits of tile status, or
+ * N * screen->specs.bits_per_tile / (4 * 4 * 8) bytes.
+ */
 bool etna_screen_resource_alloc_ts(struct pipe_screen *pscreen, struct etna_resource *rsc)
 {
     struct etna_screen *screen = etna_screen(pscreen);
