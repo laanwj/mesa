@@ -314,14 +314,21 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
        translate_rt_format(blit_info->dst.format, true) == ETNA_NO_MATCH ||
        blit_info->mask != PIPE_MASK_RGBA || blit_info->scissor_enable ||
        blit_info->src.box.x != 0 || blit_info->src.box.y != 0 ||
-       blit_info->src.box.z != 0 || blit_info->dst.box.x != 0 ||
-       blit_info->dst.box.y != 0 || blit_info->dst.box.z != 0 ||
+       blit_info->dst.box.x != 0 || blit_info->dst.box.y != 0 ||
+       blit_info->dst.box.depth != blit_info->src.box.depth ||
+       blit_info->dst.box.depth != 1 ||
        blit_info->dst.box.width != (blit_info->src.box.width / msaa_xscale) ||
        blit_info->dst.box.height != (blit_info->src.box.height / msaa_yscale))
    {
       printf("rs blit bail out\n");
       return FALSE;
    }
+
+   /* Ensure that the Z coordinate is sane */
+   if (dst->base.target != PIPE_TEXTURE_CUBE)
+       assert(blit_info->dst.box.z == 0);
+   if (src->base.target != PIPE_TEXTURE_CUBE)
+       assert(blit_info->src.box.z == 0);
 
    uint32_t to_flush = 0;
 
@@ -338,8 +345,10 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    struct etna_resource_level *src_lev = &src->levels[blit_info->src.level];
    struct etna_resource_level *dst_lev = &dst->levels[blit_info->dst.level];
 
-   unsigned src_offset = src_lev->offset;
-   unsigned dst_offset = dst_lev->offset;
+   unsigned src_offset = src_lev->offset +
+                         blit_info->src.box.z * src_lev->layer_stride;
+   unsigned dst_offset = dst_lev->offset +
+                         blit_info->dst.box.z * dst_lev->layer_stride;
 
    /* Set up color TS to source surface before blit, if needed */
    if (src->base.nr_samples > 1)
@@ -347,12 +356,14 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
                        translate_msaa_format(src->base.format, false);
    if (src->levels[blit_info->src.level].ts_size) {
       struct etna_reloc reloc;
+      unsigned ts_offset = src_lev->ts_offset +
+                           blit_info->src.box.z * src_lev->ts_layer_stride;
 
       etna_set_state(ctx->stream, VIVS_TS_MEM_CONFIG, VIVS_TS_MEM_CONFIG_COLOR_FAST_CLEAR | ts_mem_config);
 
       memset(&reloc, 0, sizeof(struct etna_reloc));
       reloc.bo = src->ts_bo;
-      reloc.offset = src_lev->ts_offset;
+      reloc.offset = ts_offset;
       reloc.flags = ETNA_RELOC_READ;
       etna_set_state_reloc(ctx->stream, VIVS_TS_COLOR_STATUS_BASE, &reloc);
 
