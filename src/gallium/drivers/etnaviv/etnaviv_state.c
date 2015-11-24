@@ -406,15 +406,25 @@ static void etna_set_index_buffer( struct pipe_context *pctx,
                          const struct pipe_index_buffer *ib)
 {
     struct etna_context *ctx = etna_context(pctx);
+    uint32_t ctrl;
 
     if (ib) {
-        pipe_resource_reference(&ctx->index_buffer.buffer, ib->buffer);
-        ctx->index_buffer.index_size = ib->index_size;
-        ctx->index_buffer.offset = ib->offset;
-        ctx->index_buffer.user_buffer = ib->user_buffer;
+        pipe_resource_reference(&ctx->index_buffer.ib.buffer, ib->buffer);
+        memcpy(&ctx->index_buffer.ib, ib, sizeof(ctx->index_buffer.ib));
+        ctrl = translate_index_size(ctx->index_buffer.ib.index_size);
     } else {
-        pipe_resource_reference(&ctx->index_buffer.buffer, NULL);
-	ctx->index_buffer.index_size = 0;
+        pipe_resource_reference(&ctx->index_buffer.ib.buffer, NULL);
+        ctrl = 0;
+    }
+
+    if (ctx->index_buffer.ib.buffer && ctrl != ETNA_NO_MATCH) {
+        ctx->index_buffer.FE_INDEX_STREAM_BASE_ADDR.bo = etna_resource(ctx->index_buffer.ib.buffer)->bo;
+        ctx->index_buffer.FE_INDEX_STREAM_BASE_ADDR.offset = ctx->index_buffer.ib.offset;
+        ctx->index_buffer.FE_INDEX_STREAM_BASE_ADDR.flags = ETNA_RELOC_READ;
+        ctx->index_buffer.FE_INDEX_STREAM_CONTROL = ctrl;
+    } else {
+        ctx->index_buffer.FE_INDEX_STREAM_BASE_ADDR.bo = NULL;
+        ctx->index_buffer.FE_INDEX_STREAM_CONTROL = 0;
     }
 
     ctx->dirty |= ETNA_DIRTY_INDEX_BUFFER;
