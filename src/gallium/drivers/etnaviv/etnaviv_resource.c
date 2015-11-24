@@ -92,34 +92,10 @@ static boolean etna_screen_can_create_resource(struct pipe_screen *pscreen,
 }
 
 /* Allocate 2D texture or render target resource */
-static struct pipe_resource *etna_resource_create(struct pipe_screen *pscreen,
-                                         const struct pipe_resource *templat)
+struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
+                         unsigned layout, const struct pipe_resource *templat)
 {
     struct etna_screen *screen = etna_screen(pscreen);
-
-    /* Figure out what tiling to use -- for now, assume that textures cannot be supertiled, and cannot be linear.
-     * There is a feature flag SUPERTILED_TEXTURE (not supported on any known hw) that may allow this, as well
-     * as LINEAR_TEXTURE_SUPPORT (supported on gc880 and gc2000 at least), but not sure how it works.
-     * Buffers always have LINEAR layout.
-     */
-    unsigned layout = ETNA_LAYOUT_LINEAR;
-    if (templat->target != PIPE_BUFFER)
-    {
-        if (!(templat->bind & PIPE_BIND_SAMPLER_VIEW) && screen->specs.can_supertile &&
-                !DBG_ENABLED(ETNA_DBG_NO_SUPERTILE))
-            layout = ETNA_LAYOUT_SUPER_TILED;
-        else
-            layout = ETNA_LAYOUT_TILED;
-    }
-
-    /* multi tiled formats */
-    if ((screen->specs.pixel_pipes > 1) && !(templat->bind & PIPE_BIND_SAMPLER_VIEW))
-    {
-        if (layout == ETNA_LAYOUT_TILED)
-            layout = ETNA_LAYOUT_MULTI_TILED;
-        if (layout == ETNA_LAYOUT_SUPER_TILED)
-            layout = ETNA_LAYOUT_MULTI_SUPERTILED;
-    }
 
     /* Determine scaling for antialiasing, allow override using debug flag */
     int nr_samples = templat->nr_samples;
@@ -210,6 +186,38 @@ static struct pipe_resource *etna_resource_create(struct pipe_screen *pscreen,
     }
 
     return &rsc->base;
+}
+
+static struct pipe_resource *etna_resource_create(struct pipe_screen *pscreen,
+                                         const struct pipe_resource *templat)
+{
+    struct etna_screen *screen = etna_screen(pscreen);
+
+    /* Figure out what tiling to use -- for now, assume that textures cannot be supertiled, and cannot be linear.
+     * There is a feature flag SUPERTILED_TEXTURE (not supported on any known hw) that may allow this, as well
+     * as LINEAR_TEXTURE_SUPPORT (supported on gc880 and gc2000 at least), but not sure how it works.
+     * Buffers always have LINEAR layout.
+     */
+    unsigned layout = ETNA_LAYOUT_LINEAR;
+    if (templat->target != PIPE_BUFFER)
+    {
+        if (!(templat->bind & PIPE_BIND_SAMPLER_VIEW) && screen->specs.can_supertile &&
+                !DBG_ENABLED(ETNA_DBG_NO_SUPERTILE))
+            layout = ETNA_LAYOUT_SUPER_TILED;
+        else
+            layout = ETNA_LAYOUT_TILED;
+    }
+
+    /* multi tiled formats */
+    if ((screen->specs.pixel_pipes > 1) && !(templat->bind & PIPE_BIND_SAMPLER_VIEW))
+    {
+        if (layout == ETNA_LAYOUT_TILED)
+            layout = ETNA_LAYOUT_MULTI_TILED;
+        if (layout == ETNA_LAYOUT_SUPER_TILED)
+            layout = ETNA_LAYOUT_MULTI_SUPERTILED;
+    }
+
+    return etna_resource_alloc(pscreen, layout, templat);
 }
 
 static void etna_resource_destroy(struct pipe_screen *pscreen,
