@@ -93,6 +93,8 @@ etna_resource(struct pipe_resource *p)
  */
 bool etna_screen_resource_alloc_ts(struct pipe_screen *pscreen, struct etna_resource *prsc);
 
+struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen, unsigned layout, const struct pipe_resource *templat);
+
 void etna_resource_screen_init(struct pipe_screen *pscreen);
 
 #endif
