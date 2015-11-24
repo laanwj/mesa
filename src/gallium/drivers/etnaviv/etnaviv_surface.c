@@ -95,6 +95,11 @@ static struct pipe_surface *etna_create_surface(struct pipe_context *pctx,
 
     if (surf->surf.ts_size)
     {
+        unsigned int layer_offset = layer * surf->surf.ts_layer_stride;
+        assert(layer_offset < surf->surf.ts_size);
+        surf->surf.ts_offset += layer_offset;
+        surf->surf.ts_size -= layer_offset;
+
         surf->ts_reloc.bo = rsc->ts_bo;
         surf->ts_reloc.offset = surf->surf.ts_offset;
         surf->ts_reloc.flags = 0;
