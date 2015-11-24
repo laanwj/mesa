@@ -122,6 +122,8 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
         }
         else if (ctx->specs.pixel_pipes == 2)
         {
+            /* Rendered textures must always be multi-tiled */
+            assert(res->layout & ETNA_LAYOUT_BIT_MULTI);
             cs->PE_PIPE_COLOR_ADDR[0] = cbuf->reloc[0];
             cs->PE_PIPE_COLOR_ADDR[0].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
 
