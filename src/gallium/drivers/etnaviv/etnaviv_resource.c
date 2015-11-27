@@ -231,6 +231,8 @@ static void etna_resource_destroy(struct pipe_screen *pscreen,
     if (rsc->ts_bo)
       etna_bo_del(rsc->ts_bo);
 
+    list_delinit(&rsc->list);
+
     FREE(rsc);
 }
 
