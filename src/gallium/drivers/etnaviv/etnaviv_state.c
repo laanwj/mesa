@@ -29,6 +29,7 @@
 
 #include "hw/common.xml.h"
 
+#include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
 #include "etnaviv_surface.h"
 #include "etnaviv_translate.h"
@@ -79,6 +80,17 @@ static void etna_set_sample_mask(struct pipe_context *pctx, unsigned sample_mask
     ctx->dirty |= ETNA_DIRTY_SAMPLE_MASK;
 }
 
+static void etna_update_render_resource(struct pipe_context *pctx, struct pipe_resource *pres)
+{
+    struct etna_resource *res = etna_resource(pres);
+    if (res->texture && res->seqno - etna_resource(res->texture)->seqno < 0)
+    {
+        /* The texture is newer than the render buffer. Copy it over. */
+        etna_copy_resource(pctx, pres, res->texture, 0, pres->last_level);
+        res->seqno = etna_resource(res->texture)->seqno;
+    }
+}
+
 static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct pipe_framebuffer_state *sv)
 {
     struct etna_context *ctx = etna_context(pctx);
@@ -92,6 +104,9 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
     {
         struct etna_surface *cbuf = etna_surface(sv->cbufs[0]);
         struct etna_resource *res = etna_resource(cbuf->base.texture);
+
+        etna_update_render_resource(pctx, cbuf->base.texture);
+
         bool color_supertiled = (res->layout & ETNA_LAYOUT_BIT_SUPER)!=0;
         assert(res->layout & ETNA_LAYOUT_BIT_TILE); /* Cannot render to linear surfaces */
 
@@ -170,6 +185,8 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
     {
         struct etna_surface *zsbuf = etna_surface(sv->zsbuf);
         struct etna_resource *res = etna_resource(zsbuf->base.texture);
+
+        etna_update_render_resource(pctx, zsbuf->base.texture);
 
         pipe_surface_reference(&cs->zsbuf, &zsbuf->base);
         assert(res->layout & ETNA_LAYOUT_BIT_TILE); /* Cannot render to linear surfaces */
