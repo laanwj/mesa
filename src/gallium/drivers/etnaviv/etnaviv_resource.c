@@ -239,6 +239,8 @@ static void etna_resource_destroy(struct pipe_screen *pscreen,
 
     list_delinit(&rsc->list);
 
+    pipe_resource_reference(&rsc->texture, NULL);
+
     FREE(rsc);
 }
 
