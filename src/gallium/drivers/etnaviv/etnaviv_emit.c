@@ -701,6 +701,17 @@ void etna_emit_state(struct etna_context *ctx)
     etna_coalesce_end(stream, &coalesce);
     /* end only EMIT_STATE */
 
+    /* Insert a FE/PE stall as changing the shader instructions (and maybe
+     * the uniforms) can corrupt the previous in-progress draw operation.
+     * Observed with amoeba on GC2000 during the right-to-left rendering
+     * of PI, and can cause GPU hangs immediately after.
+     * I summise that this is because the "new" locations at 0xc000 are not
+     * properly protected against updates as other states seem to be. Hence,
+     * we detect the "new" vertex shader instruction offset to apply this. */
+    if (ctx->dirty & (ETNA_DIRTY_SHADER | ETNA_DIRTY_VS_UNIFORMS | ETNA_DIRTY_PS_UNIFORMS) &&
+        ctx->specs.vs_offset > 0x4000)
+        etna_stall(ctx->stream, SYNC_RECIPIENT_FE, SYNC_RECIPIENT_PE);
+
     /**** Large dynamically-sized state ****/
     if (dirty & (ETNA_DIRTY_SHADER))
     {
