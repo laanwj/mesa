@@ -26,6 +26,7 @@
 
 #include "etnaviv_texture.h"
 
+#include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
 #include "etnaviv_emit.h"
 #include "etnaviv_translate.h"
@@ -88,6 +89,19 @@ static void etna_delete_sampler_state(struct pipe_context *pctx, void *ss)
     FREE(ss);
 }
 
+static void etna_update_sampler_source(struct pipe_sampler_view *view)
+{
+    struct etna_resource *res = etna_resource(view->texture);
+
+    if (res->texture && res->seqno - etna_resource(res->texture)->seqno > 0)
+    {
+        /* Copy the texture using RS */
+        etna_copy_resource(view->context, res->texture, view->texture, 0,
+                           view->texture->last_level);
+        etna_resource(res->texture)->seqno = res->seqno;
+    }
+}
+
 static struct pipe_sampler_view *etna_create_sampler_view(struct pipe_context *pctx,
                                                  struct pipe_resource *prsc,
                                                  const struct pipe_sampler_view *so)
@@ -98,6 +112,18 @@ static struct pipe_sampler_view *etna_create_sampler_view(struct pipe_context *p
 
     if (!sv)
         return NULL;
+
+    if (res->layout != ETNA_LAYOUT_TILED) {
+        /* The original resource is not tiled appropriately for our
+         * sampler.  Allocate an appropriately tiled texture. */
+        if (!res->texture)
+            res->texture = etna_resource_alloc(pctx->screen, ETNA_LAYOUT_TILED, prsc);
+        if (!res->texture) {
+            free(sv);
+            return NULL;
+        }
+        res = etna_resource(res->texture);
+    }
 
     sv->base = *so;
     pipe_reference(NULL, &prsc->reference);
@@ -212,6 +238,12 @@ static void etna_set_sampler_views(struct pipe_context *pctx, unsigned shader,
     assert(start_slot == 0);
 
     ctx->dirty |= ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_TEXTURE_CACHES;
+
+    for(unsigned idx=0; idx<num_views; ++idx)
+    {
+        if (views[idx])
+            etna_update_sampler_source(views[idx]);
+    }
 
     switch (shader) {
     case PIPE_SHADER_FRAGMENT:

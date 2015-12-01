@@ -493,6 +493,43 @@ static void etna_flush_resource(struct pipe_context *pctx, struct pipe_resource 
     /* TODO */
 }
 
+void etna_copy_resource(struct pipe_context *pctx, struct pipe_resource *dst,
+    struct pipe_resource *src, int first_level, int last_level)
+{
+    struct etna_resource *src_priv = etna_resource(src);
+    struct etna_resource *dst_priv = etna_resource(dst);
+
+    assert(src->format == dst->format);
+    assert(src->array_size == dst->array_size);
+    assert(last_level <= dst->last_level && last_level <= src->last_level);
+
+    struct pipe_blit_info blit = { };
+    blit.mask = PIPE_MASK_RGBA;
+    blit.filter = PIPE_TEX_FILTER_LINEAR;
+    blit.src.resource = src;
+    blit.src.format = etna_compatible_rs_format(src->format);
+    blit.dst.resource = dst;
+    blit.dst.format = etna_compatible_rs_format(dst->format);
+    blit.dst.box.depth = blit.src.box.depth = 1;
+
+    /* Copy each level and each layer */
+    for (int level = first_level; level <= last_level; level++)
+    {
+        blit.src.level = blit.dst.level = level;
+        blit.src.box.width = blit.dst.box.width =
+            MIN2(src_priv->levels[level].padded_width,
+                 dst_priv->levels[level].padded_width);
+        blit.src.box.height = blit.dst.box.height =
+            MIN2(src_priv->levels[level].padded_height,
+                 dst_priv->levels[level].padded_height);
+        for (int layer = 0; layer < dst->array_size; layer++)
+        {
+            blit.src.box.z = blit.dst.box.z = layer;
+            pctx->blit(pctx, &blit);
+        }
+    }
+}
+
 void etna_clear_blit_init(struct pipe_context *pctx)
 {
     pctx->clear = etna_clear;

@@ -73,6 +73,9 @@ struct etna_resource
 
     struct etna_resource_level levels[ETNA_NUM_LOD];
 
+    /* When we are rendering to a texture, we need a differently tiled resource */
+    struct pipe_resource *texture;
+
     enum etna_resource_status status;
 
     /* resources accessed by queued but not flushed draws are tracked
