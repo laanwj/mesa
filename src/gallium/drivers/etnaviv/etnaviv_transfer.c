@@ -227,6 +227,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
             }
             FREE(ptrans->buffer);
         }
+        resource->seqno++;
         if(resource->base.bind & PIPE_BIND_SAMPLER_VIEW)
         {
             /* XXX do we need to flush the CPU cache too or start a write barrier
