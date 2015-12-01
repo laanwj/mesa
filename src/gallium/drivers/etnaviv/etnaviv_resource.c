@@ -123,6 +123,12 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
             &paddingX, &paddingY, &halign);
     assert(paddingX && paddingY);
 
+    if (templat->bind != PIPE_BUFFER)
+    {
+        unsigned min_paddingY = 4 * screen->specs.pixel_pipes;
+        if (paddingY < min_paddingY) paddingY = min_paddingY;
+    }
+
     /* compute mipmap level sizes and offsets */
     struct etna_resource *rsc = CALLOC_STRUCT(etna_resource);
 
