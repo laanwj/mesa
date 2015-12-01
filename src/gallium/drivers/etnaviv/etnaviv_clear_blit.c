@@ -390,6 +390,23 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    }
    ctx->dirty |= ETNA_DIRTY_TS;
 
+   /* If the width is not aligned to the RS width, but is within our
+    * padding, adjust the width to suite the RS width restriction. */
+   unsigned int width = blit_info->src.box.width;
+   unsigned int height = blit_info->src.box.height;
+   unsigned int w_align = ETNA_RS_WIDTH_MASK + 1;
+   unsigned int h_align = (ETNA_RS_HEIGHT_MASK + 1) * ctx->specs.pixel_pipes;
+
+   if (width & (w_align - 1) && width >= src_lev->width && width >= dst_lev->width * msaa_xscale)
+       width = align(width, w_align);
+   if (height & (h_align - 1) && height >= src_lev->height && height >= dst_lev->height * msaa_yscale)
+       height = align(height, h_align);
+
+   assert(width <= src_lev->padded_width);
+   assert(width <= dst_lev->padded_width * msaa_xscale);
+   assert(height <= src_lev->padded_height);
+   assert(height <= dst_lev->padded_height * msaa_yscale);
+
    /* Kick off RS here */
    etna_compile_rs_state(ctx, &copy_to_screen, &(struct rs_state){
       .source_format = translate_rt_format(blit_info->src.format, false),
@@ -409,8 +426,8 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
       .swap_rb = translate_rb_src_dst_swap(src->base.format, dst->base.format),
       .dither = {0xffffffff, 0xffffffff}, // XXX dither when going from 24 to 16 bit?
       .clear_mode = VIVS_RS_CLEAR_CONTROL_MODE_DISABLED,
-      .width = src->levels[blit_info->dst.level].padded_width * msaa_xscale,
-      .height = src->levels[blit_info->dst.level].padded_height * msaa_yscale
+      .width = width,
+      .height = height
    });
 
    etna_submit_rs_state(ctx, &copy_to_screen);
