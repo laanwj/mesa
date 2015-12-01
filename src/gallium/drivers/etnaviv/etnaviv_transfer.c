@@ -30,6 +30,7 @@
 
 #include "pipe/p_defines.h"
 #include "pipe/p_format.h"
+#include "pipe/p_screen.h"
 #include "pipe/p_state.h"
 #include "util/u_format.h"
 #include "util/u_memory.h"
@@ -80,7 +81,13 @@ static void *etna_transfer_map(struct pipe_context *pctx,
     /* PIPE_TRANSFER_READ always requires a sync. */
     if(usage & PIPE_TRANSFER_READ)
     {
-        etna_cmd_stream_finish(ctx->stream);
+        struct pipe_fence_handle *fence;
+        struct pipe_screen *pscreen = pctx->screen;
+
+        pctx->flush(pctx, &fence, 0);
+        if (!pscreen->fence_finish(pscreen, fence, 5000))
+            BUG("fence timed out (hung GPU?)");
+        pscreen->fence_reference(pscreen, &fence, NULL);
     }
     /* XXX we don't handle PIPE_TRANSFER_FLUSH_EXPLICIT; this flag can be ignored when mapping in-place,
      * but when not in place we need to fire off the copy operation in transfer_flush_region (currently
