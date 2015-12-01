@@ -71,7 +71,7 @@ struct etna_shader_varying
 struct etna_transfer
 {
     struct pipe_transfer base;
-
+    struct pipe_resource *rsc;
     /* Pointer to buffer (same pointer as returned by transfer_map) */
     void *buffer;
     /* If true, transfer happens in-place. buffer is not allocated separately but
