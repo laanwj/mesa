@@ -69,6 +69,14 @@ static void *etna_transfer_map(struct pipe_context *pctx,
 
     assert(level <= resource->last_level);
 
+    if (resource_priv->texture && resource_priv->seqno - etna_resource(resource_priv->texture)->seqno >= 0)
+    {
+        /* We have a texture resource which is the same age or newer than the
+         * render resource. Use the texture resource, which avoids bouncing
+         * pixels between the two resources, and we can de-tile it in s/w. */
+        resource_priv = etna_resource(resource_priv->texture);
+    }
+
     /* PIPE_TRANSFER_READ always requires a sync. */
     if(usage & PIPE_TRANSFER_READ)
     {
@@ -196,6 +204,12 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
      */
     struct etna_resource *resource = etna_resource(ptrans->base.resource);
     assert(ptrans->base.level <= resource->base.last_level);
+
+    if (resource->texture && resource->seqno - etna_resource(resource->texture)->seqno >= 0)
+    {
+        /* switch to using the texture resource */
+        resource = etna_resource(resource->texture);
+    }
 
     if(ptrans->base.usage & PIPE_TRANSFER_WRITE)
     {
