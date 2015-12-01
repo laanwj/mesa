@@ -61,6 +61,12 @@ static void *etna_transfer_map(struct pipe_context *pctx,
 
     if (!ptrans)
         return NULL;
+
+    ptrans->base.resource = resource;
+    ptrans->base.level = level;
+    ptrans->base.usage = usage;
+    ptrans->base.box = *box;
+
     assert(level <= resource->last_level);
 
     /* PIPE_TRANSFER_READ always requires a sync. */
@@ -108,10 +114,6 @@ static void *etna_transfer_map(struct pipe_context *pctx,
      */
     ptrans->in_place = resource_priv->layout == ETNA_LAYOUT_LINEAR ||
                        (resource_priv->layout == ETNA_LAYOUT_TILED && util_format_is_compressed(resource->format));
-    ptrans->base.resource = resource;
-    ptrans->base.level = level;
-    ptrans->base.usage = usage;
-    ptrans->base.box = *box;
 
     struct etna_resource_level *res_level = &resource_priv->levels[level];
     /* map buffer object */
