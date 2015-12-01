@@ -24,6 +24,7 @@
  *    Wladimir J. van der Laan <laanwj@gmail.com>
  */
 
+#include "etnaviv_screen.h"
 #include "etnaviv_surface.h"
 
 #include "etnaviv_clear_blit.h"
@@ -33,6 +34,8 @@
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
+
+#include "hw/common.xml.h"
 
 static struct pipe_surface *etna_create_surface(struct pipe_context *pctx,
                                       struct pipe_resource *prsc,
@@ -61,7 +64,8 @@ static struct pipe_surface *etna_create_surface(struct pipe_context *pctx,
     /* XXX for now, don't do TS for render textures as this path
      * is not stable.
      */
-    if (!DBG_ENABLED(ETNA_DBG_NO_TS) &&
+    if (VIV_FEATURE(ctx->screen, chipFeatures, FAST_CLEAR) &&
+        !DBG_ENABLED(ETNA_DBG_NO_TS) &&
             !rsc->ts_bo &&
             !(rsc->base.bind & (PIPE_BIND_SAMPLER_VIEW)) &&
             (rsc->levels[level].padded_width & ETNA_RS_WIDTH_MASK) == 0 &&
