@@ -331,6 +331,9 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    if (src->base.target != PIPE_TEXTURE_CUBE)
        assert(blit_info->src.box.z == 0);
 
+   assert(blit_info->src.box.z < src->base.array_size);
+   assert(blit_info->dst.box.z < dst->base.array_size);
+
    uint32_t to_flush = 0;
 
    if (src->base.bind & PIPE_BIND_RENDER_TARGET)
@@ -345,6 +348,13 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
 
    struct etna_resource_level *src_lev = &src->levels[blit_info->src.level];
    struct etna_resource_level *dst_lev = &dst->levels[blit_info->dst.level];
+
+   /* we may be given coordinates up to the padded width to avoid
+    * any alignment issues with different tiling formats */
+   assert(blit_info->src.box.x + blit_info->src.box.width <= src_lev->padded_width);
+   assert(blit_info->src.box.y + blit_info->src.box.height <= src_lev->padded_height);
+   assert(blit_info->dst.box.x + blit_info->dst.box.width <= dst_lev->padded_width);
+   assert(blit_info->dst.box.y + blit_info->dst.box.height <= dst_lev->padded_height);
 
    unsigned src_offset = src_lev->offset +
                          blit_info->src.box.z * src_lev->layer_stride;
