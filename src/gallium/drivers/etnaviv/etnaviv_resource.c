@@ -207,20 +207,28 @@ static struct pipe_resource *etna_resource_create(struct pipe_screen *pscreen,
     unsigned layout = ETNA_LAYOUT_LINEAR;
     if (templat->target != PIPE_BUFFER)
     {
-        if (!(templat->bind & PIPE_BIND_SAMPLER_VIEW) && screen->specs.can_supertile &&
-                !DBG_ENABLED(ETNA_DBG_NO_SUPERTILE))
-            layout = ETNA_LAYOUT_SUPER_TILED;
-        else
-            layout = ETNA_LAYOUT_TILED;
-    }
+        bool want_multitiled = screen->specs.pixel_pipes > 1;
+        bool want_supertiled = screen->specs.can_supertile && !DBG_ENABLED(ETNA_DBG_NO_SUPERTILE);
 
-    /* multi tiled formats */
-    if ((screen->specs.pixel_pipes > 1) && !(templat->bind & PIPE_BIND_SAMPLER_VIEW))
-    {
-        if (layout == ETNA_LAYOUT_TILED)
-            layout = ETNA_LAYOUT_MULTI_TILED;
-        if (layout == ETNA_LAYOUT_SUPER_TILED)
-            layout = ETNA_LAYOUT_MULTI_SUPERTILED;
+        /* Keep single byte blocksized resources as tiled, since we
+         * are unable to use the RS blit to de-tile them. However,
+         * if they're used as a render target or depth/stencil, they
+         * must be multi-tiled for GPUs with multiple pixel pipes.
+         * Ignore depth/stencil here, but it is an error for a render
+         * target.
+         */
+        if (util_format_get_blocksize(templat->format) == 1 &&
+            !(templat->bind & PIPE_BIND_DEPTH_STENCIL))
+        {
+            assert(!(templat->bind & PIPE_BIND_RENDER_TARGET && want_multitiled));
+            want_multitiled = want_supertiled = false;
+        }
+
+        layout = ETNA_LAYOUT_BIT_TILE;
+        if (want_multitiled)
+            layout |= ETNA_LAYOUT_BIT_MULTI;
+        if (want_supertiled)
+            layout |= ETNA_LAYOUT_BIT_SUPER;
     }
 
     return etna_resource_alloc(pscreen, layout, templat);
