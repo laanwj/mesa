@@ -207,6 +207,11 @@ static void etna_draw_vbo(struct pipe_context *pctx,
     {
         pctx->flush(pctx, NULL, 0);
     }
+
+    if (ctx->framebuffer.cbuf)
+        etna_resource(ctx->framebuffer.cbuf->texture)->seqno++;
+    if (ctx->framebuffer.zsbuf)
+        etna_resource(ctx->framebuffer.zsbuf->texture)->seqno++;
 }
 
 static void etna_flush(struct pipe_context *pctx,

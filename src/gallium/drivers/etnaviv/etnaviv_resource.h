@@ -61,6 +61,7 @@ enum etna_resource_status {
 struct etna_resource
 {
     struct pipe_resource base;
+    uint32_t seqno;
 
     /* only lod 0 used for non-texture buffers */
     /* Layout for surface (tiled, multitiled, split tiled, ...) */
