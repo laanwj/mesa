@@ -173,7 +173,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
     /* No need to allocate a buffer for copying if the resource is not in use,
      * and no tiling is needed, can just return a direct pointer.
      */
-    ptrans->in_place = resource_priv->layout == ETNA_LAYOUT_LINEAR ||
+    bool in_place = resource_priv->layout == ETNA_LAYOUT_LINEAR ||
                        (resource_priv->layout == ETNA_LAYOUT_TILED && util_format_is_compressed(resource->format));
 
     /* map buffer object */
@@ -184,11 +184,14 @@ static void *etna_transfer_map(struct pipe_context *pctx,
         return NULL;
     }
 
-    if(likely(ptrans->in_place))
+    *out_transfer = &ptrans->base;
+
+    if(likely(in_place))
     {
         ptrans->base.stride = res_level->stride;
         ptrans->base.layer_stride = res_level->layer_stride;
-        ptrans->buffer = mapped + res_level->offset + etna_compute_offset(resource->format, box, res_level->stride, res_level->layer_stride);
+
+        return mapped + res_level->offset + etna_compute_offset(resource->format, box, res_level->stride, res_level->layer_stride);
     } else {
         unsigned divSizeX = util_format_get_blockwidth(format);
         unsigned divSizeY = util_format_get_blockheight(format);
@@ -204,7 +207,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
         ptrans->base.stride = align(box->width, divSizeX) * util_format_get_blocksize(format); /* row stride in bytes */
         ptrans->base.layer_stride = align(box->height, divSizeY) * ptrans->base.stride;
         size_t size = ptrans->base.layer_stride * box->depth;
-        ptrans->buffer = MALLOC(size);
+        ptrans->staging = MALLOC(size);
 
         if(usage & PIPE_TRANSFER_READ)
         {
@@ -213,12 +216,12 @@ static void *etna_transfer_map(struct pipe_context *pctx,
             {
                 if(resource_priv->layout == ETNA_LAYOUT_TILED && !util_format_is_compressed(resource_priv->base.format))
                 {
-                    etna_texture_untile(ptrans->buffer, mapped + ptrans->base.box.z * res_level->layer_stride,
+                    etna_texture_untile(ptrans->staging, mapped + ptrans->base.box.z * res_level->layer_stride,
                             ptrans->base.box.x, ptrans->base.box.y, res_level->stride,
                             ptrans->base.box.width, ptrans->base.box.height, ptrans->base.stride,
                             util_format_get_blocksize(resource_priv->base.format));
                 } else { /* non-tiled or compressed format */
-                    util_copy_box(ptrans->buffer,
+                    util_copy_box(ptrans->staging,
                       resource_priv->base.format,
                       ptrans->base.stride, ptrans->base.layer_stride,
                       0, 0, 0, /* dst x,y,z */
@@ -232,10 +235,11 @@ static void *etna_transfer_map(struct pipe_context *pctx,
                 BUG("unsupported tiling %i for reading", resource_priv->layout);
             }
         }
+
+        return ptrans->staging;
     }
 
-    *out_transfer = &ptrans->base;
-    return ptrans->buffer;
+    return NULL;
 }
 
 static void etna_transfer_flush_region(struct pipe_context *pipe,
@@ -275,7 +279,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
             etna_copy_resource(pctx, ptrans->base.resource, ptrans->rsc,
                                ptrans->base.level, ptrans->rsc->last_level);
         }
-        else if(unlikely(!ptrans->in_place))
+        else if(unlikely(ptrans->staging))
         {
             /* map buffer object */
             struct etna_resource_level *res_level = &resource->levels[ptrans->base.level];
@@ -284,7 +288,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
             {
                 if(resource->layout == ETNA_LAYOUT_TILED && !util_format_is_compressed(resource->base.format))
                 {
-                    etna_texture_tile(mapped + ptrans->base.box.z * res_level->layer_stride, ptrans->buffer,
+                    etna_texture_tile(mapped + ptrans->base.box.z * res_level->layer_stride, ptrans->staging,
                             ptrans->base.box.x, ptrans->base.box.y, res_level->stride,
                             ptrans->base.box.width, ptrans->base.box.height, ptrans->base.stride,
                             util_format_get_blocksize(resource->base.format));
@@ -294,7 +298,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
                       res_level->stride, res_level->layer_stride,
                       ptrans->base.box.x, ptrans->base.box.y, ptrans->base.box.z,
                       ptrans->base.box.width, ptrans->base.box.height, ptrans->base.box.depth,
-                      ptrans->buffer,
+                      ptrans->staging,
                       ptrans->base.stride, ptrans->base.layer_stride,
                       0, 0, 0 /* src x,y,z */);
                 }
@@ -302,7 +306,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
             {
                 BUG("unsupported tiling %i", resource->layout);
             }
-            FREE(ptrans->buffer);
+            FREE(ptrans->staging);
         }
         resource->seqno++;
         if(resource->base.bind & PIPE_BIND_SAMPLER_VIEW)
