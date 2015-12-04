@@ -65,11 +65,13 @@ static void *etna_transfer_map(struct pipe_context *pctx,
     if (!ptrans)
         return NULL;
 
+    /* util_slab_alloc() doesn't zero */
+    memset(ptrans, 0, sizeof(*ptrans));
+
     ptrans->base.resource = resource;
     ptrans->base.level = level;
     ptrans->base.usage = usage;
     ptrans->base.box = *box;
-    ptrans->rsc = NULL;
 
     assert(level <= resource->last_level);
 
