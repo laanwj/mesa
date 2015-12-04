@@ -251,11 +251,8 @@ static void *etna_transfer_map(struct pipe_context *pctx,
 
     /* map buffer object */
     void *mapped = etna_bo_map(resource_priv->bo);
-    if (!mapped) {
-        pipe_resource_reference(&ptrans->rsc, NULL);
-        util_slab_free(&ctx->transfer_pool, ptrans);
-        return NULL;
-    }
+    if (!mapped)
+        goto fail;
 
     *out_transfer = &ptrans->base;
 
@@ -268,19 +265,21 @@ static void *etna_transfer_map(struct pipe_context *pctx,
     } else {
         unsigned divSizeX = util_format_get_blockwidth(format);
         unsigned divSizeY = util_format_get_blockheight(format);
+
+        /* No direct mappings of tiled, since we need to manually
+         * tile/untile.
+         */
         if(usage & PIPE_TRANSFER_MAP_DIRECTLY)
-        {
-            /* No in-place transfer possible */
-            pipe_resource_reference(&ptrans->rsc, NULL);
-            util_slab_free(&ctx->transfer_pool, ptrans);
-            return NULL;
-        }
+            goto fail;
 
         mapped += res_level->offset;
         ptrans->base.stride = align(box->width, divSizeX) * util_format_get_blocksize(format); /* row stride in bytes */
         ptrans->base.layer_stride = align(box->height, divSizeY) * ptrans->base.stride;
         size_t size = ptrans->base.layer_stride * box->depth;
+
         ptrans->staging = MALLOC(size);
+        if (!ptrans->staging)
+            goto fail;
 
         if(usage & PIPE_TRANSFER_READ)
         {
@@ -312,6 +311,8 @@ static void *etna_transfer_map(struct pipe_context *pctx,
         return ptrans->staging;
     }
 
+fail:
+    etna_transfer_unmap(pctx, &ptrans->base);
     return NULL;
 }
 
