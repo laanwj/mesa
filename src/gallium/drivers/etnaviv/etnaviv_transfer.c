@@ -119,6 +119,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
     }
 
     pipe_resource_reference(&trans->rsc, NULL);
+    pipe_resource_reference(&ptrans->resource, NULL);
     util_slab_free(&ctx->transfer_pool, trans);
 }
 
@@ -143,7 +144,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
     memset(trans, 0, sizeof(*trans));
 
     ptrans = &trans->base;
-    ptrans->resource = prsc;
+    pipe_resource_reference(&ptrans->resource, prsc);
     ptrans->level = level;
     ptrans->usage = usage;
     ptrans->box = *box;
