@@ -80,7 +80,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
             etna_copy_resource(pctx, ptrans->resource, trans->rsc,
                                ptrans->level, trans->rsc->last_level);
         }
-        else if(unlikely(trans->staging))
+        else if(trans->staging)
         {
             /* map buffer object */
             struct etna_resource_level *res_level = &rsc->levels[ptrans->level];
@@ -260,7 +260,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
 
     *out_transfer = ptrans;
 
-    if(likely(in_place))
+    if (in_place)
     {
         ptrans->stride = res_level->stride;
         ptrans->layer_stride = res_level->layer_stride;
