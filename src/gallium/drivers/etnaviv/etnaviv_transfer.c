@@ -51,66 +51,66 @@ static inline size_t etna_compute_offset(enum pipe_format format, const struct p
 }
 
 static void etna_transfer_unmap(struct pipe_context *pctx,
-                                struct pipe_transfer *transfer_)
+                                struct pipe_transfer *ptrans)
 {
     struct etna_context *ctx = etna_context(pctx);
-    struct etna_transfer *ptrans = etna_transfer(transfer_);
+    struct etna_transfer *trans = etna_transfer(ptrans);
+    struct etna_resource *rsc = etna_resource(ptrans->resource);
 
     /* XXX
      * When writing to a resource that is already in use, replace the resource with a completely new buffer
      * and free the old one using a fenced free.
      * The most tricky case to implement will be: tiled or supertiled surface, partial write, target not aligned to 4/64
      */
-    struct etna_resource *resource = etna_resource(ptrans->base.resource);
-    assert(ptrans->base.level <= resource->base.last_level);
+    assert(ptrans->level <= rsc->base.last_level);
 
-    if (resource->texture && resource->seqno - etna_resource(resource->texture)->seqno >= 0)
+    if (rsc->texture && rsc->seqno - etna_resource(rsc->texture)->seqno >= 0)
     {
         /* switch to using the texture resource */
-        resource = etna_resource(resource->texture);
+        rsc = etna_resource(rsc->texture);
     }
 
-    if(ptrans->base.usage & PIPE_TRANSFER_WRITE)
+    if(ptrans->usage & PIPE_TRANSFER_WRITE)
     {
-        if(ptrans->rsc)
+        if(trans->rsc)
         {
             /* We have a temporary resource due to either tile status or
              * tiling format. Write back the updated buffer contents.
              * FIXME: we need to invalidate the tile status. */
-            etna_copy_resource(pctx, ptrans->base.resource, ptrans->rsc,
-                               ptrans->base.level, ptrans->rsc->last_level);
+            etna_copy_resource(pctx, ptrans->resource, trans->rsc,
+                               ptrans->level, trans->rsc->last_level);
         }
-        else if(unlikely(ptrans->staging))
+        else if(unlikely(trans->staging))
         {
             /* map buffer object */
-            struct etna_resource_level *res_level = &resource->levels[ptrans->base.level];
-            void *mapped = etna_bo_map(resource->bo) + res_level->offset;
-            if(resource->layout == ETNA_LAYOUT_LINEAR || resource->layout == ETNA_LAYOUT_TILED)
+            struct etna_resource_level *res_level = &rsc->levels[ptrans->level];
+            void *mapped = etna_bo_map(rsc->bo) + res_level->offset;
+            if(rsc->layout == ETNA_LAYOUT_LINEAR || rsc->layout == ETNA_LAYOUT_TILED)
             {
-                if(resource->layout == ETNA_LAYOUT_TILED && !util_format_is_compressed(resource->base.format))
+                if(rsc->layout == ETNA_LAYOUT_TILED && !util_format_is_compressed(rsc->base.format))
                 {
-                    etna_texture_tile(mapped + ptrans->base.box.z * res_level->layer_stride, ptrans->staging,
-                                      ptrans->base.box.x, ptrans->base.box.y, res_level->stride,
-                                      ptrans->base.box.width, ptrans->base.box.height, ptrans->base.stride,
-                                      util_format_get_blocksize(resource->base.format));
+                    etna_texture_tile(mapped + ptrans->box.z * res_level->layer_stride, trans->staging,
+                                      ptrans->box.x, ptrans->box.y, res_level->stride,
+                                      ptrans->box.width, ptrans->box.height, ptrans->stride,
+                                      util_format_get_blocksize(rsc->base.format));
                 } else { /* non-tiled or compressed format */
                     util_copy_box(mapped,
-                                  resource->base.format,
+                                  rsc->base.format,
                                   res_level->stride, res_level->layer_stride,
-                                  ptrans->base.box.x, ptrans->base.box.y, ptrans->base.box.z,
-                                  ptrans->base.box.width, ptrans->base.box.height, ptrans->base.box.depth,
-                                  ptrans->staging,
-                                  ptrans->base.stride, ptrans->base.layer_stride,
+                                  ptrans->box.x, ptrans->box.y, ptrans->box.z,
+                                  ptrans->box.width, ptrans->box.height, ptrans->box.depth,
+                                  trans->staging,
+                                  ptrans->stride, ptrans->layer_stride,
                                   0, 0, 0 /* src x,y,z */);
                 }
             } else
             {
-                BUG("unsupported tiling %i", resource->layout);
+                BUG("unsupported tiling %i", rsc->layout);
             }
-            FREE(ptrans->staging);
+            FREE(trans->staging);
         }
-        resource->seqno++;
-        if(resource->base.bind & PIPE_BIND_SAMPLER_VIEW)
+        rsc->seqno++;
+        if(rsc->base.bind & PIPE_BIND_SAMPLER_VIEW)
         {
             /* XXX do we need to flush the CPU cache too or start a write barrier
              * to make sure the GPU sees it? */
@@ -118,8 +118,8 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
         }
     }
 
-    pipe_resource_reference(&ptrans->rsc, NULL);
-    util_slab_free(&ctx->transfer_pool, ptrans);
+    pipe_resource_reference(&trans->rsc, NULL);
+    util_slab_free(&ctx->transfer_pool, trans);
 }
 
 static void *etna_transfer_map(struct pipe_context *pctx,
