@@ -63,7 +63,7 @@ bool etna_screen_resource_alloc_ts(struct pipe_screen *pscreen, struct etna_reso
     rsc->ts_bo = rt_ts;
     rsc->levels[0].ts_offset = 0;
     rsc->levels[0].ts_layer_stride = ts_layer_stride;
-    rsc->levels[0].ts_size = etna_bo_size(rsc->ts_bo);
+    rsc->levels[0].ts_size = rt_ts_size;
     /* It is important to initialize the TS, as random pattern
      * can result in crashes. Do this on the CPU as this only happens once
      * per surface anyway and it's a small area, so it may not be worth
