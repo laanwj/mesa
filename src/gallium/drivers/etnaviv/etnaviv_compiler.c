@@ -1162,6 +1162,41 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const 
                         .src[2] = src[0],
                         });
                 break;
+            case TGSI_OPCODE_POW: {
+                struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+
+                emit_inst(cd, &(struct etna_inst) {
+                        .opcode = INST_OPCODE_LOG,
+                        .sat = sat,
+                        .dst.use = 1,
+                        .dst.comps = INST_COMPS_X, /* temp.x */
+                        .dst.reg = temp.id,
+                        .src[2] = src[0],
+                        });
+
+                emit_inst(cd, &(struct etna_inst) {
+                        .opcode = INST_OPCODE_MUL,
+                        .sat = sat,
+                        .dst.use = 1,
+                        .dst.comps = INST_COMPS_Y, /* temp.y */
+                        .dst.reg = temp.id,
+                        .src[0] = src[1],
+                        .src[1].use = 1, /* temp.xxxx */
+                        .src[1].swiz = INST_SWIZ_BROADCAST(0),
+                        .src[1].rgroup = temp.rgroup,
+                        .src[1].reg = temp.id,
+                        });
+
+                emit_inst(cd, &(struct etna_inst) {
+                        .opcode = INST_OPCODE_EXP,
+                        .sat = sat,
+                        .dst = convert_dst(cd, &inst->Dst[0]),
+                        .src[2].use = 1, /* temp.yyyy */
+                        .src[2].swiz = INST_SWIZ_BROADCAST(1),
+                        .src[2].rgroup = temp.rgroup,
+                        .src[2].reg = temp.id,
+                        });
+                } break;
             case TGSI_OPCODE_XPD: {
                 /*
                  * MUL tTEMP.xyzw, src0.zxyw, src1.yzxw, void
@@ -1425,7 +1460,6 @@ INST_COMPS_W;
             case TGSI_OPCODE_PK2US:
             case TGSI_OPCODE_PK4B:
             case TGSI_OPCODE_PK4UB:
-            case TGSI_OPCODE_POW: /* lowered by mesa to ex2(y*lg2(x)) */
             case TGSI_OPCODE_ROUND:
             case TGSI_OPCODE_CLAMP:
             case TGSI_OPCODE_DP2A:
