@@ -116,6 +116,8 @@ struct etna_compile_frame
 struct etna_compile_data
 {
     const struct tgsi_token *tokens;
+    bool free_tokens;
+
     uint processor; /* PIPE_SHADER_... */
 
     /* Register descriptions, per TGSI file, per register index */
@@ -1860,6 +1862,7 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
 
     cd->specs = specs;
     cd->tokens = tokens;
+    cd->free_tokens = false;
 
     /* Build a map from gallium register to native registers for files
      * CONST, SAMP, IMM, OUT, IN, TEMP.
@@ -1998,6 +2001,9 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
     *out = sobj;
 
 out:
+    if (cd->free_tokens)
+        FREE((void *)cd->tokens);
+
     FREE(cd);
     return ret;
 }
