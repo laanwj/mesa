@@ -57,6 +57,7 @@
 #include "tgsi/tgsi_strings.h"
 #include "tgsi/tgsi_util.h"
 #include "tgsi/tgsi_info.h"
+#include "tgsi/tgsi_lowering.h"
 #include "pipe/p_shader_tokens.h"
 #include "util/u_memory.h"
 #include "util/u_math.h"
@@ -1855,14 +1856,21 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
      */
     bool ret = true;
     struct etna_compile_data *cd = CALLOC_STRUCT(etna_compile_data);
-    *out = NULL;
+    struct tgsi_shader_info info;
 
+    static const struct tgsi_lowering_config lconfig;
+
+    *out = NULL;
     if (!cd)
         return false;
 
     cd->specs = specs;
-    cd->tokens = tokens;
-    cd->free_tokens = false;
+    cd->tokens = tgsi_transform_lowering(&lconfig, tokens, &info);
+    cd->free_tokens = !!cd->tokens;
+    if (!cd->tokens) {
+        /* no lowering */
+        cd->tokens = tokens;
+    }
 
     /* Build a map from gallium register to native registers for files
      * CONST, SAMP, IMM, OUT, IN, TEMP.
