@@ -1850,9 +1850,14 @@ static bool etna_compile_check_limits(struct etna_compile_data *cd)
 bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_token* tokens, struct etna_shader_object** out)
 {
     /* Create scratch space that may be too large to fit on stack
-     * XXX don't forget to free this on all exit paths.
      */
+    bool ret = true;
     struct etna_compile_data *cd = CALLOC_STRUCT(etna_compile_data);
+    *out = NULL;
+
+    if (!cd)
+        return false;
+
     cd->specs = specs;
     cd->tokens = tokens;
 
@@ -1963,12 +1968,9 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
     etna_compile_add_nop_if_needed(cd);
     etna_compile_fill_in_labels(cd);
 
-    if(!etna_compile_check_limits(cd))
-    {
-        FREE(cd);
-        *out = NULL;
-        return false;
-    }
+    ret = etna_compile_check_limits(cd);
+    if (!ret)
+        goto out;
 
     /* fill in output structure */
     struct etna_shader_object *sobj = CALLOC_STRUCT(etna_shader_object);
@@ -1994,8 +1996,10 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
         fill_in_ps_outputs(sobj, cd);
     }
     *out = sobj;
+
+out:
     FREE(cd);
-    return true;
+    return ret;
 }
 
 extern const char *tgsi_swizzle_names[];
