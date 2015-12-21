@@ -1434,7 +1434,6 @@ INST_COMPS_W;
             case TGSI_OPCODE_DP2A:
             case TGSI_OPCODE_DP2: /* Either MUL+MAD or DP3 with a zeroed channel, but we don't have a 'zero' swizzle */
             case TGSI_OPCODE_EXP:
-            case TGSI_OPCODE_LOG:
             case TGSI_OPCODE_TXB: /* XXX INST_OPCODE_TEXLDB */
             case TGSI_OPCODE_TXL: /* XXX INST_OPCODE_TEXLDL */
             case TGSI_OPCODE_UP2H:
@@ -1826,6 +1825,7 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
     static const struct tgsi_lowering_config lconfig = {
         .lower_SCS  = true,
         .lower_POW  = true,
+        .lower_LOG  = true,
     };
 
     *out = NULL;
