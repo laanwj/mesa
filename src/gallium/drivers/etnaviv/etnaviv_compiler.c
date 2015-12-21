@@ -115,6 +115,7 @@ struct etna_compile_frame
 /* scratch area for compiling shader, freed after compilation finishes */
 struct etna_compile_data
 {
+    const struct tgsi_token *tokens;
     uint processor; /* PIPE_SHADER_... */
 
     /* Register descriptions, per TGSI file, per register index */
@@ -332,11 +333,11 @@ static struct etna_inst_src alloc_imm_f32(struct etna_compile_data *cd, float va
 }
 
 /* Pass -- check register file declarations and immediates */
-static void etna_compile_parse_declarations(struct etna_compile_data *cd, const struct tgsi_token *tokens)
+static void etna_compile_parse_declarations(struct etna_compile_data *cd)
 {
     struct tgsi_parse_context ctx = {};
     unsigned status = TGSI_PARSE_OK;
-    status = tgsi_parse_init(&ctx, tokens);
+    status = tgsi_parse_init(&ctx, cd->tokens);
     assert(status == TGSI_PARSE_OK);
 
     cd->processor = ctx.FullHeader.Processor.Processor;
@@ -384,11 +385,11 @@ static void etna_allocate_decls(struct etna_compile_data *cd)
 }
 
 /* Pass -- check and record usage of temporaries, inputs, outputs */
-static void etna_compile_pass_check_usage(struct etna_compile_data *cd, const struct tgsi_token *tokens)
+static void etna_compile_pass_check_usage(struct etna_compile_data *cd)
 {
     struct tgsi_parse_context ctx = {};
     unsigned status = TGSI_PARSE_OK;
-    status = tgsi_parse_init(&ctx, tokens);
+    status = tgsi_parse_init(&ctx, cd->tokens);
     assert(status == TGSI_PARSE_OK);
 
     for(int idx=0; idx<cd->total_decls; ++idx)
@@ -506,11 +507,11 @@ static bool etna_mov_check_no_swizzle(const struct tgsi_dst_register dst, const 
  * b) the temporary is not used after that
  * Also recognize direct assignment of IN to OUT (passthrough)
  **/
-static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd, const struct tgsi_token *tokens)
+static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd)
 {
     struct tgsi_parse_context ctx = {};
     unsigned status = TGSI_PARSE_OK;
-    status = tgsi_parse_init(&ctx, tokens);
+    status = tgsi_parse_init(&ctx, cd->tokens);
     assert(status == TGSI_PARSE_OK);
 
     int inst_idx = 0;
@@ -750,11 +751,11 @@ static void label_mark_use(struct etna_compile_data *cd, struct etna_compile_lab
 }
 
 /* Pass -- compile instructions */
-static void etna_compile_pass_generate_code(struct etna_compile_data *cd, const struct tgsi_token *tokens)
+static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
 {
     struct tgsi_parse_context ctx = {};
     unsigned status = TGSI_PARSE_OK;
-    status = tgsi_parse_init(&ctx, tokens);
+    status = tgsi_parse_init(&ctx, cd->tokens);
     assert(status == TGSI_PARSE_OK);
 
     int inst_idx = 0;
@@ -1853,18 +1854,19 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
      */
     struct etna_compile_data *cd = CALLOC_STRUCT(etna_compile_data);
     cd->specs = specs;
+    cd->tokens = tokens;
 
     /* Build a map from gallium register to native registers for files
      * CONST, SAMP, IMM, OUT, IN, TEMP.
      * SAMP will map as-is for fragment shaders, there will be a +8 offset for vertex shaders.
      */
     /* Pass one -- check register file declarations and immediates */
-    etna_compile_parse_declarations(cd, tokens);
+    etna_compile_parse_declarations(cd);
 
     etna_allocate_decls(cd);
 
     /* Pass two -- check usage of temporaries, inputs, outputs */
-    etna_compile_pass_check_usage(cd, tokens);
+    etna_compile_pass_check_usage(cd);
 
     assign_special_inputs(cd);
 
@@ -1872,7 +1874,7 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
     assign_temporaries_to_native(cd, cd->file[TGSI_FILE_TEMPORARY], cd->file_size[TGSI_FILE_TEMPORARY]);
 
     /* optimize outputs */
-    etna_compile_pass_optimize_outputs(cd, tokens);
+    etna_compile_pass_optimize_outputs(cd);
 
     /* XXX assign special inputs: gl_FrontFacing (VARYING_SLOT_FACE)
      *     this is part of RGROUP_INTERNAL
@@ -1956,7 +1958,7 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
 
     /* pass 3: generate instructions
      */
-    etna_compile_pass_generate_code(cd, tokens);
+    etna_compile_pass_generate_code(cd);
     etna_compile_add_z_div_if_needed(cd);
     etna_compile_add_nop_if_needed(cd);
     etna_compile_fill_in_labels(cd);
