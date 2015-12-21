@@ -1431,7 +1431,6 @@ INST_COMPS_W;
             case TGSI_OPCODE_PK4UB:
             case TGSI_OPCODE_ROUND:
             case TGSI_OPCODE_CLAMP:
-            case TGSI_OPCODE_EXP:
             case TGSI_OPCODE_TXB: /* XXX INST_OPCODE_TEXLDB */
             case TGSI_OPCODE_TXL: /* XXX INST_OPCODE_TEXLDL */
             case TGSI_OPCODE_UP2H:
@@ -1823,6 +1822,7 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
     static const struct tgsi_lowering_config lconfig = {
         .lower_SCS  = true,
         .lower_POW  = true,
+        .lower_EXP  = true,
         .lower_LOG  = true,
         .lower_DP2  = true,
         .lower_DP2A = true,
