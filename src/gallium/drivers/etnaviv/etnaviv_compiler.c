@@ -1858,7 +1858,9 @@ bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_toke
     struct etna_compile_data *cd = CALLOC_STRUCT(etna_compile_data);
     struct tgsi_shader_info info;
 
-    static const struct tgsi_lowering_config lconfig;
+    static const struct tgsi_lowering_config lconfig = {
+        .lower_SCS  = true,
+    };
 
     *out = NULL;
     if (!cd)
