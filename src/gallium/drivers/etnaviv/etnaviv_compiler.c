@@ -1811,7 +1811,7 @@ static bool etna_compile_check_limits(struct etna_compile_data *cd)
     return true;
 }
 
-bool etna_compile_shader_object(struct etna_specs* specs, const struct tgsi_token* tokens, struct etna_shader_object** out)
+bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens, struct etna_shader_object** out)
 {
     /* Create scratch space that may be too large to fit on stack
      */
