@@ -30,3 +30,15 @@ AM_CPPFLAGS = \
 	$(ETNAVIV_CFLAGS)
 
 libetnaviv_la_SOURCES = $(C_SOURCES) $(CPP_SOURCES)
+
+noinst_PROGRAMS = etnaviv_compiler
+
+etnaviv_compiler_SOURCES = \
+	etnaviv_compiler_cmdline.c
+
+etnaviv_compiler_LDADD = \
+	libetnaviv.la \
+	../../auxiliary/libgallium.la \
+	$(top_builddir)/src/util/libmesautil.la \
+	$(GALLIUM_COMMON_LIB_DEPS) \
+	$(ETNAVIV_LIBS)
