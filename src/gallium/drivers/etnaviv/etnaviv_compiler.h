@@ -42,8 +42,6 @@
 #define ETNA_MAX_LABELS (64)
 #define ETNA_MAX_INSTRUCTIONS (2048)
 
-struct etna_pipe_specs;
-
 /* compiler output per input/output */
 struct etna_shader_inout
 {
