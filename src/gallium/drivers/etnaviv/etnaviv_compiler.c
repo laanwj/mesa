@@ -51,6 +51,7 @@
 
 #include "etnaviv_asm.h"
 #include "etnaviv_debug.h"
+#include "etnaviv_disasm.h"
 #include "etnaviv_util.h"
 
 #include "tgsi/tgsi_iterate.h"
@@ -1993,10 +1994,9 @@ void etna_dump_shader_object(const struct etna_shader_object *sobj)
     } else {
         printf("FRAG\n");
     }
-    for(int x=0; x<sobj->code_size/4; ++x)
-    {
-        printf("| %08x %08x %08x %08x\n", sobj->code[x*4+0], sobj->code[x*4+1], sobj->code[x*4+2], sobj->code[x*4+3]);
-    }
+
+    etna_disasm(sobj->code, sobj->code_size, PRINT_RAW);
+
     printf("num temps: %i\n", sobj->num_temps);
     printf("num const: %i\n", sobj->const_size);
     printf("immediates:\n");
