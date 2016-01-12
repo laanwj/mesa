@@ -208,7 +208,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
 
         pctx->flush(pctx, &fence, 0);
 
-        if (!pscreen->fence_finish(pscreen, fence, 5000))
+        if (!pscreen->fence_finish(pscreen, fence, 5000000000ULL))
             BUG("fence timed out (hung GPU?)");
         pscreen->fence_reference(pscreen, &fence, NULL);
     }
