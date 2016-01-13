@@ -296,9 +296,7 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
     if (!ctx->blitter)
         goto fail;
 
-    /* Generate the bitmask of supported draw primitives. GPUs
-     * without the RECT_PRIMITIVE do not support PIPE_PRIM_QUADS.
-     */
+    /* Generate the bitmask of supported draw primitives. */
     ctx->prim_hwsupport = 1 << PIPE_PRIM_POINTS |
                           1 << PIPE_PRIM_LINES |
                           1 << PIPE_PRIM_LINE_LOOP |
@@ -306,9 +304,6 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
                           1 << PIPE_PRIM_TRIANGLES |
                           1 << PIPE_PRIM_TRIANGLE_STRIP |
                           1 << PIPE_PRIM_TRIANGLE_FAN;
-
-    if (VIV_FEATURE(ctx->screen, chipMinorFeatures2, RECT_PRIMITIVE))
-        ctx->prim_hwsupport |= 1 << PIPE_PRIM_QUADS;
 
     ctx->primconvert = util_primconvert_create(pctx, ctx->prim_hwsupport);
     if (!ctx->primconvert)
