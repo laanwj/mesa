@@ -37,6 +37,7 @@
 #define ETNA_NUM_LOD (14)
 #define ETNA_NUM_LAYERS (6)
 #define ETNA_MAX_UNIFORMS (256)
+#define ETNA_MAX_PIXELPIPES 2
 
 /* All RS operations must have width%16 = 0 */
 #define ETNA_RS_WIDTH_MASK (16-1)
@@ -154,12 +155,12 @@ struct compiled_framebuffer_state
     uint32_t PE_COLOR_FORMAT;
     uint32_t PE_DEPTH_CONFIG;
     struct etna_reloc PE_DEPTH_ADDR;
-    struct etna_reloc PE_PIPE_DEPTH_ADDR[2];
+    struct etna_reloc PE_PIPE_DEPTH_ADDR[ETNA_MAX_PIXELPIPES];
     uint32_t PE_DEPTH_STRIDE;
     uint32_t PE_HDEPTH_CONTROL;
     uint32_t PE_DEPTH_NORMALIZE;
     struct etna_reloc PE_COLOR_ADDR;
-    struct etna_reloc PE_PIPE_COLOR_ADDR[2];
+    struct etna_reloc PE_PIPE_COLOR_ADDR[ETNA_MAX_PIXELPIPES];
     uint32_t PE_COLOR_STRIDE;
     uint32_t SE_SCISSOR_LEFT; // fixp, restricted by scissor state *if* enabled in rasterizer state
     uint32_t SE_SCISSOR_TOP; // fixp
