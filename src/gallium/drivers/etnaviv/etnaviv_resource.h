@@ -85,6 +85,18 @@ struct etna_resource
     struct etna_context *pending_ctx;
 };
 
+/* returns TRUE if a is newer than b */
+static inline bool etna_resource_newer(struct etna_resource *a, struct etna_resource *b)
+{
+    return (int)(a->seqno - b->seqno) > 0;
+}
+
+/* returns TRUE if a is older than b */
+static inline bool etna_resource_older(struct etna_resource *a, struct etna_resource *b)
+{
+    return (int)(a->seqno - b->seqno) < 0;
+}
+
 static inline struct etna_resource *
 etna_resource(struct pipe_resource *p)
 {

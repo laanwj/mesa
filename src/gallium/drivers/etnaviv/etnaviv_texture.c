@@ -93,9 +93,9 @@ static void etna_update_sampler_source(struct pipe_sampler_view *view)
 {
     struct etna_resource *res = etna_resource(view->texture);
 
-    if (res->texture && res->seqno - etna_resource(res->texture)->seqno > 0)
+    if (res->texture && etna_resource_older(etna_resource(res->texture), res))
     {
-        /* Copy the texture using RS */
+        /* Texture is older than render buffer, copy the texture using RS */
         etna_copy_resource(view->context, res->texture, view->texture, 0,
                            view->texture->last_level);
         etna_resource(res->texture)->seqno = res->seqno;
