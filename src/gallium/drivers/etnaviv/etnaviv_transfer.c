@@ -64,7 +64,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
      */
     assert(ptrans->level <= rsc->base.last_level);
 
-    if (rsc->texture && rsc->seqno - etna_resource(rsc->texture)->seqno >= 0)
+    if (rsc->texture && !etna_resource_newer(rsc, etna_resource(rsc->texture)))
     {
         /* switch to using the texture resource */
         rsc = etna_resource(rsc->texture);
@@ -151,7 +151,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
 
     assert(level <= prsc->last_level);
 
-    if (rsc->texture && rsc->seqno - etna_resource(rsc->texture)->seqno >= 0)
+    if (rsc->texture && !etna_resource_newer(rsc, etna_resource(rsc->texture)))
     {
         /* We have a texture resource which is the same age or newer than the
          * render resource. Use the texture resource, which avoids bouncing

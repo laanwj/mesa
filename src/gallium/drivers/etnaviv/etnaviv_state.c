@@ -83,9 +83,9 @@ static void etna_set_sample_mask(struct pipe_context *pctx, unsigned sample_mask
 static void etna_update_render_resource(struct pipe_context *pctx, struct pipe_resource *pres)
 {
     struct etna_resource *res = etna_resource(pres);
-    if (res->texture && res->seqno - etna_resource(res->texture)->seqno < 0)
+    if (res->texture && etna_resource_older(res, etna_resource(res->texture)))
     {
-        /* The texture is newer than the render buffer. Copy it over. */
+        /* The render buffer is older than the texture buffer. Copy it over. */
         etna_copy_resource(pctx, pres, res->texture, 0, pres->last_level);
         res->seqno = etna_resource(res->texture)->seqno;
     }
