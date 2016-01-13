@@ -174,8 +174,8 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
          * VIVS_PE_COLOR_FORMAT_OVERWRITE prevents us from overwriting the
          * color target */
         cs->PE_COLOR_FORMAT = 0;
-        cs->PE_PIPE_COLOR_ADDR[0].bo = NULL;
-        cs->PE_PIPE_COLOR_ADDR[1].bo = NULL;
+        for (int i = 0; i < ETNA_MAX_PIXELPIPES; i++)
+            cs->PE_PIPE_COLOR_ADDR[i].bo = NULL;
         cs->PE_COLOR_STRIDE = 0;
         cs->TS_COLOR_STATUS_BASE.bo = NULL;
         cs->TS_COLOR_SURFACE_BASE.bo = NULL;
@@ -248,8 +248,8 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
         pipe_surface_reference(&cs->zsbuf, NULL);
         cs->PE_DEPTH_CONFIG = VIVS_PE_DEPTH_CONFIG_DEPTH_MODE_NONE;
         cs->PE_DEPTH_ADDR.bo = NULL;
-        cs->PE_PIPE_DEPTH_ADDR[0].bo = NULL;
-        cs->PE_PIPE_DEPTH_ADDR[1].bo = NULL;
+        for (int i = 0; i < ETNA_MAX_PIXELPIPES; i++)
+            cs->PE_PIPE_DEPTH_ADDR[i].bo = NULL;
         cs->PE_DEPTH_STRIDE = 0;
         cs->TS_DEPTH_STATUS_BASE.bo = NULL;
         cs->TS_DEPTH_SURFACE_BASE.bo = NULL;
