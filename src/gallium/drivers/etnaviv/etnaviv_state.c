@@ -135,19 +135,15 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
             cs->PE_COLOR_ADDR = cbuf->reloc[0];
             cs->PE_COLOR_ADDR.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
-        else if (ctx->specs.pixel_pipes == 2)
+        else
         {
             /* Rendered textures must always be multi-tiled */
             assert(res->layout & ETNA_LAYOUT_BIT_MULTI);
-            cs->PE_PIPE_COLOR_ADDR[0] = cbuf->reloc[0];
-            cs->PE_PIPE_COLOR_ADDR[0].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
-
-            cs->PE_PIPE_COLOR_ADDR[1] = cbuf->reloc[1];
-            cs->PE_PIPE_COLOR_ADDR[1].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
-        }
-        else
-        {
-            abort();
+            for (int i = 0; i < ctx->specs.pixel_pipes; i++)
+            {
+                cs->PE_PIPE_COLOR_ADDR[i] = cbuf->reloc[i];
+                cs->PE_PIPE_COLOR_ADDR[i].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
+            }
         }
         cs->PE_COLOR_STRIDE = cbuf->surf.stride;
 
@@ -206,17 +202,13 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
             cs->PE_DEPTH_ADDR = zsbuf->reloc[0];
             cs->PE_DEPTH_ADDR.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
-        else if (ctx->specs.pixel_pipes == 2)
+        else
         {
-            cs->PE_PIPE_DEPTH_ADDR[0] = zsbuf->reloc[0];
-            cs->PE_PIPE_DEPTH_ADDR[0].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
-
-            cs->PE_PIPE_DEPTH_ADDR[1] = zsbuf->reloc[1];
-            cs->PE_PIPE_DEPTH_ADDR[1].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
-	}
-	else
-	{
-	    abort();
+            for (int i = 0; i < ctx->specs.pixel_pipes; i++)
+            {
+                cs->PE_PIPE_DEPTH_ADDR[i] = zsbuf->reloc[i];
+                cs->PE_PIPE_DEPTH_ADDR[i].flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
+            }
 	}
 
         cs->PE_DEPTH_STRIDE = zsbuf->surf.stride;
