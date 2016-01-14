@@ -299,11 +299,13 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
     /* Generate the bitmask of supported draw primitives. */
     ctx->prim_hwsupport = 1 << PIPE_PRIM_POINTS |
                           1 << PIPE_PRIM_LINES |
-                          1 << PIPE_PRIM_LINE_LOOP |
                           1 << PIPE_PRIM_LINE_STRIP |
                           1 << PIPE_PRIM_TRIANGLES |
                           1 << PIPE_PRIM_TRIANGLE_STRIP |
                           1 << PIPE_PRIM_TRIANGLE_FAN;
+
+    if (VIV_FEATURE(ctx->screen, chipMinorFeatures2, LINE_LOOP))
+        ctx->prim_hwsupport |= 1 << PIPE_PRIM_LINE_LOOP;
 
     ctx->primconvert = util_primconvert_create(pctx, ctx->prim_hwsupport);
     if (!ctx->primconvert)
