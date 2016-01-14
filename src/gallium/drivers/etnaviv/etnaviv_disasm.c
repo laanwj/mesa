@@ -103,6 +103,22 @@ struct src_operand {
     uint8_t amode;
 };
 
+struct tex_operand {
+    uint8_t id;
+    uint8_t amode;
+    uint8_t swiz;
+};
+
+struct opc_operands {
+    struct dst_operand *dst;
+    struct tex_operand *tex;
+    struct src_operand *src0;
+    struct src_operand *src1;
+    struct src_operand *src2;
+
+    int imm;
+};
+
 static void print_condition(uint8_t condition)
 {
     switch(condition) {
@@ -292,7 +308,7 @@ static void print_amode(uint8_t amode)
     }
 }
 
-static void print_dst(struct dst_operand *dst)
+static void print_dst(struct dst_operand *dst, bool sep)
 {
     if (dst->use) {
         printf("t%u", dst->reg);
@@ -301,16 +317,22 @@ static void print_dst(struct dst_operand *dst)
     } else {
         printf("void");
     }
+
+    if (sep)
+        printf(", ");
 }
 
-static void print_tex(struct instr *instr)
+static void print_tex(struct tex_operand *tex, bool sep)
 {
-    printf("tex%u", instr->tex_id);
-    print_amode(instr->tex_amode);
-    print_swiz(instr->tex_swiz);
+    printf("tex%u", tex->id);
+    print_amode(tex->amode);
+    print_swiz(tex->swiz);
+
+    if (sep)
+        printf(", ");
 }
 
-static void print_src(struct src_operand *src)
+static void print_src(struct src_operand *src, bool sep)
 {
     if (src->use) {
         if (src->neg)
@@ -332,194 +354,53 @@ static void print_src(struct src_operand *src)
     } else {
         printf("void");
     }
+
+    if (sep)
+        printf(", ");
 }
 
-static void print_opc_default(struct instr *instr)
+static void print_opc_default(struct opc_operands *operands)
 {
-    // dst
-    print_dst(&(struct dst_operand) {
-            .use = instr->dst_use,
-            .amode = instr->dst_amode,
-            .reg = instr->dst_reg,
-            .comps = instr->dst_comps
-    });
-
-    // src0
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src0_use,
-            .neg = instr->src0_neg,
-            .abs = instr->src0_abs,
-            .rgroup = instr->src0_rgroup,
-            .reg = instr->src0_reg,
-            .swiz = instr->src0_swiz,
-            .amode = instr->src0_amode,
-    });
-
-    // src1
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src1_use,
-            .neg = instr->src1_neg,
-            .abs = instr->src1_abs,
-            .rgroup = instr->src1_rgroup,
-            .reg = instr->src1_reg,
-            .swiz = instr->src1_swiz,
-            .amode = instr->src1_amode,
-    });
-
-    // src2
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src2_use,
-            .neg = instr->src2_neg,
-            .abs = instr->src2_abs,
-            .rgroup = instr->src2_rgroup,
-            .reg = instr->src2_reg,
-            .swiz = instr->src2_swiz,
-            .amode = instr->src2_amode,
-    });
+    print_dst(operands->dst, true);
+    print_src(operands->src0, true);
+    print_src(operands->src1, true);
+    print_src(operands->src2, false);
 }
 
-static void print_opc_mov(struct instr *instr)
+static void print_opc_mov(struct opc_operands *operands)
 {
     // dst (areg)
-    printf("a%u", instr->dst_reg);
-    print_components(instr->dst_comps);
-
-    // src0
+    printf("a%u", operands->dst->reg);
+    print_components(operands->dst->comps);
     printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src0_use,
-            .neg = instr->src0_neg,
-            .abs = instr->src0_abs,
-            .rgroup = instr->src0_rgroup,
-            .reg = instr->src0_reg,
-            .swiz = instr->src0_swiz,
-            .amode = instr->src0_amode,
-    });
 
-    // src1
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src1_use,
-            .neg = instr->src1_neg,
-            .abs = instr->src1_abs,
-            .rgroup = instr->src1_rgroup,
-            .reg = instr->src1_reg,
-            .swiz = instr->src1_swiz,
-            .amode = instr->src1_amode,
-    });
-
-    // src2
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src2_use,
-            .neg = instr->src2_neg,
-            .abs = instr->src2_abs,
-            .rgroup = instr->src2_rgroup,
-            .reg = instr->src2_reg,
-            .swiz = instr->src2_swiz,
-            .amode = instr->src2_amode,
-    });
+    print_src(operands->src0, true);
+    print_src(operands->src1, true);
+    print_src(operands->src2, false);
 }
 
-static void print_opc_tex(struct instr *instr)
+static void print_opc_tex(struct opc_operands *operands)
 {
-    // dst
-    print_dst(&(struct dst_operand) {
-            .use = instr->dst_use,
-            .amode = instr->dst_amode,
-            .reg = instr->dst_reg,
-            .comps = instr->dst_comps
-    });
-
-    // tex
-    printf(", ");
-    print_tex(instr);
-
-    // src0
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src0_use,
-            .neg = instr->src0_neg,
-            .abs = instr->src0_abs,
-            .rgroup = instr->src0_rgroup,
-            .reg = instr->src0_reg,
-            .swiz = instr->src0_swiz,
-            .amode = instr->src0_amode,
-    });
-
-    // src1
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src1_use,
-            .neg = instr->src1_neg,
-            .abs = instr->src1_abs,
-            .rgroup = instr->src1_rgroup,
-            .reg = instr->src1_reg,
-            .swiz = instr->src1_swiz,
-            .amode = instr->src1_amode,
-    });
-
-    // src2
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src2_use,
-            .neg = instr->src2_neg,
-            .abs = instr->src2_abs,
-            .rgroup = instr->src2_rgroup,
-            .reg = instr->src2_reg,
-            .swiz = instr->src2_swiz,
-            .amode = instr->src2_amode,
-    });
+    print_dst(operands->dst, true);
+    print_tex(operands->tex, true);
+    print_src(operands->src0, true);
+    print_src(operands->src1, true);
+    print_src(operands->src2, false);
 }
 
-static void print_opc_imm(struct instr *instr)
+static void print_opc_imm(struct opc_operands *operands)
 {
-    // dst
-    print_dst(&(struct dst_operand) {
-            .use = instr->dst_use,
-            .amode = instr->dst_amode,
-            .reg = instr->dst_reg,
-            .comps = instr->dst_comps
-    });
-
-    // src0
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src0_use,
-            .neg = instr->src0_neg,
-            .abs = instr->src0_abs,
-            .rgroup = instr->src0_rgroup,
-            .reg = instr->src0_reg,
-            .swiz = instr->src0_swiz,
-            .amode = instr->src0_amode,
-    });
-
-    // src1
-    printf(", ");
-    print_src(&(struct src_operand) {
-            .use = instr->src1_use,
-            .neg = instr->src1_neg,
-            .abs = instr->src1_abs,
-            .rgroup = instr->src1_rgroup,
-            .reg = instr->src1_reg,
-            .swiz = instr->src1_swiz,
-            .amode = instr->src1_amode,
-    });
-
-    // imm
-    printf(", ");
-    printf("label_%x", (instr->dword3 & VIV_ISA_WORD_3_SRC2_IMM__MASK)
-                       >> VIV_ISA_WORD_3_SRC2_IMM__SHIFT);
+    print_dst(operands->dst, true);
+    print_src(operands->src0, true);
+    print_src(operands->src1, true);
+    printf("label_%x", operands->imm);
 }
 
 #define OPC_BITS 7
 
 static const struct opc_info {
     const char *name;
-    void (*print)(struct instr *instr);
+    void (*print)(struct opc_operands *operands);
 } opcs[1 << OPC_BITS] = {
     #define OPC(opc)     [INST_OPCODE_##opc] = { #opc, print_opc_default }
     #define OPC_MOV(opc) [INST_OPCODE_##opc] = { #opc, print_opc_mov }
@@ -591,10 +472,66 @@ static void print_instr(uint32_t *dwords, int n, enum debug_t debug)
         printf("%08x %08x %08x %08x  ", dwords[0], dwords[1], dwords[2], dwords[3]);
 
     if (name) {
+
+        struct dst_operand dst = {
+            .use = instr->dst_use,
+            .amode = instr->dst_amode,
+            .reg = instr->dst_reg,
+            .comps = instr->dst_comps
+        };
+
+        struct tex_operand tex = {
+            .id = instr->tex_id,
+            .amode = instr->tex_amode,
+            .swiz = instr->tex_swiz,
+        };
+
+        struct src_operand src0 = {
+            .use = instr->src0_use,
+            .neg = instr->src0_neg,
+            .abs = instr->src0_abs,
+            .rgroup = instr->src0_rgroup,
+            .reg = instr->src0_reg,
+            .swiz = instr->src0_swiz,
+            .amode = instr->src0_amode,
+        };
+
+        struct src_operand src1 = {
+            .use = instr->src1_use,
+            .neg = instr->src1_neg,
+            .abs = instr->src1_abs,
+            .rgroup = instr->src1_rgroup,
+            .reg = instr->src1_reg,
+            .swiz = instr->src1_swiz,
+            .amode = instr->src1_amode,
+        };
+
+        struct src_operand src2 = {
+            .use = instr->src2_use,
+            .neg = instr->src2_neg,
+            .abs = instr->src2_abs,
+            .rgroup = instr->src2_rgroup,
+            .reg = instr->src2_reg,
+            .swiz = instr->src2_swiz,
+            .amode = instr->src2_amode,
+        };
+
+        int imm = (instr->dword3 & VIV_ISA_WORD_3_SRC2_IMM__MASK)
+                >> VIV_ISA_WORD_3_SRC2_IMM__SHIFT;
+
+        struct opc_operands operands = {
+            .dst = &dst,
+            .tex = &tex,
+            .src0 = &src0,
+            .src1 = &src1,
+            .src2 = &src2,
+            .imm = imm,
+        };
+
         printf("%s", name);
         print_condition(instr->cond);
         printf(" ");
-        opcs[opc].print(instr);
+        opcs[opc].print(&operands);
     } else {
         printf("unknown (%d)", instr->opc);
     }
