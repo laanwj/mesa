@@ -42,7 +42,7 @@ struct u_vbuf;
 
 /* Hardware vertex fetcher limitations can be described by this structure. */
 struct u_vbuf_caps {
-   enum pipe_format format_translation[PIPE_FORMAT_COUNT];
+  enum pipe_format format_translation[PIPE_FORMAT_COUNT];
 
    /* Whether vertex fetches don't have to be 4-byte-aligned. */
    /* TRUE if hardware supports it. */
@@ -52,6 +52,12 @@ struct u_vbuf_caps {
 
    /* Whether the driver supports user vertex buffers. */
    unsigned user_vertex_buffers:1;
+
+   /* Maximum number of vertex buffers */
+   unsigned max_vertex_buffers:7;
+
+   /* Index format CAPs. */
+   unsigned index_uint32:1;      /* PIPE_FORMAT_I32_UINT */
 };
 
 

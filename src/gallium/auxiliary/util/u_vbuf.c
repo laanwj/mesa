@@ -183,6 +183,10 @@ struct u_vbuf {
    uint32_t incompatible_vb_mask; /* each bit describes a corresp. buffer */
    /* Which buffer has a non-zero stride. */
    uint32_t nonzero_stride_vb_mask; /* each bit describes a corresp. buffer */
+   /* Which buffers are allowed (supported by hardware). */
+   uint32_t allowed_vb_mask;
+   /* Incompatible index buffer */
+   uint32_t incompatible_ib_mask;
 };
 
 static void *
@@ -278,6 +282,10 @@ boolean u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps)
       }
    }
 
+   caps->index_uint32 =
+      screen->is_format_supported(screen, PIPE_FORMAT_I32_UINT, PIPE_BUFFER,
+                                  0, PIPE_BIND_INDEX_BUFFER);
+
    caps->buffer_offset_unaligned =
       !screen->get_param(screen,
                          PIPE_CAP_VERTEX_BUFFER_OFFSET_4BYTE_ALIGNED_ONLY);
@@ -289,6 +297,9 @@ boolean u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps)
                          PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY);
    caps->user_vertex_buffers =
       screen->get_param(screen, PIPE_CAP_USER_VERTEX_BUFFERS);
+
+   caps->max_vertex_buffers =
+      screen->get_param(screen, PIPE_CAP_MAX_VERTEX_BUFFERS);
 
    if (!caps->buffer_offset_unaligned ||
        !caps->buffer_stride_unaligned ||
@@ -312,6 +323,7 @@ u_vbuf_create(struct pipe_context *pipe,
    mgr->cso_cache = cso_cache_create();
    mgr->translate_cache = translate_cache_create();
    memset(mgr->fallback_vbs, ~0, sizeof(mgr->fallback_vbs));
+   mgr->allowed_vb_mask = (1 << mgr->caps.max_vertex_buffers) - 1;
 
    mgr->uploader = u_upload_create(pipe, 1024 * 1024,
                                    PIPE_BIND_VERTEX_BUFFER,
@@ -522,14 +534,15 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
 
 static boolean
 u_vbuf_translate_find_free_vb_slots(struct u_vbuf *mgr,
-                                    unsigned mask[VB_NUM])
+                                    unsigned mask[VB_NUM],
+                                    uint32_t extra_free_vb_mask)
 {
    unsigned type;
    unsigned fallback_vbs[VB_NUM];
    /* Set the bit for each buffer which is incompatible, or isn't set. */
    uint32_t unused_vb_mask =
-      mgr->ve->incompatible_vb_mask_all | mgr->incompatible_vb_mask |
-      ~mgr->enabled_vb_mask;
+      (mgr->ve->incompatible_vb_mask_all | mgr->incompatible_vb_mask |
+      ~mgr->enabled_vb_mask | extra_free_vb_mask) & mgr->allowed_vb_mask;
    uint32_t unused_vb_mask_temp;
    boolean insufficient_buffers = false;
 
@@ -551,7 +564,6 @@ u_vbuf_translate_find_free_vb_slots(struct u_vbuf *mgr,
 
          index = ffs(unused_vb_mask_temp) - 1;
          fallback_vbs[type] = index;
-         unused_vb_mask &= ~(1 << index);
          /*printf("found slot=%i for type=%i\n", index, type);*/
          unused_vb_mask_temp &= ~(1<<index);
       }
@@ -592,7 +604,7 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
    unsigned i, type;
    unsigned incompatible_vb_mask = mgr->incompatible_vb_mask &
                                    mgr->ve->used_vb_mask;
-
+   uint32_t extra_free_vb_mask = 0;
    int start[VB_NUM] = {
       start_vertex,     /* VERTEX */
       start_instance,   /* INSTANCE */
@@ -634,11 +646,17 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
          mask[VB_VERTEX] |= 1 << vb_index;
       }
    }
-
    assert(mask[VB_VERTEX] || mask[VB_INSTANCE] || mask[VB_CONST]);
 
+   /* In the case of unroll_indices, we can regard all non-constant
+    * vertex buffers with only non-instance vertex elements as incompatible
+    * and thus free.
+    */
+   if(unroll_indices)
+      extra_free_vb_mask = mask[VB_VERTEX] & ~mask[VB_INSTANCE];
+
    /* Find free vertex buffer slots. */
-   if (!u_vbuf_translate_find_free_vb_slots(mgr, mask)) {
+   if (!u_vbuf_translate_find_free_vb_slots(mgr, mask, extra_free_vb_mask)) {
       return FALSE;
    }
 
@@ -797,6 +815,18 @@ u_vbuf_create_vertex_elements(struct u_vbuf *mgr, unsigned count,
       }
    }
 
+   if(used_buffers & ~mgr->allowed_vb_mask)
+   {
+       /* More vertex buffers are used than the hardware supports.  In
+        * principle, we only need to make sure that less vertex buffers are
+        * used, and mark some of the latter vertex buffers as incompatible.
+        * For now, mark all vertex buffers as incompatible.
+        */
+       ve->incompatible_vb_mask_any = used_buffers;
+       ve->compatible_vb_mask_any = 0;
+       ve->incompatible_elem_mask = (1<<count)-1;
+   }
+
    ve->used_vb_mask = used_buffers;
    ve->compatible_vb_mask_all = ~ve->incompatible_vb_mask_any & used_buffers;
    ve->incompatible_vb_mask_all = ~ve->compatible_vb_mask_any & used_buffers;
@@ -809,8 +839,12 @@ u_vbuf_create_vertex_elements(struct u_vbuf *mgr, unsigned count,
       }
    }
 
-   ve->driver_cso =
-      pipe->create_vertex_elements_state(pipe, count, driver_attribs);
+   /* Only create driver CSO if no incompatible elements */
+   if(!ve->incompatible_elem_mask)
+   {
+      ve->driver_cso =
+         pipe->create_vertex_elements_state(pipe, count, driver_attribs);
+   }
    return ve;
 }
 
@@ -921,8 +955,10 @@ void u_vbuf_set_index_buffer(struct u_vbuf *mgr,
       assert(ib->offset % ib->index_size == 0);
       pipe_resource_reference(&mgr->index_buffer.buffer, ib->buffer);
       memcpy(&mgr->index_buffer, ib, sizeof(*ib));
+      mgr->incompatible_ib_mask = !mgr->caps.index_uint32 && ib->index_size==4;
    } else {
       pipe_resource_reference(&mgr->index_buffer.buffer, NULL);
+      mgr->incompatible_ib_mask = 0;
    }
 
    pipe->set_index_buffer(pipe, ib);
@@ -1028,7 +1064,8 @@ static boolean u_vbuf_need_minmax_index(const struct u_vbuf *mgr)
              mgr->incompatible_vb_mask |
              mgr->ve->incompatible_vb_mask_any) &
             mgr->ve->noninstance_vb_mask_any &
-            mgr->nonzero_stride_vb_mask)) != 0;
+            mgr->nonzero_stride_vb_mask)) != 0 ||
+            mgr->incompatible_ib_mask;
 }
 
 static boolean u_vbuf_mapping_vertex_buffer_blocks(const struct u_vbuf *mgr)
@@ -1234,11 +1271,14 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
          /* Primitive restart doesn't work when unrolling indices.
           * We would have to break this drawing operation into several ones. */
          /* Use some heuristic to see if unrolling indices improves
-          * performance. */
-         if (!new_info.primitive_restart &&
-             num_vertices > new_info.count*2 &&
-             num_vertices - new_info.count > 32 &&
-             !u_vbuf_mapping_vertex_buffer_blocks(mgr)) {
+          * performance. Force unroll indices always if the index format is
+          * incompatible (don't support primitive restart in this case...). */
+         if ((!info->primitive_restart &&
+             num_vertices > info->count*2 &&
+             num_vertices-info->count > 32 &&
+             !u_vbuf_mapping_vertex_buffer_blocks(mgr))
+             || mgr->incompatible_ib_mask) {
+            /*printf("num_vertices=%i count=%i\n", num_vertices, info->count);*/
             unroll_indices = TRUE;
             user_vb_mask &= ~(mgr->nonzero_stride_vb_mask &
                               mgr->ve->noninstance_vb_mask_any);
