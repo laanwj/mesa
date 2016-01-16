@@ -245,15 +245,24 @@ void etna_emit_state(struct etna_context *ctx)
 {
     struct etna_cmd_stream *stream = ctx->stream;
     uint32_t active_samplers = active_samplers_bits(ctx);
-    uint32_t dirty = ctx->dirty;
 
     /* Pre-processing: re-link shader if needed.
      */
-    if (unlikely((dirty & ETNA_DIRTY_SHADER)) && ctx->vs && ctx->fs)
+    if (unlikely((ctx->dirty & ETNA_DIRTY_SHADER)) && ctx->vs && ctx->fs)
     {
         /* re-link vs and fs if needed */
         etna_link_shaders(ctx, &ctx->shader_state, ctx->vs, ctx->fs);
     }
+
+    /* Pre-reserve the command buffer space which we are likely to need.
+     * This must cover all the state emitted below, and the following
+     * draw command.  This includes the flush (two words) and stall (four
+     * words) and we assume a DRAW_INDEXED_PRIMITIVES command which
+     * is six words.
+     */
+    etna_cmd_stream_reserve(stream, ETNA_3D_CONTEXT_SIZE + 6 + 2 + ctx->vertex_elements->num_elements + 6);
+
+    uint32_t dirty = ctx->dirty;
 
     /* Pre-processing: see what caches we need to flush before making state
      * changes.
