@@ -166,6 +166,12 @@ static const struct drm_driver_descriptor driver_descriptors[] = {
         .create_screen = pipe_vc4_create_screen,
         .configuration = configuration_query,
     },
+    {
+        .name = "etnaviv",
+        .driver_name = "etnaviv",
+        .create_screen = pipe_etna_create_screen,
+        .configuration = configuration_query,
+    },
 };
 #endif
 

@@ -68,6 +68,11 @@ if NEED_RADEON_DRM_WINSYS
 SUBDIRS += winsys/radeon/drm
 endif
 
+if HAVE_GALLIUM_ETNAVIV
+SUBDIRS += drivers/etnaviv winsys/etnaviv/drm
+SUBDIRS += drivers/renderonly
+endif
+
 ## swrast/softpipe
 if HAVE_GALLIUM_SOFTPIPE
 SUBDIRS += drivers/softpipe
