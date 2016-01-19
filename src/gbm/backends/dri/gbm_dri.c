@@ -364,6 +364,12 @@ dri_open_driver(struct gbm_dri_device *dri)
                 __DRI_DRIVER_GET_EXTENSIONS, dri->base.driver_name) != -1) {
       const __DRIextension **(*get_extensions)(void);
 
+      /* replace - with _ */
+      for (unsigned i = 0; i < strlen(get_extensions_name); i++) {
+         if (get_extensions_name[i] == '-')
+            get_extensions_name[i] = '_';
+      }
+
       get_extensions = dlsym(dri->driver, get_extensions_name);
       free(get_extensions_name);
 
