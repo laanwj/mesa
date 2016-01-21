@@ -44,6 +44,11 @@
 /* Fully specified swizzle */
 #define INST_SWIZ(x,y,z,w) \
         (INST_SWIZ_X(x) | INST_SWIZ_Y(y) | INST_SWIZ_Z(z) | INST_SWIZ_W(w))
+#define SWIZZLE(c0,c1,c2,c3) \
+        INST_SWIZ(INST_SWIZ_COMP_##c0, \
+                  INST_SWIZ_COMP_##c1, \
+                  INST_SWIZ_COMP_##c2, \
+                  INST_SWIZ_COMP_##c3)
 
 /*** operands ***/
 
