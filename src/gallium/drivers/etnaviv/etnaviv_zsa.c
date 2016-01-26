@@ -42,7 +42,8 @@ void *etna_zsa_state_create(struct pipe_context *pctx,
 
     /* XXX does stencil[0] / stencil[1] order depend on rs->front_ccw? */
     bool early_z = true;
-    bool disable_zs = !so->depth.writemask;
+    bool disable_zs = (!so->depth.enabled || so->depth.func == PIPE_FUNC_ALWAYS)
+                      && !so->depth.writemask;
 
     /* Set operations to KEEP if write mask is 0.
      * When we don't do this, the depth buffer is written for the entire primitive instead of
