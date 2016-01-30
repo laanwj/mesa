@@ -839,6 +839,14 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
              * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
             switch(inst->Instruction.Opcode)
             {
+            case TGSI_OPCODE_ARL:
+                emit_inst(cd, &(struct etna_inst) {
+                        .opcode = INST_OPCODE_MOVAR,
+                        .sat = sat,
+                        .dst = convert_dst(cd, &inst->Dst[0]),
+                        .src[2] = src[0],
+                        });
+                break;
             case TGSI_OPCODE_MOV:
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_MOV,
@@ -1476,7 +1484,6 @@ INST_COMPS_W;
             case TGSI_OPCODE_UP2US:
             case TGSI_OPCODE_UP4B:
             case TGSI_OPCODE_UP4UB:
-            case TGSI_OPCODE_ARL: /* floor */
             case TGSI_OPCODE_ARR: /* round */
             case TGSI_OPCODE_CAL: /* XXX INST_OPCODE_CALL */
             case TGSI_OPCODE_RET: /* XXX INST_OPCODE_RET */
