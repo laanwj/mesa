@@ -656,12 +656,20 @@ static struct etna_inst_dst convert_dst(struct etna_compile_data *cd, const stru
 {
     struct etna_inst_dst rv = {
         /// XXX .amode
-        .use = 1,
         .comps = in->Register.WriteMask,
     };
-    struct etna_native_reg native_reg = cd->file[in->Register.File][in->Register.Index].native;
-    assert(native_reg.valid && !native_reg.is_tex && native_reg.rgroup == INST_RGROUP_TEMP); /* can only assign to temporaries */
-    rv.reg = native_reg.id;
+
+    if (in->Register.File == TGSI_FILE_ADDRESS) {
+        assert(in->Register.Index == 0);
+        rv.reg = in->Register.Index;
+        rv.use = 0;
+    } else {
+        struct etna_native_reg native_reg = cd->file[in->Register.File][in->Register.Index].native;
+        assert(native_reg.valid && !native_reg.is_tex && native_reg.rgroup == INST_RGROUP_TEMP); /* can only assign to temporaries */
+        rv.reg = native_reg.id;
+        rv.use = 1;
+    }
+
     return rv;
 }
 
