@@ -687,20 +687,50 @@ static struct etna_inst_tex convert_tex(struct etna_compile_data *cd, const stru
 }
 
 /* convert source operand */
-static struct etna_inst_src etna_create_src(const struct tgsi_src_register *tgsi, const struct etna_native_reg *native, uint32_t swizzle)
+static struct etna_inst_src etna_create_src(const struct tgsi_full_src_register *tgsi, const struct etna_native_reg *native, uint32_t swizzle)
 {
+    const struct tgsi_src_register *reg = &tgsi->Register;
     struct etna_inst_src rv = {
         .use = 1,
         .swiz = inst_swiz_compose(
-                    INST_SWIZ(tgsi->SwizzleX, tgsi->SwizzleY, tgsi->SwizzleZ, tgsi->SwizzleW),
+                    INST_SWIZ(reg->SwizzleX, reg->SwizzleY, reg->SwizzleZ, reg->SwizzleW),
                     swizzle),
-        .neg = tgsi->Negate,
-        .abs = tgsi->Absolute,
+        .neg = reg->Negate,
+        .abs = reg->Absolute,
         .rgroup = native->rgroup,
         .reg = native->id,
-        // XXX .amode
+        .amode = INST_AMODE_DIRECT,
     };
     assert(native->valid && !native->is_tex);
+
+    if (reg->Indirect) {
+        const struct tgsi_ind_register *indirect = &tgsi->Indirect;
+        assert(indirect->File == TGSI_FILE_ADDRESS);
+        assert(indirect->Index == 0);
+
+        switch (indirect->Swizzle) {
+            case TGSI_SWIZZLE_X:
+                rv.amode = INST_AMODE_ADD_A_X;
+                break;
+
+            case TGSI_SWIZZLE_Y:
+                rv.amode = INST_AMODE_ADD_A_Y;
+                break;
+
+            case TGSI_SWIZZLE_Z:
+                rv.amode = INST_AMODE_ADD_A_Z;
+                break;
+
+            case TGSI_SWIZZLE_W:
+                rv.amode = INST_AMODE_ADD_A_W;
+                break;
+
+            default:
+                abort();
+                break;
+        }
+    }
+
     return rv;
 }
 
@@ -712,7 +742,7 @@ static void etna_src_swiz(struct etna_inst_src *res, const struct etna_inst_src 
 
 static struct etna_inst_src convert_src(struct etna_compile_data *cd, const struct tgsi_full_src_register *in, uint32_t swizzle)
 {
-    return etna_create_src(&in->Register, &cd->file[in->Register.File][in->Register.Index].native, swizzle);
+    return etna_create_src(in, &cd->file[in->Register.File][in->Register.Index].native, swizzle);
 }
 
 /* convert destination to source operand (for operation in place)
@@ -797,8 +827,8 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
             const struct tgsi_opcode_info *tgsi = tgsi_get_opcode_info(inst->Instruction.Opcode);
             for(int i = 0; i < tgsi->num_src && i < ETNA_NUM_SRC; i++)
             {
-                const struct tgsi_src_register *reg = &inst->Src[i].Register;
-                const struct etna_native_reg *n = &cd->file[reg->File][reg->Index].native;
+                const struct tgsi_full_src_register *reg = &inst->Src[i];
+                const struct etna_native_reg *n = &cd->file[reg->Register.File][reg->Register.Index].native;
                 if (!n->valid || n->is_tex)
                     continue;
 
