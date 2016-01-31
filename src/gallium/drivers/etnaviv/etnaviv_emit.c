@@ -360,13 +360,13 @@ void etna_emit_state(struct etna_context *ctx)
     {
         /*0064C*/ EMIT_STATE_RELOC(FE_VERTEX_STREAM_BASE_ADDR, &ctx->vertex_buffer.cvb[0].FE_VERTEX_STREAM_BASE_ADDR);
         /*00650*/ EMIT_STATE(FE_VERTEX_STREAM_CONTROL, ctx->vertex_buffer.cvb[0].FE_VERTEX_STREAM_CONTROL);
-        if (ctx->specs.has_shader_range_registers)
+        for (int x = 1; x < ctx->vertex_buffer.count; ++x)
         {
-            for (int x = 0; x < 8; ++x)
-            {
-                /*00680*/ EMIT_STATE_RELOC(FE_VERTEX_STREAMS_BASE_ADDR(x), &ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_BASE_ADDR);
-            }
-            for (int x = 0; x < 8; ++x)
+            /*00680*/ EMIT_STATE_RELOC(FE_VERTEX_STREAMS_BASE_ADDR(x), &ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_BASE_ADDR);
+        }
+        for (int x = 1; x < ctx->vertex_buffer.count; ++x)
+        {
+            if (ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_BASE_ADDR.bo)
             {
                 /*006A0*/ EMIT_STATE(FE_VERTEX_STREAMS_CONTROL(x), ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_CONTROL);
             }
