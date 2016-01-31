@@ -60,11 +60,15 @@ static struct pipe_surface *etna_create_surface(struct pipe_context *pctx,
 
     /* Allocate a TS for the resource if there isn't one yet,
      * and it is allowed by the hw (width is a multiple of 16).
+     * Avoid doing this for GPUs with MC1.0, as kernel sources
+     * indicate the tile status module bypasses the memory
+     * offset and MMU.
      */
     /* XXX for now, don't do TS for render textures as this path
      * is not stable.
      */
     if (VIV_FEATURE(ctx->screen, chipFeatures, FAST_CLEAR) &&
+        VIV_FEATURE(ctx->screen, chipMinorFeatures0, MC20) &&
         !DBG_ENABLED(ETNA_DBG_NO_TS) &&
             !rsc->ts_bo &&
             !(rsc->base.bind & (PIPE_BIND_SAMPLER_VIEW)) &&
