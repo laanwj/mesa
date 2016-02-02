@@ -21,6 +21,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include "etnaviv_screen.h"
+#include "etnaviv_context.h"
 #include "etnaviv_rasterizer.h"
 
 #include "etnaviv_translate.h"
@@ -30,6 +32,12 @@ void *etna_rasterizer_state_create(struct pipe_context *pctx,
                                  const struct pipe_rasterizer_state *so)
 {
     struct etna_rasterizer_state *cs;
+    struct etna_context *ctx = etna_context(pctx);
+    /*
+     * Disregard flatshading on GC880+, as a HW bug there seem to disable all
+     * varying interpolation if it's enabled
+     */
+    bool flatshade = ctx->screen->model < 880 ? so->flatshade : false;
 
     if (so->fill_front != so->fill_back)
     {
@@ -44,7 +52,7 @@ void *etna_rasterizer_state_create(struct pipe_context *pctx,
     cs->base = *so;
 
     cs->PA_CONFIG =
-            (so->flatshade ? VIVS_PA_CONFIG_SHADE_MODEL_FLAT : VIVS_PA_CONFIG_SHADE_MODEL_SMOOTH) |
+            (flatshade ? VIVS_PA_CONFIG_SHADE_MODEL_FLAT : VIVS_PA_CONFIG_SHADE_MODEL_SMOOTH) |
             translate_cull_face(so->cull_face, so->front_ccw) |
             translate_polygon_mode(so->fill_front) |
             (so->point_quad_rasterization ? VIVS_PA_CONFIG_POINT_SPRITE_ENABLE : 0) |
