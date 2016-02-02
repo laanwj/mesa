@@ -323,7 +323,6 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
        blit_info->dst.box.width != (blit_info->src.box.width / msaa_xscale) ||
        blit_info->dst.box.height != (blit_info->src.box.height / msaa_yscale))
    {
-      printf("rs blit bail out\n");
       return FALSE;
    }
 
