@@ -110,6 +110,25 @@ gbm_device_get_format_modifier_plane_count(struct gbm_device *gbm,
    return gbm->get_format_modifier_plane_count(gbm, format, modifier);
 }
 
+/** Set the KMS provider device used for scanout and cursor BO allocations
+ *
+ * \param gbm The created buffer manager
+ * \param provider The buffer manager that should be used for KMS buffers
+ * \return 0 if successful
+ */
+GBM_EXPORT int
+gbm_device_set_kms_provider(struct gbm_device *gbm,
+                            struct gbm_device *provider)
+{
+   /* Changing the provider on the fly is not supported */
+   if (gbm->kms_provider)
+      return -1;
+   else
+      gbm->kms_provider = provider;
+
+   return 0;
+}
+
 /** Destroy the gbm device and free all resources associated with it.
  *
  * \param gbm The device created using gbm_create_device()

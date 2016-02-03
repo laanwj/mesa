@@ -52,6 +52,7 @@ struct gbm_device {
    /* Hack to make a gbm_device detectable by its first element. */
    struct gbm_device *(*dummy)(int);
 
+   struct gbm_device *kms_provider;
    int fd;
    const char *name;
    unsigned int refcount;

@@ -243,6 +243,11 @@ gbm_device_get_format_modifier_plane_count(struct gbm_device *gbm,
                                            uint32_t format,
                                            uint64_t modifier);
 
+int
+gbm_device_set_kms_provider(struct gbm_device *gbm,
+                            struct gbm_device *provider);
+
+
 void
 gbm_device_destroy(struct gbm_device *gbm);
 
