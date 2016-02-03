@@ -82,7 +82,18 @@ GBM_EXPORT int
 gbm_device_is_format_supported(struct gbm_device *gbm,
                                uint32_t format, uint32_t usage)
 {
-   return gbm->is_format_supported(gbm, format, usage);
+   /*
+    * If there is a KMS provider, scanout formats must be supported by both the
+    * KMS and the render device, cursor formats only by the KMS device.
+    */
+   if (gbm->kms_provider && (usage & GBM_BO_USE_CURSOR))
+      return gbm->kms_provider->is_format_supported(gbm->kms_provider,
+                                                    format, usage);
+   else if (gbm->kms_provider && (usage & GBM_BO_USE_SCANOUT))
+      return gbm->kms_provider->is_format_supported(gbm->kms_provider,
+               format, usage) && gbm->is_format_supported(gbm, format, usage);
+   else
+      return gbm->is_format_supported(gbm, format, usage);
 }
 
 /** Get the number of planes that are required for a given format+modifier
@@ -439,6 +450,9 @@ gbm_bo_destroy(struct gbm_bo *bo)
    if (bo->destroy_user_data)
       bo->destroy_user_data(bo, bo->user_data);
 
+   if (bo->prime_bo)
+      bo->prime_bo->gbm->bo_destroy(bo->prime_bo);
+
    bo->gbm->bo_destroy(bo);
 }
 
@@ -468,7 +482,49 @@ gbm_bo_create(struct gbm_device *gbm,
       return NULL;
    }
 
-   return gbm->bo_create(gbm, width, height, format, usage, NULL, 0);
+   if (gbm->kms_provider && (usage & GBM_BO_USE_CURSOR)) {
+      struct gbm_bo *bo = gbm->kms_provider->bo_create(gbm->kms_provider, width,
+                                                       height, format, usage, NULL, 0);
+      bo->type = GBM_BO_TYPE_KMS;
+      return bo;
+   }
+
+   if (gbm->kms_provider && (usage & GBM_BO_USE_SCANOUT)) {
+      struct gbm_bo *kms_bo, *render_bo;
+      struct gbm_import_fd_data import_data;
+
+      /* FIXME: we need a way to communicate constraints here */
+      kms_bo = gbm->kms_provider->bo_create(gbm->kms_provider, width, height,
+                                            format, usage, NULL, 0);
+      if (!kms_bo)
+         return NULL;
+
+      kms_bo->type = GBM_BO_TYPE_KMS;
+
+      import_data.fd = gbm_bo_get_fd(kms_bo);
+      import_data.format = gbm_bo_get_format(kms_bo);
+      import_data.height = gbm_bo_get_height(kms_bo);
+      import_data.width = gbm_bo_get_width(kms_bo);
+      import_data.stride = gbm_bo_get_stride(kms_bo);
+
+      render_bo = gbm->bo_import(gbm, GBM_BO_IMPORT_FD, &import_data, usage);
+      close(import_data.fd);
+      if (!render_bo) {
+         gbm->kms_provider->bo_destroy(kms_bo);
+         return NULL;
+      }
+      render_bo->type = GBM_BO_TYPE_RENDER;
+
+      /* link bos together, so we know they represent the same thing */
+      render_bo->prime_bo = kms_bo;
+      kms_bo->prime_bo = render_bo;
+
+      return render_bo;
+   } else {
+      struct gbm_bo *bo = gbm->bo_create(gbm, width, height, format, usage, NULL, 0);
+      bo->type = GBM_BO_TYPE_KMS | GBM_BO_TYPE_RENDER;
+      return bo;
+   }
 }
 
 GBM_EXPORT struct gbm_bo *
@@ -521,6 +577,18 @@ gbm_bo_import(struct gbm_device *gbm,
               uint32_t type, void *buffer, uint32_t usage)
 {
    return gbm->bo_import(gbm, type, buffer, usage);
+}
+
+GBM_EXPORT struct gbm_bo *
+gbm_bo_get_kms_bo(struct gbm_bo *bo)
+{
+   if (!bo)
+      return NULL;
+
+   if (bo->type & GBM_BO_TYPE_KMS)
+      return bo;
+   else
+      return bo->prime_bo;
 }
 
 /**
@@ -671,7 +739,12 @@ gbm_surface_lock_front_buffer(struct gbm_surface *surf)
 GBM_EXPORT void
 gbm_surface_release_buffer(struct gbm_surface *surf, struct gbm_bo *bo)
 {
-   surf->gbm->surface_release_buffer(surf, bo);
+   struct gbm_bo *release_bo = bo;
+
+   if (!(bo->type & GBM_BO_TYPE_RENDER))
+      release_bo = bo->prime_bo;
+
+   surf->gbm->surface_release_buffer(surf, release_bo);
 }
 
 /**

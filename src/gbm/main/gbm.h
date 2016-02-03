@@ -362,6 +362,9 @@ gbm_bo_get_plane_count(struct gbm_bo *bo);
 union gbm_bo_handle
 gbm_bo_get_handle_for_plane(struct gbm_bo *bo, int plane);
 
+struct gbm_bo *
+gbm_bo_get_kms_bo(struct gbm_bo *bo);
+
 int
 gbm_bo_write(struct gbm_bo *bo, const void *buf, size_t count);
 

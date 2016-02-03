@@ -105,8 +105,12 @@ struct gbm_device {
  *
  * The members in this structure should not be accessed directly.
  */
+#define GBM_BO_TYPE_KMS        (1 << 0)
+#define GBM_BO_TYPE_RENDER     (1 << 1)
+
 struct gbm_bo {
    struct gbm_device *gbm;
+   uint32_t type;
    uint32_t width;
    uint32_t height;
    uint32_t stride;
@@ -114,6 +118,7 @@ struct gbm_bo {
    union gbm_bo_handle  handle;
    void *user_data;
    void (*destroy_user_data)(struct gbm_bo *, void *);
+   struct gbm_bo *prime_bo;
 };
 
 struct gbm_surface {
