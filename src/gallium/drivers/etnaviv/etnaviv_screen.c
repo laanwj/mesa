@@ -275,7 +275,12 @@ static int etna_screen_get_shader_param(struct pipe_screen *pscreen, unsigned sh
     case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
             return ETNA_MAX_DEPTH; /* XXX */
     case PIPE_SHADER_CAP_MAX_INPUTS:
-            return 16; /* see VIVS_VS_INPUT */
+            /* Maximum number of inputs for the vertex shader is the number
+             * of vertex elements - each element defines one vertex shader
+             * input register.  For the fragment shader, this is the number
+             * of varyings. */
+            return shader==PIPE_SHADER_FRAGMENT ? screen->specs.max_varyings :
+                                                  screen->specs.vertex_max_elements;
     case PIPE_SHADER_CAP_MAX_OUTPUTS:
             return 16; /* see VIVS_VS_OUTPUT */
     case PIPE_SHADER_CAP_MAX_TEMPS:
