@@ -699,6 +699,21 @@ static void emit_inst(struct etna_compile_data *cd, struct etna_inst *inst)
     cd->inst_ptr ++;
 }
 
+static unsigned int etna_amode(struct tgsi_ind_register indirect)
+{
+    assert(indirect.File == TGSI_FILE_ADDRESS);
+    assert(indirect.Index == 0);
+
+    switch (indirect.Swizzle)
+    {
+    case TGSI_SWIZZLE_X: return INST_AMODE_ADD_A_X;
+    case TGSI_SWIZZLE_Y: return INST_AMODE_ADD_A_Y;
+    case TGSI_SWIZZLE_Z: return INST_AMODE_ADD_A_Z;
+    case TGSI_SWIZZLE_W: return INST_AMODE_ADD_A_W;
+    default: assert(!"Invalid swizzle");
+    }
+}
+
 /* convert destination operand */
 static struct etna_inst_dst convert_dst(struct etna_compile_data *cd, const struct tgsi_full_dst_register *in)
 {
@@ -751,33 +766,8 @@ static struct etna_inst_src etna_create_src(const struct tgsi_full_src_register 
     };
     assert(native->valid && !native->is_tex);
 
-    if (reg->Indirect) {
-        const struct tgsi_ind_register *indirect = &tgsi->Indirect;
-        assert(indirect->File == TGSI_FILE_ADDRESS);
-        assert(indirect->Index == 0);
-
-        switch (indirect->Swizzle) {
-            case TGSI_SWIZZLE_X:
-                rv.amode = INST_AMODE_ADD_A_X;
-                break;
-
-            case TGSI_SWIZZLE_Y:
-                rv.amode = INST_AMODE_ADD_A_Y;
-                break;
-
-            case TGSI_SWIZZLE_Z:
-                rv.amode = INST_AMODE_ADD_A_Z;
-                break;
-
-            case TGSI_SWIZZLE_W:
-                rv.amode = INST_AMODE_ADD_A_W;
-                break;
-
-            default:
-                abort();
-                break;
-        }
-    }
+    if (reg->Indirect)
+        rv.amode = etna_amode(tgsi->Indirect);
 
     return rv;
 }
