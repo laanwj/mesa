@@ -1530,7 +1530,7 @@ static void etna_compile_add_z_div_if_needed(struct etna_compile_data *cd)
         if(pos_reg != NULL)
         {
             /*
-             * ADD tX.__z_, tX.zzzz, void, 1.0
+             * ADD tX.__z_, tX.zzzz, void, tX.wwww
              * MUL tX.__z_, tX.zzzz, 0.5, void
             */
             emit_inst(cd, &(struct etna_inst) {
@@ -1541,7 +1541,9 @@ static void etna_compile_add_z_div_if_needed(struct etna_compile_data *cd)
                     .src[0].use = 1,
                     .src[0].reg = pos_reg->native.id,
                     .src[0].swiz = SWIZZLE(Z,Z,Z,Z),
-                    .src[2] = alloc_imm_f32(cd, 1.0f),
+                    .src[2].use = 1,
+                    .src[2].reg = pos_reg->native.id,
+                    .src[2].swiz = SWIZZLE(W,W,W,W),
                     });
             emit_inst(cd, &(struct etna_inst) {
                     .opcode = INST_OPCODE_MUL,
