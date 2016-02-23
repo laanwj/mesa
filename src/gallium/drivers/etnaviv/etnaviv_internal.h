@@ -33,7 +33,7 @@
 #include <libdrm/etnaviv_drmif.h>
 
 #define ETNA_NUM_INPUTS (16)
-#define ETNA_NUM_VARYINGS (16)
+#define ETNA_NUM_VARYINGS 8
 #define ETNA_NUM_LOD (14)
 #define ETNA_NUM_LAYERS (6)
 #define ETNA_MAX_UNIFORMS (256)

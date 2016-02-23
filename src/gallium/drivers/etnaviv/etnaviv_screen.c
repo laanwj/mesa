@@ -543,6 +543,12 @@ static boolean etna_get_specs(struct etna_screen *screen)
         screen->specs.vertex_max_elements = 10;
     }
 
+    /* Etna_viv documentation does not indicate where varyings above 8 are
+     * stored. Moreover, if we are passed more than 8 varyings, we will
+     * walk off the end of some arrays. Limit the maximum number of varyings. */
+    if (screen->specs.max_varyings > ETNA_NUM_VARYINGS)
+        screen->specs.max_varyings = ETNA_NUM_VARYINGS;
+
     if (screen->model < chipModel_GC4000) /* from QueryShaderCaps in kernel driver */
     {
         screen->specs.max_vs_uniforms = 168;
