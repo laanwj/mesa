@@ -636,6 +636,11 @@ renderonly_transfer_map(struct pipe_context *pcontext,
 						   usage,
 						   box,
 						   &transfer->gpu);
+	if (!transfer->map) {
+		free(transfer);
+		return NULL;
+	}
+
 	memcpy(&transfer->base, transfer->gpu, sizeof(*transfer->gpu));
 	transfer->base.resource = NULL;
 	pipe_resource_reference(&transfer->base.resource, presource);
