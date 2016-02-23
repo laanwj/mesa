@@ -50,7 +50,7 @@ void *etna_rasterizer_state_create(struct pipe_context *pctx,
             (so->point_quad_rasterization ? VIVS_PA_CONFIG_POINT_SPRITE_ENABLE : 0) |
             (so->point_size_per_vertex ? VIVS_PA_CONFIG_POINT_SIZE_ENABLE : 0);
     cs->PA_LINE_WIDTH = etna_f32_to_u32(so->line_width / 2.0f);
-    cs->PA_POINT_SIZE = etna_f32_to_u32(so->point_size);
+    cs->PA_POINT_SIZE = etna_f32_to_u32(so->point_size / 2.0f);
     cs->SE_DEPTH_SCALE = etna_f32_to_u32(so->offset_scale);
     cs->SE_DEPTH_BIAS = etna_f32_to_u32(so->offset_units) / 65535.0f;
     cs->SE_CONFIG =
