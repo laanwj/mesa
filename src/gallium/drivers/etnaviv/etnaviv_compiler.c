@@ -1242,8 +1242,33 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 }
                 else
                 {
-                    BUG("Unhandled instruction %s", tgsi_get_opcode_name(inst->Instruction.Opcode));
-                    assert(0);
+                    struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+                    struct etna_inst ins[2] = { };
+
+                    ins[0].opcode = INST_OPCODE_SET;
+                    ins[0].cond = INST_CONDITION_NZ;
+                    ins[0].dst.use = 1;
+                    ins[0].dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W;
+                    ins[0].dst.reg = temp.id;
+                    ins[0].src[0] = src[0];
+
+                    ins[1].opcode = INST_OPCODE_SELECT;
+                    ins[1].cond = INST_CONDITION_LZ;
+                    ins[1].sat = sat;
+                    ins[1].dst = convert_dst(cd, &inst->Dst[0]);
+                    ins[1].src[0] = src[0];
+                    ins[1].src[1].use = 1;
+                    ins[1].src[1].swiz = INST_SWIZ_IDENTITY;
+                    ins[1].src[1].neg = 1;
+                    ins[1].src[1].rgroup = temp.rgroup;
+                    ins[1].src[1].reg = temp.id;
+                    ins[1].src[2].use = 1;
+                    ins[1].src[2].swiz = INST_SWIZ_IDENTITY;
+                    ins[1].src[2].rgroup = temp.rgroup;
+                    ins[1].src[2].reg = temp.id;
+
+                    emit_inst(cd, &ins[0]);
+                    emit_inst(cd, &ins[1]);
                 }
                 break;
             case TGSI_OPCODE_EX2:
