@@ -733,6 +733,9 @@ static struct etna_inst_dst convert_dst(struct etna_compile_data *cd, const stru
         rv.use = 1;
     }
 
+    if (in->Register.Indirect)
+        rv.amode = etna_amode(in->Indirect);
+
     return rv;
 }
 
