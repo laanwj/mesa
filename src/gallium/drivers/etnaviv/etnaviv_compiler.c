@@ -903,11 +903,12 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                      ins.dst.use = 1;
                      ins.dst.comps = INST_COMPS_W;
                      ins.dst.reg = inner_temp.id;
-                     ins.src[0] = ins.src[2] = alloc_imm_f32(cd, -128.);
+                     ins.src[0] = ins.src[2] = alloc_imm_f32(cd, 128.);
                      etna_src_swiz(&ins.src[1], &src[0], SWIZZLE(W,W,W,W));
                      emit_inst(cd, &ins);
                      ins.cond = INST_CONDITION_LT;
-                     ins.src[0] = ins.src[2] = alloc_imm_f32(cd, 128.);
+                     ins.src[0].neg = !ins.src[0].neg;
+                     ins.src[2].neg = !ins.src[2].neg;
                      ins.src[1] = src_w;
                      emit_inst(cd, &ins);
                 }
