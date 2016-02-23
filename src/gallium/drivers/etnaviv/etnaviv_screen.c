@@ -125,6 +125,7 @@ static int etna_screen_get_param( struct pipe_screen *pscreen, enum pipe_cap par
     case PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY:
     case PIPE_CAP_USER_CONSTANT_BUFFERS: /* constant buffers can be user buffers; they end up in command stream anyway */
     case PIPE_CAP_TGSI_TEXCOORD: /* explicit TEXCOORD and POINTCOORD semantics */
+    case PIPE_CAP_VERTEX_COLOR_UNCLAMPED: /* vertex colors are unclamped */
             return 1;
 
     /* Memory */
@@ -148,7 +149,6 @@ static int etna_screen_get_param( struct pipe_screen *pscreen, enum pipe_cap par
     case PIPE_CAP_COMPUTE: /* XXX supported on gc2000 */
     case PIPE_CAP_MIXED_COLORBUFFER_FORMATS: /* only one colorbuffer supported, so mixing makes no sense */
     case PIPE_CAP_PRIMITIVE_RESTART: /* primitive restart index AFAIK not supported */
-    case PIPE_CAP_VERTEX_COLOR_UNCLAMPED: /* no floating point buffer support */
     case PIPE_CAP_CONDITIONAL_RENDER: /* no occlusion queries */
     case PIPE_CAP_TGSI_INSTANCEID: /* no idea, really */
     case PIPE_CAP_START_INSTANCE: /* instancing not supported AFAIK */
