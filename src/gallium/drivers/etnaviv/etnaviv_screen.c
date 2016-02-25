@@ -336,10 +336,11 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     struct etna_screen *screen = etna_screen(pscreen);
     unsigned allowed = 0;
 
-    if (target >= PIPE_MAX_TEXTURE_TYPES)
-    {
-        return FALSE;
-    }
+    if (target != PIPE_BUFFER &&
+        target != PIPE_TEXTURE_1D &&
+        target != PIPE_TEXTURE_2D &&
+        target != PIPE_TEXTURE_CUBE)
+       return FALSE;
 
     if (usage & PIPE_BIND_RENDER_TARGET)
     {
