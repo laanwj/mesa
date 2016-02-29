@@ -293,8 +293,14 @@ static void etna_resource_copy_region(struct pipe_context *pctx,
      * to non-aligned: can fall back to rendering-based copy?
      * XXX this goes wrong when source surface is supertiled.
      */
-    etna_blit_save_state(ctx);
-    util_blitter_copy_texture(ctx->blitter, dst, dst_level, dstx, dsty, dstz, src, src_level, src_box);
+    if (util_blitter_is_copy_supported(ctx->blitter, dst, src)) {
+       etna_blit_save_state(ctx);
+       util_blitter_copy_texture(ctx->blitter, dst, dst_level, dstx, dsty, dstz,
+                                 src, src_level, src_box);
+    } else {
+       util_resource_copy_region(pctx, dst, dst_level, dstx, dsty, dstz, src,
+                                 src_level, src_box);
+    }
 }
 
 static bool etna_try_rs_blit(struct pipe_context *pctx,
