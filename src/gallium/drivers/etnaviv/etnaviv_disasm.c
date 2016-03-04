@@ -529,6 +529,8 @@ static void print_instr(uint32_t *dwords, int n, enum debug_t debug)
         };
 
         printf("%s", name);
+        if(instr->sat)
+            printf(".SAT");
         print_condition(instr->cond);
         printf(" ");
         opcs[opc].print(&operands);
