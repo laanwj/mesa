@@ -64,6 +64,9 @@ void *etna_zsa_state_create(struct pipe_context *pctx,
      * the stencil-modifying functions is used. */
     if(so->stencil[0].enabled)
     {
+        if(so->stencil[0].func != PIPE_FUNC_ALWAYS ||
+           (so->stencil[1].enabled && so->stencil[1].func != PIPE_FUNC_ALWAYS))
+            disable_zs = false;
         if(so->stencil[0].fail_op != PIPE_STENCIL_OP_KEEP ||
            so->stencil[0].zfail_op != PIPE_STENCIL_OP_KEEP ||
            so->stencil[0].zpass_op != PIPE_STENCIL_OP_KEEP)
