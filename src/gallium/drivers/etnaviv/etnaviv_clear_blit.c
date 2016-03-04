@@ -362,10 +362,14 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    unsigned dst_offset = dst_lev->offset +
                          blit_info->dst.box.z * dst_lev->layer_stride;
 
-   /* Set up color TS to source surface before blit, if needed */
    if (src->base.nr_samples > 1)
-      ts_mem_config |= VIVS_TS_MEM_CONFIG_MSAA |
-                       translate_msaa_format(src->base.format, false);
+   {
+      uint32_t msaa_format = translate_msaa_format(blit_info->src.format, false);
+      assert(msaa_format != ETNA_NO_MATCH);
+      ts_mem_config |= VIVS_TS_MEM_CONFIG_MSAA | msaa_format;
+   }
+
+   /* Set up color TS to source surface before blit, if needed */
    if (src->levels[blit_info->src.level].ts_size) {
       struct etna_reloc reloc;
       unsigned ts_offset = src_lev->ts_offset +
