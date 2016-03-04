@@ -270,6 +270,8 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
     /* context ctxate setup */
     ctx->specs = screen->specs;
     ctx->screen = screen;
+    /* need some sane default in case state tracker doesn't set some state: */
+    ctx->sample_mask = 0xffff;
 
     list_inithead(&ctx->used_resources);
 
