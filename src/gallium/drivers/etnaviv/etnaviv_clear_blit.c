@@ -313,15 +313,26 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
                                     &msaa_yscale, NULL))
       return FALSE;
 
+   /* The width/height are in pixels; they do not change as a result of
+    * multi-sampling. So, when blitting from a 4x multisampled surface
+    * to a non-multisampled surface, the width and height will be
+    * identical. As we do not support scaling, reject different sizes. */
+   if (blit_info->dst.box.width != blit_info->src.box.width ||
+       blit_info->dst.box.height != blit_info->src.box.height)
+   {
+      DBG("scaling requested: source %dx%d destination %dx%d",
+          blit_info->src.box.width, blit_info->src.box.height,
+          blit_info->dst.box.width, blit_info->dst.box.height);
+      return FALSE;
+   }
+
    if (translate_rt_format(blit_info->src.format, true) == ETNA_NO_MATCH ||
        translate_rt_format(blit_info->dst.format, true) == ETNA_NO_MATCH ||
        blit_info->mask != PIPE_MASK_RGBA || blit_info->scissor_enable ||
        blit_info->src.box.x != 0 || blit_info->src.box.y != 0 ||
        blit_info->dst.box.x != 0 || blit_info->dst.box.y != 0 ||
        blit_info->dst.box.depth != blit_info->src.box.depth ||
-       blit_info->dst.box.depth != 1 ||
-       blit_info->dst.box.width != (blit_info->src.box.width / msaa_xscale) ||
-       blit_info->dst.box.height != (blit_info->src.box.height / msaa_yscale))
+       blit_info->dst.box.depth != 1)
    {
       return FALSE;
    }
@@ -352,8 +363,8 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
 
    /* we may be given coordinates up to the padded width to avoid
     * any alignment issues with different tiling formats */
-   assert(blit_info->src.box.x + blit_info->src.box.width <= src_lev->padded_width);
-   assert(blit_info->src.box.y + blit_info->src.box.height <= src_lev->padded_height);
+   assert((blit_info->src.box.x + blit_info->src.box.width) * msaa_xscale <= src_lev->padded_width);
+   assert((blit_info->src.box.y + blit_info->src.box.height) * msaa_yscale <= src_lev->padded_height);
    assert(blit_info->dst.box.x + blit_info->dst.box.width <= dst_lev->padded_width);
    assert(blit_info->dst.box.y + blit_info->dst.box.height <= dst_lev->padded_height);
 
@@ -396,17 +407,19 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    ctx->dirty |= ETNA_DIRTY_TS;
 
    /* If the width is not aligned to the RS width, but is within our
-    * padding, adjust the width to suite the RS width restriction. */
-   unsigned int width = blit_info->src.box.width;
-   unsigned int height = blit_info->src.box.height;
+    * padding, adjust the width to suite the RS width restriction.
+    * Note: the RS width/height are converted to source samples here. */
+   unsigned int width = blit_info->src.box.width * msaa_xscale;
+   unsigned int height = blit_info->src.box.height * msaa_yscale;
    unsigned int w_align = ETNA_RS_WIDTH_MASK + 1;
    unsigned int h_align = (ETNA_RS_HEIGHT_MASK + 1) * ctx->specs.pixel_pipes;
 
-   if (width & (w_align - 1) && width >= src_lev->width && width >= dst_lev->width * msaa_xscale)
+   if (width & (w_align - 1) && width >= src_lev->width * msaa_xscale && width >= dst_lev->width)
        width = align(width, w_align);
-   if (height & (h_align - 1) && height >= src_lev->height && height >= dst_lev->height * msaa_yscale)
+   if (height & (h_align - 1) && height >= src_lev->height * msaa_yscale && height >= dst_lev->height)
        height = align(height, h_align);
 
+   /* The padded dimensions are in samples */
    assert(width <= src_lev->padded_width);
    assert(width <= dst_lev->padded_width * msaa_xscale);
    assert(height <= src_lev->padded_height);
