@@ -145,6 +145,10 @@ static void etna_draw_vbo(struct pipe_context *pctx,
         return;
     }
 
+    /* Update any derived state */
+    if (!etna_state_update(ctx))
+        return;
+
     /*
      * Figure out the buffers/features we need:
      */

@@ -574,6 +574,24 @@ static void etna_vertex_elements_state_bind(struct pipe_context *pctx, void *ve)
     ctx->dirty |= ETNA_DIRTY_VERTEX_ELEMENTS;
 }
 
+struct etna_state_updater {
+    bool (*update)(struct etna_context *ctx);
+    uint32_t dirty;
+};
+
+static const struct etna_state_updater etna_state_updates[] = {
+};
+
+bool etna_state_update(struct etna_context *ctx)
+{
+    for (unsigned int i = 0; i < ARRAY_SIZE(etna_state_updates); i++)
+        if (ctx->dirty & etna_state_updates[i].dirty)
+            if (!etna_state_updates[i].update(ctx))
+                return false;
+
+    return true;
+}
+
 void etna_state_init(struct pipe_context *pctx)
 {
     pctx->set_blend_color = etna_set_blend_color;
