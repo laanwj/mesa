@@ -199,7 +199,7 @@ void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* c
     etna_fetch_uniforms(ctx, PIPE_SHADER_FRAGMENT);
 }
 
-bool etna_shader_update_vs_inputs(struct etna_context *ctx,
+static bool etna_shader_update_vs_inputs(struct etna_context *ctx,
                               struct compiled_shader_state *cs,
                               const struct etna_shader_object *vs,
                               const struct compiled_vertex_elements_state *ves)
@@ -236,6 +236,11 @@ bool etna_shader_update_vs_inputs(struct etna_context *ctx,
         cs->VS_INPUT[idx] = vs_input[idx];
 
     return true;
+}
+
+bool etna_shader_update_vertex(struct etna_context *ctx)
+{
+    return etna_shader_update_vs_inputs(ctx, &ctx->shader_state, ctx->vs, ctx->vertex_elements);
 }
 
 static void etna_set_constant_buffer(struct pipe_context *pctx,
