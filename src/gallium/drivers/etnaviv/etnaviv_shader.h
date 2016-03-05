@@ -33,9 +33,7 @@ struct etna_context;
 struct etna_shader_object;
 struct compiled_shader_state;
 
-void etna_link_shaders(struct etna_context *ctx,
-                              struct compiled_shader_state *cs,
-                              const struct etna_shader_object *vs, const struct etna_shader_object *fs);
+bool etna_shader_link(struct etna_context *ctx);
 
 bool etna_shader_update_vertex(struct etna_context *ctx);
 
