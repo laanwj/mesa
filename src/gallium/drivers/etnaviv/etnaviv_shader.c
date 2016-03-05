@@ -69,7 +69,7 @@ static void etna_fetch_uniforms(struct etna_context *ctx, uint shader)
  * XXX we could cache the link result for a certain set of VS/PS; usually a pair
  * of VS and PS will be used together anyway.
  */
-void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* cs, const struct etna_shader_object* vs, const struct etna_shader_object* fs)
+static void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* cs, const struct etna_shader_object* vs, const struct etna_shader_object* fs)
 {
     assert(vs->processor == PIPE_SHADER_VERTEX);
     assert(fs->processor == PIPE_SHADER_FRAGMENT);
@@ -197,6 +197,16 @@ void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* c
     /* fetch any previous uniforms from buffer */
     etna_fetch_uniforms(ctx, PIPE_SHADER_VERTEX);
     etna_fetch_uniforms(ctx, PIPE_SHADER_FRAGMENT);
+}
+
+bool etna_shader_link(struct etna_context *ctx)
+{
+    if (ctx->vs && ctx->fs)
+    {
+        /* re-link vs and fs if needed */
+        etna_link_shaders(ctx, &ctx->shader_state, ctx->vs, ctx->fs);
+    }
+    return true;
 }
 
 static bool etna_shader_update_vs_inputs(struct etna_context *ctx,
