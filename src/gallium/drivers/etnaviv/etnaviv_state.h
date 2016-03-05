@@ -41,6 +41,8 @@ static inline bool etna_stencil_enabled(struct etna_context *ctx)
     return ctx->zsa && ctx->zsa->stencil[0].enabled;
 }
 
+bool etna_state_update(struct etna_context *ctx);
+
 void etna_state_init(struct pipe_context *pctx);
 
 #endif /* ETNAVIV_STATE_H_ */
