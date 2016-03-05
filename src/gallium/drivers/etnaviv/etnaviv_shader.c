@@ -69,7 +69,7 @@ static void etna_fetch_uniforms(struct etna_context *ctx, uint shader)
  * XXX we could cache the link result for a certain set of VS/PS; usually a pair
  * of VS and PS will be used together anyway.
  */
-static void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* cs, const struct etna_shader_object* vs, const struct etna_shader_object* fs)
+static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_state* cs, const struct etna_shader_object* vs, const struct etna_shader_object* fs)
 {
     assert(vs->processor == PIPE_SHADER_VERTEX);
     assert(fs->processor == PIPE_SHADER_FRAGMENT);
@@ -100,6 +100,7 @@ static void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
     if(etna_link_shader_objects(&link, vs, fs))
     {
         assert(0); /* linking failed: some fs inputs do not have corresponding vs outputs */
+        return false;
     }
     DBG_F(ETNA_DBG_LINKER_MSGS, "link result:");
     for(int idx=0; idx<fs->num_inputs; ++idx)
@@ -197,6 +198,8 @@ static void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
     /* fetch any previous uniforms from buffer */
     etna_fetch_uniforms(ctx, PIPE_SHADER_VERTEX);
     etna_fetch_uniforms(ctx, PIPE_SHADER_FRAGMENT);
+
+    return true;
 }
 
 bool etna_shader_link(struct etna_context *ctx)
@@ -205,9 +208,7 @@ bool etna_shader_link(struct etna_context *ctx)
         return false;
 
     /* re-link vs and fs if needed */
-    etna_link_shaders(ctx, &ctx->shader_state, ctx->vs, ctx->fs);
-
-    return true;
+    return etna_link_shaders(ctx, &ctx->shader_state, ctx->vs, ctx->fs);
 }
 
 static bool etna_shader_update_vs_inputs(struct etna_context *ctx,
