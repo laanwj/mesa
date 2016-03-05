@@ -201,11 +201,12 @@ static void etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
 
 bool etna_shader_link(struct etna_context *ctx)
 {
-    if (ctx->vs && ctx->fs)
-    {
-        /* re-link vs and fs if needed */
-        etna_link_shaders(ctx, &ctx->shader_state, ctx->vs, ctx->fs);
-    }
+    if (!ctx->vs || !ctx->fs)
+        return false;
+
+    /* re-link vs and fs if needed */
+    etna_link_shaders(ctx, &ctx->shader_state, ctx->vs, ctx->fs);
+
     return true;
 }
 
