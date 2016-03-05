@@ -31,6 +31,7 @@
 
 #include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
+#include "etnaviv_shader.h"
 #include "etnaviv_surface.h"
 #include "etnaviv_translate.h"
 #include "etnaviv_util.h"
@@ -580,6 +581,10 @@ struct etna_state_updater {
 };
 
 static const struct etna_state_updater etna_state_updates[] = {
+    {
+        etna_shader_update_vertex,
+        ETNA_DIRTY_SHADER | ETNA_DIRTY_VERTEX_ELEMENTS,
+    }
 };
 
 bool etna_state_update(struct etna_context *ctx)

@@ -32,16 +32,12 @@
 struct etna_context;
 struct etna_shader_object;
 struct compiled_shader_state;
-struct compiled_vertex_elements_state;
 
 void etna_link_shaders(struct etna_context *ctx,
                               struct compiled_shader_state *cs,
                               const struct etna_shader_object *vs, const struct etna_shader_object *fs);
 
-bool etna_shader_update_vs_inputs(struct etna_context *ctx,
-                              struct compiled_shader_state *cs,
-                              const struct etna_shader_object *vs,
-                              const struct compiled_vertex_elements_state *ves);
+bool etna_shader_update_vertex(struct etna_context *ctx);
 
 void etna_shader_init(struct pipe_context* pctx);
 
