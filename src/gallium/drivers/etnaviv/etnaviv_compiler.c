@@ -786,6 +786,40 @@ static struct etna_inst_src convert_src(struct etna_compile_data *cd, const stru
     return etna_create_src(in, &cd->file[in->Register.File][in->Register.Index].native, swizzle);
 }
 
+static struct etna_inst_src etna_mov_src_to_temp(struct etna_compile_data *cd, struct etna_inst_src src, struct etna_native_reg temp)
+{
+    struct etna_inst mov = { };
+
+    mov.opcode = INST_OPCODE_MOV;
+    mov.sat = 0;
+    mov.dst.use = 1;
+    mov.dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W;
+    mov.dst.reg = temp.id;
+    mov.src[2] = src;
+    emit_inst(cd, &mov);
+
+    src.swiz = INST_SWIZ_IDENTITY;
+    src.neg = src.abs = 0;
+    src.rgroup = temp.rgroup;
+    src.reg = temp.id;
+
+    return src;
+}
+
+static struct etna_inst_src etna_mov_src(struct etna_compile_data *cd, struct etna_inst_src src)
+{
+    struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+
+    return etna_mov_src_to_temp(cd, src, temp);
+}
+
+static bool etna_src_uniforms_conflict(struct etna_inst_src a, struct etna_inst_src b)
+{
+    return etna_rgroup_is_uniform(a.rgroup) &&
+           etna_rgroup_is_uniform(b.rgroup) &&
+           (a.rgroup != b.rgroup || a.reg != b.reg);
+}
+
 /* convert destination to source operand (for operation in place)
  * i.e,
  *    MUL dst0.x__w, src0.xyzw, 2/PI
@@ -1133,6 +1167,11 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                  * MAD tDST.xyzw, tSRC0.xyzw, tSRC1.xyzw, -tTEMP.xyzw
                  */
                 struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+                if (etna_src_uniforms_conflict(src[0], src[1]) ||
+                    etna_src_uniforms_conflict(src[0], src[2]))
+                {
+                    src[0] = etna_mov_src(cd, src[0]);
+                }
                 struct etna_inst mad[2] = { };
                 mad[0].opcode = INST_OPCODE_MAD;
                 mad[0].sat = 0;
@@ -1290,25 +1329,9 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 struct etna_inst_dst dst = convert_dst(cd, &inst->Dst[0]);
                 /* If we have two uniforms, sort it out here so we don't
                  * emit additional unnecessary MOVs */
-                if(etna_rgroup_is_uniform(src[0].rgroup) &&
-                   etna_rgroup_is_uniform(src[1].rgroup) &&
-                   (src[0].rgroup != src[1].rgroup || src[0].reg != src[1].reg))
+                if(etna_src_uniforms_conflict(src[0], src[1]))
                 {
-                    struct etna_inst mov = { };
-                    mov.opcode = INST_OPCODE_MOV;
-                    mov.sat = 0;
-                    mov.dst.use = 1;
-                    mov.dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z |
-INST_COMPS_W;
-                    mov.dst.reg = temp.id;
-                    mov.src[2] = src[1];
-                    emit_inst(cd, &mov);
-
-                    src[1].swiz = INST_SWIZ_IDENTITY;
-                    src[1].neg = src[1].abs = 0;
-                    src[1].rgroup = temp.rgroup;
-                    src[1].reg = temp.id;
-                    temp = etna_compile_get_inner_temp(cd);
+                    src[1] = etna_mov_src(cd, src[1]);
                 }
                 struct etna_inst ins[3] = { };
                 ins[0].opcode = INST_OPCODE_MUL;
