@@ -1647,11 +1647,17 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 break;
             case TGSI_OPCODE_IF:  {
                 struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp++];
+                struct etna_inst_src imm_0 = alloc_imm_f32(cd, 0.0f);
                 /* push IF to stack */
                 f->type = ETNA_COMPILE_FRAME_IF;
                 /* create "else" label */
                 f->lbl_else = alloc_new_label(cd);
                 f->lbl_endif = NULL;
+                /* We need to avoid the emit_inst() below becoming two instructions */
+                if(etna_src_uniforms_conflict(src[0], imm_0))
+                {
+                    src[0] = etna_mov_src(cd, src[0]);
+                }
                 /* mark position in instruction stream of label reference so that it can be filled in in next pass */
                 label_mark_use(cd, f->lbl_else);
                 /* create conditional branch to label if src0 EQ 0 */
@@ -1659,7 +1665,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .opcode = INST_OPCODE_BRANCH,
                         .cond = INST_CONDITION_EQ,
                         .src[0] = src[0],
-                        .src[1] = alloc_imm_f32(cd, 0.0f),
+                        .src[1] = imm_0,
                         /* imm is filled in later */
                         });
                 } break;
