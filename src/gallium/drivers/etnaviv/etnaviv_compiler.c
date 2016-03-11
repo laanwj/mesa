@@ -177,6 +177,16 @@ struct etna_compile_data
     const struct etna_specs *specs;
 };
 
+static struct etna_reg_desc *etna_get_dst_reg(struct etna_compile_data *cd, struct tgsi_dst_register dst)
+{
+    return &cd->file[dst.File][dst.Index];
+}
+
+static struct etna_reg_desc *etna_get_src_reg(struct etna_compile_data *cd, struct tgsi_src_register src)
+{
+    return &cd->file[src.File][src.Index];
+}
+
 static struct etna_native_reg etna_native_temp(unsigned reg)
 {
     return (struct etna_native_reg){ .valid=1, .rgroup=INST_RGROUP_TEMP, .id=reg};
@@ -728,7 +738,7 @@ static struct etna_inst_dst convert_dst(struct etna_compile_data *cd, const stru
         rv.reg = in->Register.Index;
         rv.use = 0;
     } else {
-        struct etna_native_reg native_reg = cd->file[in->Register.File][in->Register.Index].native;
+        struct etna_native_reg native_reg = etna_get_dst_reg(cd, in->Register)->native;
         assert(native_reg.valid && !native_reg.is_tex && native_reg.rgroup == INST_RGROUP_TEMP); /* can only assign to temporaries */
         rv.reg = native_reg.id;
         rv.use = 1;
@@ -747,7 +757,7 @@ static struct etna_inst_tex convert_tex(struct etna_compile_data *cd, const stru
         // XXX .amode (to allow for an array of samplers?)
         .swiz = INST_SWIZ_IDENTITY
     };
-    struct etna_native_reg native_reg = cd->file[in->Register.File][in->Register.Index].native;
+    struct etna_native_reg native_reg = etna_get_src_reg(cd, in->Register)->native;
     assert(native_reg.is_tex && native_reg.valid);
     rv.id = native_reg.id;
     return rv;
@@ -784,7 +794,7 @@ static void etna_src_swiz(struct etna_inst_src *res, const struct etna_inst_src 
 
 static struct etna_inst_src convert_src(struct etna_compile_data *cd, const struct tgsi_full_src_register *in, uint32_t swizzle)
 {
-    return etna_create_src(in, &cd->file[in->Register.File][in->Register.Index].native, swizzle);
+    return etna_create_src(in, &etna_get_src_reg(cd, in->Register)->native, swizzle);
 }
 
 static struct etna_inst_src etna_mov_src_to_temp(struct etna_compile_data *cd, struct etna_inst_src src, struct etna_native_reg temp)
@@ -835,7 +845,7 @@ static struct etna_inst_src convert_dst_to_src(struct etna_compile_data *cd,  co
         .neg = 0,
         .abs = 0,
     };
-    struct etna_native_reg native_reg = cd->file[in->Register.File][in->Register.Index].native;
+    struct etna_native_reg native_reg = etna_get_dst_reg(cd, in->Register)->native;
     assert(native_reg.valid && !native_reg.is_tex);
     rv.rgroup = native_reg.rgroup;
     rv.reg = native_reg.id;
@@ -904,7 +914,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
             for(int i = 0; i < tgsi->num_src && i < ETNA_NUM_SRC; i++)
             {
                 const struct tgsi_full_src_register *reg = &inst->Src[i];
-                const struct etna_native_reg *n = &cd->file[reg->Register.File][reg->Register.Index].native;
+                const struct etna_native_reg *n = &etna_get_src_reg(cd, reg->Register)->native;
                 if (!n->valid || n->is_tex)
                     continue;
 
