@@ -1731,6 +1731,16 @@ static void etna_compile_add_nop_if_needed(struct etna_compile_data *cd)
     }
 }
 
+static void assign_uniforms(struct etna_compile_data *cd, int file, unsigned base)
+{
+    for(int idx=0; idx<cd->file_size[file]; ++idx)
+    {
+        cd->file[file][idx].native.valid = 1;
+        cd->file[file][idx].native.rgroup = INST_RGROUP_UNIFORM_0;
+        cd->file[file][idx].native.id = base + idx;
+    }
+}
+
 /* Allocate CONST and IMM to native ETNA_RGROUP_UNIFORM(x).
  * CONST must be consecutive as const buffers are supposed to be consecutive, and before IMM, as this is
  * more convenient because is possible for the compilation process itself to generate extra
@@ -1738,20 +1748,10 @@ static void etna_compile_add_nop_if_needed(struct etna_compile_data *cd)
  */
 static void assign_constants_and_immediates(struct etna_compile_data *cd)
 {
-    for(int idx=0; idx<cd->file_size[TGSI_FILE_CONSTANT]; ++idx)
-    {
-        cd->file[TGSI_FILE_CONSTANT][idx].native.valid = 1;
-        cd->file[TGSI_FILE_CONSTANT][idx].native.rgroup = INST_RGROUP_UNIFORM_0;
-        cd->file[TGSI_FILE_CONSTANT][idx].native.id = idx;
-    }
+    assign_uniforms(cd, TGSI_FILE_CONSTANT, 0);
     /* immediates start after the constants */
     cd->imm_base = cd->file_size[TGSI_FILE_CONSTANT] * 4;
-    for(int idx=0; idx<cd->file_size[TGSI_FILE_IMMEDIATE]; ++idx)
-    {
-        cd->file[TGSI_FILE_IMMEDIATE][idx].native.valid = 1;
-        cd->file[TGSI_FILE_IMMEDIATE][idx].native.rgroup = INST_RGROUP_UNIFORM_0;
-        cd->file[TGSI_FILE_IMMEDIATE][idx].native.id = cd->imm_base/4 + idx;
-    }
+    assign_uniforms(cd, TGSI_FILE_IMMEDIATE, cd->imm_base/4);
     DBG_F(ETNA_DBG_COMPILER_MSGS, "imm base: %i size: %i", cd->imm_base, cd->imm_size);
 }
 
