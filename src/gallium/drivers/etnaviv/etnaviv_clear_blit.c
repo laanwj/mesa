@@ -380,8 +380,10 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
       return FALSE;
    }
 
-   if (translate_rt_format(blit_info->src.format, true) == ETNA_NO_MATCH ||
-       translate_rt_format(blit_info->dst.format, true) == ETNA_NO_MATCH ||
+   unsigned src_format = etna_compatible_rs_format(blit_info->src.format);
+   unsigned dst_format = etna_compatible_rs_format(blit_info->src.format);
+   if (translate_rt_format(src_format, true) == ETNA_NO_MATCH ||
+       translate_rt_format(dst_format, true) == ETNA_NO_MATCH ||
        blit_info->scissor_enable ||
        blit_info->src.box.x != 0 || blit_info->src.box.y != 0 ||
        blit_info->dst.box.x != 0 || blit_info->dst.box.y != 0 ||
@@ -441,7 +443,7 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
 
    if (src->base.nr_samples > 1)
    {
-      uint32_t msaa_format = translate_msaa_format(blit_info->src.format, false);
+      uint32_t msaa_format = translate_msaa_format(src_format, false);
       assert(msaa_format != ETNA_NO_MATCH);
       ts_mem_config |= VIVS_TS_MEM_CONFIG_MSAA | msaa_format;
    }
@@ -486,13 +488,13 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
 
    /* Kick off RS here */
    etna_compile_rs_state(ctx, &copy_to_screen, &(struct rs_state){
-      .source_format = translate_rt_format(blit_info->src.format, false),
+      .source_format = translate_rt_format(src_format, false),
       .source_tiling = src->layout,
       .source = src->bo,
       .source_offset = src_offset,
       .source_stride = src_lev->stride,
       .source_padded_height = src_lev->padded_height,
-      .dest_format = translate_rt_format(blit_info->dst.format, false),
+      .dest_format = translate_rt_format(dst_format, false),
       .dest_tiling = dst->layout,
       .dest = dst->bo,
       .dest_offset = dst_offset,
@@ -589,12 +591,12 @@ void etna_copy_resource(struct pipe_context *pctx, struct pipe_resource *dst,
     assert(last_level <= dst->last_level && last_level <= src->last_level);
 
     struct pipe_blit_info blit = { };
-    blit.mask = PIPE_MASK_RGBA;
+    blit.mask = util_format_get_mask(dst->format);
     blit.filter = PIPE_TEX_FILTER_LINEAR;
     blit.src.resource = src;
-    blit.src.format = etna_compatible_rs_format(src->format);
+    blit.src.format = src->format;
     blit.dst.resource = dst;
-    blit.dst.format = etna_compatible_rs_format(dst->format);
+    blit.dst.format = dst->format;
     blit.dst.box.depth = blit.src.box.depth = 1;
 
     /* Copy each level and each layer */
