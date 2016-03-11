@@ -260,39 +260,35 @@ static void etna_set_constant_buffer(struct pipe_context *pctx,
 {
     struct etna_context *ctx = etna_context(pctx);
 
+    if (unlikely(index > 0))
+    {
+        DBG("Unhandled buffer index %i", index);
+        return;
+    }
+
     if(buf == NULL) /* Unbinding constant buffer */
     {
-        if(likely(index == 0))
+        switch(shader)
         {
-            switch(shader)
-            {
-            case PIPE_SHADER_VERTEX:
-                ctx->vs_cbuf_s.user_buffer = 0; break;
-            case PIPE_SHADER_FRAGMENT:
-                ctx->fs_cbuf_s.user_buffer = 0; break;
-            default: DBG("Unhandled shader type %i", shader);
-            }
-        } else {
-            DBG("Unhandled buffer index %i", index);
+        case PIPE_SHADER_VERTEX:
+            ctx->vs_cbuf_s.user_buffer = 0; break;
+        case PIPE_SHADER_FRAGMENT:
+            ctx->fs_cbuf_s.user_buffer = 0; break;
+        default: DBG("Unhandled shader type %i", shader);
         }
     } else {
         assert(buf->buffer == NULL && buf->user_buffer != NULL);
-        /* support only user buffer for now */
-        if(likely(index == 0))
+
+        /* copy only up to shader-specific constant size; never overwrite immediates */
+        switch(shader)
         {
-            /* copy only up to shader-specific constant size; never overwrite immediates */
-            switch(shader)
-            {
-            case PIPE_SHADER_VERTEX:
-                ctx->vs_cbuf_s = *buf; break;
-            case PIPE_SHADER_FRAGMENT:
-                ctx->fs_cbuf_s = *buf; break;
-            default: DBG("Unhandled shader type %i", shader);
-            }
-            etna_fetch_uniforms(ctx, shader);
-        } else {
-            DBG("Unhandled buffer index %i", index);
+        case PIPE_SHADER_VERTEX:
+            ctx->vs_cbuf_s = *buf; break;
+        case PIPE_SHADER_FRAGMENT:
+            ctx->fs_cbuf_s = *buf; break;
+        default: DBG("Unhandled shader type %i", shader);
         }
+        etna_fetch_uniforms(ctx, shader);
     }
 }
 
