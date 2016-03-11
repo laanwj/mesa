@@ -109,18 +109,17 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
     }
 
     /* vs outputs (varyings) */
-    uint32_t vs_output[16] = {0};
+    DEFINE_ETNA_BITARRAY(vs_output, 16, 8) = {0};
     int varid = 0;
-    vs_output[varid++] = vs->vs_pos_out_reg;
+    etna_bitarray_set(vs_output, 8, varid++, vs->vs_pos_out_reg);
     for(int idx=0; idx<fs->num_inputs; ++idx)
-        vs_output[varid++] = link.varyings_vs_reg[idx];
+        etna_bitarray_set(vs_output, 8, varid++, link.varyings_vs_reg[idx]);
     if(vs->vs_pointsize_out_reg >= 0)
-        vs_output[varid++] = vs->vs_pointsize_out_reg; /* pointsize is last */
+        etna_bitarray_set(vs_output, 8, varid++, vs->vs_pointsize_out_reg); /* pointsize is last */
 
-    for(int idx=0; idx<4; ++idx)
+    for(int idx=0; idx<ARRAY_SIZE(cs->VS_OUTPUT); ++idx)
     {
-        cs->VS_OUTPUT[idx] =(vs_output[idx*4+0] << 0)  | (vs_output[idx*4+1] << 8) |
-                                 (vs_output[idx*4+2] << 16) | (vs_output[idx*4+3] << 24);
+        cs->VS_OUTPUT[idx] = vs_output[idx];
     }
 
     if(vs->vs_pointsize_out_reg != -1)
@@ -157,11 +156,11 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
                               VIVS_PS_TEMP_REGISTER_CONTROL_NUM_TEMPS(MAX2(fs->num_temps, fs->num_inputs + 2));
 
     uint32_t total_components = 0;
-    uint32_t num_components = 0;
-    uint32_t component_use[2] = {0};
+    DEFINE_ETNA_BITARRAY(num_components, ETNA_NUM_VARYINGS, 4) = {0};
+    DEFINE_ETNA_BITARRAY(component_use, 4 * ETNA_NUM_VARYINGS, 2) = {0};
     for(int idx=0; idx<fs->num_inputs; ++idx)
     {
-        num_components |= fs->inputs[idx].num_components << ((idx%8)*4);
+        etna_bitarray_set(num_components, 4, idx, fs->inputs[idx].num_components);
         for(int comp=0; comp<fs->inputs[idx].num_components; ++comp)
         {
             unsigned use = VARYING_COMPONENT_USE_USED;
@@ -172,13 +171,12 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
                 else if(comp == 1)
                     use = VARYING_COMPONENT_USE_POINTCOORD_Y;
             }
-            /* 16 components per uint32 */
-            component_use[total_components/16] |= use << ((total_components%16)*2);
+            etna_bitarray_set(component_use, 2, total_components, use);
             total_components += 1;
         }
     }
     cs->GL_VARYING_TOTAL_COMPONENTS = VIVS_GL_VARYING_TOTAL_COMPONENTS_NUM(align(total_components, 2));
-    cs->GL_VARYING_NUM_COMPONENTS = num_components;
+    cs->GL_VARYING_NUM_COMPONENTS = num_components[0];
     cs->GL_VARYING_COMPONENT_USE[0] = component_use[0];
     cs->GL_VARYING_COMPONENT_USE[1] = component_use[1];
 
@@ -238,13 +236,13 @@ static bool etna_shader_update_vs_inputs(struct etna_context *ctx,
                          VIVS_VS_TEMP_REGISTER_CONTROL_NUM_TEMPS(num_temps);
 
     /* vs inputs (attributes) */
-    uint32_t vs_input[4] = {0};
+    DEFINE_ETNA_BITARRAY(vs_input, 16, 8) = {0};
     for(int idx=0; idx<num_vs_inputs; ++idx)
         if (idx < vs->num_inputs)
-            vs_input[idx/4] |= vs->inputs[idx].reg << ((idx%4)*8);
+            etna_bitarray_set(vs_input, 8, idx, vs->inputs[idx].reg);
         else
-            vs_input[idx/4] |= cur_temp++ << ((idx%4)*8);
-    for(int idx=0; idx<4; ++idx)
+            etna_bitarray_set(vs_input, 8, idx, cur_temp++);
+    for(int idx=0; idx<ARRAY_SIZE(cs->VS_INPUT); ++idx)
         cs->VS_INPUT[idx] = vs_input[idx];
 
     return true;
