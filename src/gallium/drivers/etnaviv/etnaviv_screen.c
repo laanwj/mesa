@@ -558,8 +558,8 @@ static boolean etna_get_specs(struct etna_screen *screen)
         screen->specs.max_ps_uniforms = 256;
     }
 
-    screen->specs.max_texture_size = VIV_FEATURE(screen, chipMinorFeatures0, TEXTURE_8K)?8192:4096;
-    screen->specs.max_rendertarget_size = VIV_FEATURE(screen, chipMinorFeatures0, RENDERTARGET_8K)?8192:4096;
+    screen->specs.max_texture_size = VIV_FEATURE(screen, chipMinorFeatures0, TEXTURE_8K)?8192:2048;
+    screen->specs.max_rendertarget_size = VIV_FEATURE(screen, chipMinorFeatures0, RENDERTARGET_8K)?8192:2048;
 
     return true;
 
