@@ -558,6 +558,11 @@ renderonly_create_sampler_view(struct pipe_context *pcontext,
 	view->gpu = context->gpu->create_sampler_view(context->gpu,
 						      texture->gpu,
 						      template);
+        if (view->gpu == NULL) {
+		free(view);
+		return NULL;
+	}
+
 	memcpy(&view->base, view->gpu, sizeof(*view->gpu));
 	/* overwrite to prevent reference from being released */
 	view->base.texture = NULL;
