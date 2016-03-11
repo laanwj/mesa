@@ -110,6 +110,7 @@ static void etna_transfer_unmap(struct pipe_context *pctx,
             FREE(trans->staging);
         }
         rsc->seqno++;
+        etna_bo_cpu_fini(rsc->bo);
         if(rsc->base.bind & PIPE_BIND_SAMPLER_VIEW)
         {
             /* XXX do we need to flush the CPU cache too or start a write barrier
@@ -253,6 +254,20 @@ static void *etna_transfer_map(struct pipe_context *pctx,
     bool in_place = rsc->layout == ETNA_LAYOUT_LINEAR ||
                        (rsc->layout == ETNA_LAYOUT_TILED && util_format_is_compressed(prsc->format));
 
+    /* Ignore PIPE_TRANSFER_UNSYNCHRONIZED and PIPE_TRANSFER_DONTBLOCK here.
+     * It appears that Gallium operates the index/vertex buffers in a
+     * circular fashion, and the CPU can catch up with the GPU and starts
+     * overwriting yet-to-be-processed entries, causing rendering corruption. */
+    uint32_t prep_flags = 0;
+
+    if (usage & PIPE_TRANSFER_READ)
+        prep_flags |= DRM_ETNA_PREP_READ;
+    if (usage & PIPE_TRANSFER_WRITE)
+        prep_flags |= DRM_ETNA_PREP_WRITE;
+
+    if (etna_bo_cpu_prep(rsc->bo, prep_flags))
+        goto fail_prep;
+
     /* map buffer object */
     void *mapped = etna_bo_map(rsc->bo);
     if (!mapped)
@@ -316,6 +331,8 @@ static void *etna_transfer_map(struct pipe_context *pctx,
     }
 
 fail:
+    etna_bo_cpu_fini(rsc->bo);
+fail_prep:
     etna_transfer_unmap(pctx, ptrans);
     return NULL;
 }
