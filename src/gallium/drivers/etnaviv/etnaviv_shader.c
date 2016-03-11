@@ -80,6 +80,20 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
         etna_dump_shader_object(fs);
     }
 #endif
+
+    /* link vs outputs to fs inputs */
+    struct etna_shader_link_info link = {};
+    if(etna_link_shader_objects(&link, vs, fs))
+    {
+        assert(0); /* linking failed: some fs inputs do not have corresponding vs outputs */
+        return false;
+    }
+    DBG_F(ETNA_DBG_LINKER_MSGS, "link result:");
+    for(int idx=0; idx<fs->num_inputs; ++idx)
+    {
+        DBG_F(ETNA_DBG_LINKER_MSGS,"  %i -> %i", link.varyings_vs_reg[idx], idx+1);
+    }
+
     /* set last_varying_2x flag if the last varying has 1 or 2 components */
     bool last_varying_2x = false;
     if(fs->num_inputs>0 && fs->inputs[fs->num_inputs-1].num_components <= 2)
@@ -94,19 +108,6 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
 
     cs->VS_END_PC = vs->code_size / 4;
     cs->VS_OUTPUT_COUNT = fs->num_inputs + 1; /* position + varyings */
-
-    /* link vs outputs to fs inputs */
-    struct etna_shader_link_info link = {};
-    if(etna_link_shader_objects(&link, vs, fs))
-    {
-        assert(0); /* linking failed: some fs inputs do not have corresponding vs outputs */
-        return false;
-    }
-    DBG_F(ETNA_DBG_LINKER_MSGS, "link result:");
-    for(int idx=0; idx<fs->num_inputs; ++idx)
-    {
-        DBG_F(ETNA_DBG_LINKER_MSGS,"  %i -> %i", link.varyings_vs_reg[idx], idx+1);
-    }
 
     /* vs outputs (varyings) */
     DEFINE_ETNA_BITARRAY(vs_output, 16, 8) = {0};
