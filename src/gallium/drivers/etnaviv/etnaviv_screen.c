@@ -37,6 +37,7 @@
 #include "etnaviv_resource.h"
 
 #include "util/u_string.h"
+#include "util/u_math.h"
 #include "util/u_memory.h"
 #include "os/os_time.h"
 
@@ -181,7 +182,11 @@ static int etna_screen_get_param( struct pipe_screen *pscreen, enum pipe_cap par
     /* Texturing. */
     case PIPE_CAP_MAX_TEXTURE_2D_LEVELS:
     case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-            return 14;
+        {
+            int log2_max_tex_size = util_last_bit(screen->specs.max_texture_size);
+            assert(log2_max_tex_size > 0);
+            return log2_max_tex_size;
+        }
     case PIPE_CAP_MAX_TEXTURE_3D_LEVELS: /* 3D textures not supported */
             return 0;
     case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
