@@ -1846,10 +1846,6 @@ static void fill_in_ps_inputs(struct etna_shader_object *sobj, struct etna_compi
             int input_id = reg->native.id - 1;
             sobj->inputs[input_id].reg = reg->native.id;
             sobj->inputs[input_id].semantic = reg->semantic;
-            if(reg->semantic.Name == TGSI_SEMANTIC_COLOR) /* colors affected by flat shading */
-                sobj->inputs[input_id].pa_attributes = 0x200;
-            else /* texture coord or other bypasses flat shading */
-                sobj->inputs[input_id].pa_attributes = 0x2f1;
             /* convert usage mask to number of components (*=wildcard)
              *   .r    (0..1)  -> 1 component
              *   .*g   (2..3)  -> 2 component
@@ -2197,18 +2193,18 @@ void etna_dump_shader_object(const struct etna_shader_object *sobj)
     printf("inputs:\n");
     for(int idx=0; idx<sobj->num_inputs; ++idx)
     {
-        printf(" [%i] name=%s index=%i pa=%08x comps=%i\n",
+        printf(" [%i] name=%s index=%i comps=%i\n",
                 sobj->inputs[idx].reg,
                 tgsi_semantic_names[sobj->inputs[idx].semantic.Name], sobj->inputs[idx].semantic.Index,
-                sobj->inputs[idx].pa_attributes, sobj->inputs[idx].num_components);
+                sobj->inputs[idx].num_components);
     }
     printf("outputs:\n");
     for(int idx=0; idx<sobj->num_outputs; ++idx)
     {
-        printf(" [%i] name=%s index=%i pa=%08x comps=%i\n",
+        printf(" [%i] name=%s index=%i comps=%i\n",
                 sobj->outputs[idx].reg,
                 tgsi_semantic_names[sobj->outputs[idx].semantic.Name], sobj->outputs[idx].semantic.Index,
-                sobj->outputs[idx].pa_attributes, sobj->outputs[idx].num_components);
+                sobj->outputs[idx].num_components);
     }
     printf("special:\n");
     if(sobj->processor == PIPE_SHADER_VERTEX)
@@ -2248,7 +2244,10 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
         struct etna_varying *varying = &info->varyings[idx];
 
         varying->num_components = fs->inputs[idx].num_components;
-        varying->pa_attributes = fs->inputs[idx].pa_attributes;
+        if(semantic.Name == TGSI_SEMANTIC_COLOR) /* colors affected by flat shading */
+            varying->pa_attributes = 0x200;
+        else /* texture coord or other bypasses flat shading */
+            varying->pa_attributes = 0x2f1;
 
         if(semantic.Name == TGSI_SEMANTIC_PCOORD)
         {
