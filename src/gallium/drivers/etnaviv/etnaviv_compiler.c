@@ -2246,17 +2246,23 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
     assert(fs->num_inputs < ETNA_NUM_INPUTS);
     for(int idx=0; idx<fs->num_inputs; ++idx)
     {
-        struct tgsi_declaration_semantic semantic = fs->inputs[idx].semantic;
-        const struct etna_shader_inout *match = etna_shader_vs_lookup(vs, &fs->inputs[idx]);
-        struct etna_varying *varying = &info->varyings[idx];
+        const struct etna_shader_inout *fsio = &fs->inputs[idx];
+        const struct etna_shader_inout *vsio = etna_shader_vs_lookup(vs, fsio);
+        struct etna_varying *varying;
 
-        varying->num_components = fs->inputs[idx].num_components;
-        if(semantic.Name == TGSI_SEMANTIC_COLOR) /* colors affected by flat shading */
+        assert(fsio->reg > 0 && fsio->reg <= ARRAY_SIZE(info->varyings));
+
+        if(fsio->reg > info->num_varyings)
+            info->num_varyings = fsio->reg;
+
+        varying = &info->varyings[fsio->reg-1];
+        varying->num_components = fsio->num_components;
+        if(fsio->semantic.Name == TGSI_SEMANTIC_COLOR) /* colors affected by flat shading */
             varying->pa_attributes = 0x200;
         else /* texture coord or other bypasses flat shading */
             varying->pa_attributes = 0x2f1;
 
-        if(semantic.Name == TGSI_SEMANTIC_PCOORD)
+        if(fsio->semantic.Name == TGSI_SEMANTIC_PCOORD)
         {
             varying->use[0] = VARYING_COMPONENT_USE_POINTCOORD_X;
             varying->use[1] = VARYING_COMPONENT_USE_POINTCOORD_Y;
@@ -2265,14 +2271,14 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
             varying->reg = 0; /* replaced by point coord -- doesn't matter */
             continue;
         }
-        if(match == NULL)
+        if(vsio == NULL)
             return true; /* not found -- link error */
         varying->use[0] = VARYING_COMPONENT_USE_USED;
         varying->use[1] = VARYING_COMPONENT_USE_USED;
         varying->use[2] = VARYING_COMPONENT_USE_USED;
         varying->use[3] = VARYING_COMPONENT_USE_USED;
-        varying->reg = match->reg;
+        varying->reg = vsio->reg;
     }
-    info->num_varyings = fs->num_inputs;
+    assert(info->num_varyings == fs->num_inputs);
     return false;
 }
