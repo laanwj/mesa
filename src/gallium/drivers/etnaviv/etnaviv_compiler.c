@@ -1836,33 +1836,33 @@ static void permute_ps_inputs(struct etna_compile_data *cd)
 /* fill in ps inputs into shader object */
 static void fill_in_ps_inputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
-    sobj->num_inputs = 0;
+    sobj->infile.num_reg = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_INPUT].reg_size; ++idx)
     {
         struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT].reg[idx];
         if(reg->native.id > 0)
         {
-            assert(sobj->num_inputs < ETNA_NUM_INPUTS);
-            sobj->inputs[sobj->num_inputs].reg = reg->native.id;
-            sobj->inputs[sobj->num_inputs].semantic = reg->semantic;
+            assert(sobj->infile.num_reg < ETNA_NUM_INPUTS);
+            sobj->infile.reg[sobj->infile.num_reg].reg = reg->native.id;
+            sobj->infile.reg[sobj->infile.num_reg].semantic = reg->semantic;
             /* convert usage mask to number of components (*=wildcard)
              *   .r    (0..1)  -> 1 component
              *   .*g   (2..3)  -> 2 component
              *   .**b  (4..7)  -> 3 components
              *   .***a (8..15) -> 4 components
              */
-            sobj->inputs[sobj->num_inputs].num_components = util_last_bit(reg->usage_mask);
-            sobj->num_inputs++;
+            sobj->infile.reg[sobj->infile.num_reg].num_components = util_last_bit(reg->usage_mask);
+            sobj->infile.num_reg++;
         }
     }
-    assert(sobj->num_inputs == cd->num_varyings);
+    assert(sobj->infile.num_reg == cd->num_varyings);
     sobj->input_count_unk8 = 31; /* XXX what is this */
 }
 
 /* fill in output mapping for ps into shader object */
 static void fill_in_ps_outputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
-    sobj->num_outputs = 0;
+    sobj->outfile.num_reg = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_OUTPUT].reg_size; ++idx)
     {
         struct etna_reg_desc *reg = &cd->file[TGSI_FILE_OUTPUT].reg[idx];
@@ -1883,18 +1883,18 @@ static void fill_in_ps_outputs(struct etna_shader_object *sobj, struct etna_comp
 /* fill in inputs for vs into shader object */
 static void fill_in_vs_inputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
-    sobj->num_inputs = 0;
+    sobj->infile.num_reg = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_INPUT].reg_size; ++idx)
     {
         struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT].reg[idx];
-        assert(sobj->num_inputs < ETNA_NUM_INPUTS);
+        assert(sobj->infile.num_reg < ETNA_NUM_INPUTS);
         /* XXX exclude inputs with special semantics such as gl_frontFacing */
-        sobj->inputs[sobj->num_inputs].reg = reg->native.id;
-        sobj->inputs[sobj->num_inputs].semantic = reg->semantic;
-        sobj->inputs[sobj->num_inputs].num_components = util_last_bit(reg->usage_mask);
-        sobj->num_inputs++;
+        sobj->infile.reg[sobj->infile.num_reg].reg = reg->native.id;
+        sobj->infile.reg[sobj->infile.num_reg].semantic = reg->semantic;
+        sobj->infile.reg[sobj->infile.num_reg].num_components = util_last_bit(reg->usage_mask);
+        sobj->infile.num_reg++;
     }
-    sobj->input_count_unk8 = (sobj->num_inputs + 19)/16; /* XXX what is this */
+    sobj->input_count_unk8 = (sobj->infile.num_reg + 19)/16; /* XXX what is this */
 }
 
 /* build two-level output index [Semantic][Index] for fast linking */
@@ -1912,21 +1912,21 @@ static void build_output_index(struct etna_shader_object *sobj)
         sobj->output_per_semantic[name] = &sobj->output_per_semantic_list[offset];
         offset += sobj->output_count_per_semantic[name];
     }
-    for(int idx=0; idx<sobj->num_outputs; ++idx)
+    for(int idx=0; idx<sobj->outfile.num_reg; ++idx)
     {
-        sobj->output_per_semantic[sobj->outputs[idx].semantic.Name]
-                                 [sobj->outputs[idx].semantic.Index] = &sobj->outputs[idx];
+        sobj->output_per_semantic[sobj->outfile.reg[idx].semantic.Name]
+                                 [sobj->outfile.reg[idx].semantic.Index] = &sobj->outfile.reg[idx];
     }
 }
 
 /* fill in outputs for vs into shader object */
 static void fill_in_vs_outputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
-    sobj->num_outputs = 0;
+    sobj->outfile.num_reg = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_OUTPUT].reg_size; ++idx)
     {
         struct etna_reg_desc *reg = &cd->file[TGSI_FILE_OUTPUT].reg[idx];
-        assert(sobj->num_inputs < ETNA_NUM_INPUTS);
+        assert(sobj->infile.num_reg < ETNA_NUM_INPUTS);
         switch(reg->semantic.Name)
         {
         case TGSI_SEMANTIC_POSITION:
@@ -1936,10 +1936,10 @@ static void fill_in_vs_outputs(struct etna_shader_object *sobj, struct etna_comp
             sobj->vs_pointsize_out_reg = reg->native.id;
             break;
         default:
-            sobj->outputs[sobj->num_outputs].reg = reg->native.id;
-            sobj->outputs[sobj->num_outputs].semantic = reg->semantic;
-            sobj->outputs[sobj->num_outputs].num_components = 4; // XXX reg->num_components;
-            sobj->num_outputs++;
+            sobj->outfile.reg[sobj->outfile.num_reg].reg = reg->native.id;
+            sobj->outfile.reg[sobj->outfile.num_reg].semantic = reg->semantic;
+            sobj->outfile.reg[sobj->outfile.num_reg].num_components = 4; // XXX reg->num_components;
+            sobj->outfile.num_reg++;
             sobj->output_count_per_semantic[reg->semantic.Name] = MAX2(
                     reg->semantic.Index + 1,
                     sobj->output_count_per_semantic[reg->semantic.Name]);
@@ -2192,20 +2192,20 @@ void etna_dump_shader_object(const struct etna_shader_object *sobj)
                 *((float*)&sobj->imm_data[idx]), sobj->imm_data[idx]);
     }
     printf("inputs:\n");
-    for(int idx=0; idx<sobj->num_inputs; ++idx)
+    for(int idx=0; idx<sobj->infile.num_reg; ++idx)
     {
         printf(" [%i] name=%s index=%i comps=%i\n",
-                sobj->inputs[idx].reg,
-                tgsi_semantic_names[sobj->inputs[idx].semantic.Name], sobj->inputs[idx].semantic.Index,
-                sobj->inputs[idx].num_components);
+                sobj->infile.reg[idx].reg,
+                tgsi_semantic_names[sobj->infile.reg[idx].semantic.Name], sobj->infile.reg[idx].semantic.Index,
+                sobj->infile.reg[idx].num_components);
     }
     printf("outputs:\n");
-    for(int idx=0; idx<sobj->num_outputs; ++idx)
+    for(int idx=0; idx<sobj->outfile.num_reg; ++idx)
     {
         printf(" [%i] name=%s index=%i comps=%i\n",
-                sobj->outputs[idx].reg,
-                tgsi_semantic_names[sobj->outputs[idx].semantic.Name], sobj->outputs[idx].semantic.Index,
-                sobj->outputs[idx].num_components);
+                sobj->outfile.reg[idx].reg,
+                tgsi_semantic_names[sobj->outfile.reg[idx].semantic.Name], sobj->outfile.reg[idx].semantic.Index,
+                sobj->outfile.reg[idx].num_components);
     }
     printf("special:\n");
     if(sobj->processor == PIPE_SHADER_VERTEX)
@@ -2244,10 +2244,10 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
      * semantic name and index.
      * A binary search can be used because the vs outputs are sorted by semantic in fill_in_vs_outputs.
      */
-    assert(fs->num_inputs < ETNA_NUM_INPUTS);
-    for(int idx=0; idx<fs->num_inputs; ++idx)
+    assert(fs->infile.num_reg < ETNA_NUM_INPUTS);
+    for(int idx=0; idx<fs->infile.num_reg; ++idx)
     {
-        const struct etna_shader_inout *fsio = &fs->inputs[idx];
+        const struct etna_shader_inout *fsio = &fs->infile.reg[idx];
         const struct etna_shader_inout *vsio = etna_shader_vs_lookup(vs, fsio);
         struct etna_varying *varying;
 
@@ -2280,6 +2280,6 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
         varying->use[3] = VARYING_COMPONENT_USE_USED;
         varying->reg = vsio->reg;
     }
-    assert(info->num_varyings == fs->num_inputs);
+    assert(info->num_varyings == fs->infile.num_reg);
     return false;
 }

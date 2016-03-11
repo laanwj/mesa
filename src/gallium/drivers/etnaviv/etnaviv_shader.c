@@ -213,16 +213,16 @@ static bool etna_shader_update_vs_inputs(struct etna_context *ctx,
     /* Number of vertex elements determines number of VS inputs. Otherwise,
      * the GPU crashes. Allocate any unused vertex elements to VS temporary
      * registers. */
-    num_vs_inputs = MAX2(ves->num_elements, vs->num_inputs);
+    num_vs_inputs = MAX2(ves->num_elements, vs->infile.num_reg);
     if (num_vs_inputs != ves->num_elements)
     {
         BUG("Number of elements %i does not match the number of VS inputs %i",
-            ctx->vertex_elements->num_elements, ctx->vs->num_inputs);
+            ctx->vertex_elements->num_elements, ctx->vs->infile.num_reg);
         return false;
     }
 
     cur_temp = vs->num_temps;
-    num_temps = num_vs_inputs - vs->num_inputs + cur_temp;
+    num_temps = num_vs_inputs - vs->infile.num_reg + cur_temp;
 
     cs->VS_INPUT_COUNT = VIVS_VS_INPUT_COUNT_COUNT(num_vs_inputs) |
                          VIVS_VS_INPUT_COUNT_UNK8(vs->input_count_unk8);
@@ -232,8 +232,8 @@ static bool etna_shader_update_vs_inputs(struct etna_context *ctx,
     /* vs inputs (attributes) */
     DEFINE_ETNA_BITARRAY(vs_input, 16, 8) = {0};
     for(int idx=0; idx<num_vs_inputs; ++idx)
-        if (idx < vs->num_inputs)
-            etna_bitarray_set(vs_input, 8, idx, vs->inputs[idx].reg);
+        if (idx < vs->infile.num_reg)
+            etna_bitarray_set(vs_input, 8, idx, vs->infile.reg[idx].reg);
         else
             etna_bitarray_set(vs_input, 8, idx, cur_temp++);
     for(int idx=0; idx<ARRAY_SIZE(cs->VS_INPUT); ++idx)
