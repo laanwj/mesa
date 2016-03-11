@@ -371,9 +371,18 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
       return FALSE;
    }
 
+   /* No masks - RS can't copy specific channels */
+   unsigned mask = util_format_get_mask(blit_info->dst.format);
+   if ((blit_info->mask & mask) != mask)
+   {
+      DBG("sub-mask requested: 0x%02x vs format mask 0x%02x",
+          blit_info->mask, mask);
+      return FALSE;
+   }
+
    if (translate_rt_format(blit_info->src.format, true) == ETNA_NO_MATCH ||
        translate_rt_format(blit_info->dst.format, true) == ETNA_NO_MATCH ||
-       blit_info->mask != PIPE_MASK_RGBA || blit_info->scissor_enable ||
+       blit_info->scissor_enable ||
        blit_info->src.box.x != 0 || blit_info->src.box.y != 0 ||
        blit_info->dst.box.x != 0 || blit_info->dst.box.y != 0 ||
        blit_info->dst.box.depth != blit_info->src.box.depth ||
