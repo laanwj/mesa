@@ -89,32 +89,32 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
         return false;
     }
     DBG_F(ETNA_DBG_LINKER_MSGS, "link result:");
-    for(int idx=0; idx<fs->num_inputs; ++idx)
+    for(int idx=0; idx<link.num_varyings; ++idx)
     {
-        DBG_F(ETNA_DBG_LINKER_MSGS,"  %i -> %i", link.varyings_vs_reg[idx], idx+1);
+        DBG_F(ETNA_DBG_LINKER_MSGS,"  %i -> %i", link.varyings[idx].reg, idx+1);
     }
 
     /* set last_varying_2x flag if the last varying has 1 or 2 components */
     bool last_varying_2x = false;
-    if(fs->num_inputs>0 && fs->inputs[fs->num_inputs-1].num_components <= 2)
+    if(link.num_varyings>0 && link.varyings[link.num_varyings-1].num_components <= 2)
         last_varying_2x = true;
 
     cs->RA_CONTROL = VIVS_RA_CONTROL_UNK0 |
                           (last_varying_2x ? VIVS_RA_CONTROL_LAST_VARYING_2X : 0);
 
-    cs->PA_ATTRIBUTE_ELEMENT_COUNT = VIVS_PA_ATTRIBUTE_ELEMENT_COUNT_COUNT(fs->num_inputs);
-    for(int idx=0; idx<fs->num_inputs; ++idx)
-        cs->PA_SHADER_ATTRIBUTES[idx] = fs->inputs[idx].pa_attributes;
+    cs->PA_ATTRIBUTE_ELEMENT_COUNT = VIVS_PA_ATTRIBUTE_ELEMENT_COUNT_COUNT(link.num_varyings);
+    for(int idx=0; idx<link.num_varyings; ++idx)
+        cs->PA_SHADER_ATTRIBUTES[idx] = link.varyings[idx].pa_attributes;
 
     cs->VS_END_PC = vs->code_size / 4;
-    cs->VS_OUTPUT_COUNT = fs->num_inputs + 1; /* position + varyings */
+    cs->VS_OUTPUT_COUNT = 1 + link.num_varyings; /* position + varyings */
 
     /* vs outputs (varyings) */
     DEFINE_ETNA_BITARRAY(vs_output, 16, 8) = {0};
     int varid = 0;
     etna_bitarray_set(vs_output, 8, varid++, vs->vs_pos_out_reg);
-    for(int idx=0; idx<fs->num_inputs; ++idx)
-        etna_bitarray_set(vs_output, 8, varid++, link.varyings_vs_reg[idx]);
+    for(int idx=0; idx<link.num_varyings; ++idx)
+        etna_bitarray_set(vs_output, 8, varid++, link.varyings[idx].reg);
     if(vs->vs_pointsize_out_reg >= 0)
         etna_bitarray_set(vs_output, 8, varid++, vs->vs_pointsize_out_reg); /* pointsize is last */
 
@@ -141,28 +141,29 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
 
     cs->PS_END_PC = fs->code_size / 4;
     cs->PS_OUTPUT_REG = fs->ps_color_out_reg;
-    cs->PS_INPUT_COUNT = VIVS_PS_INPUT_COUNT_COUNT(fs->num_inputs + 1) | /* Number of inputs plus position */
+    cs->PS_INPUT_COUNT = VIVS_PS_INPUT_COUNT_COUNT(link.num_varyings + 1) | /* Number of inputs plus position */
                               VIVS_PS_INPUT_COUNT_UNK8(fs->input_count_unk8);
     cs->PS_TEMP_REGISTER_CONTROL =
-                              VIVS_PS_TEMP_REGISTER_CONTROL_NUM_TEMPS(MAX2(fs->num_temps, fs->num_inputs + 1));
+                              VIVS_PS_TEMP_REGISTER_CONTROL_NUM_TEMPS(MAX2(fs->num_temps, link.num_varyings + 1));
     cs->PS_CONTROL = VIVS_PS_CONTROL_UNK1; /* XXX when can we set BYPASS? */
     cs->PS_START_PC = 0;
 
     /* Precompute PS_INPUT_COUNT and TEMP_REGISTER_CONTROL in the case of MSAA mode, avoids
      * some fumbling in sync_context.
      */
-    cs->PS_INPUT_COUNT_MSAA = VIVS_PS_INPUT_COUNT_COUNT(fs->num_inputs + 2) | /* MSAA adds another input */
+    cs->PS_INPUT_COUNT_MSAA = VIVS_PS_INPUT_COUNT_COUNT(link.num_varyings + 2) | /* MSAA adds another input */
                               VIVS_PS_INPUT_COUNT_UNK8(fs->input_count_unk8);
     cs->PS_TEMP_REGISTER_CONTROL_MSAA =
-                              VIVS_PS_TEMP_REGISTER_CONTROL_NUM_TEMPS(MAX2(fs->num_temps, fs->num_inputs + 2));
+                              VIVS_PS_TEMP_REGISTER_CONTROL_NUM_TEMPS(MAX2(fs->num_temps, link.num_varyings + 2));
 
     uint32_t total_components = 0;
     DEFINE_ETNA_BITARRAY(num_components, ETNA_NUM_VARYINGS, 4) = {0};
     DEFINE_ETNA_BITARRAY(component_use, 4 * ETNA_NUM_VARYINGS, 2) = {0};
-    for(int idx=0; idx<fs->num_inputs; ++idx)
+    for(int idx=0; idx<link.num_varyings; ++idx)
     {
-        etna_bitarray_set(num_components, 4, idx, fs->inputs[idx].num_components);
-        for(int comp=0; comp<fs->inputs[idx].num_components; ++comp)
+        const struct etna_varying *varying = &link.varyings[idx];
+        etna_bitarray_set(num_components, 4, idx, varying->num_components);
+        for(int comp=0; comp<varying->num_components; ++comp)
         {
             unsigned use = VARYING_COMPONENT_USE_USED;
             if(fs->inputs[idx].semantic.Name == TGSI_SEMANTIC_PCOORD)

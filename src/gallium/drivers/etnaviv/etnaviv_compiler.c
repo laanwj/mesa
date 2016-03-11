@@ -2244,19 +2244,25 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
     for(int idx=0; idx<fs->num_inputs; ++idx)
     {
         struct tgsi_declaration_semantic semantic = fs->inputs[idx].semantic;
+        struct etna_shader_inout *match = NULL;
+        struct etna_varying *varying = &info->varyings[idx];
+
+        varying->num_components = fs->inputs[idx].num_components;
+        varying->pa_attributes = fs->inputs[idx].pa_attributes;
+
         if(semantic.Name == TGSI_SEMANTIC_PCOORD)
         {
-            info->varyings_vs_reg[idx] = 0; /* replaced by point coord -- doesn't matter */
+            varying->reg = 0; /* replaced by point coord -- doesn't matter */
             continue;
         }
-        struct etna_shader_inout *match = NULL;
         if(semantic.Index < vs->output_count_per_semantic[semantic.Name])
         {
             match = vs->output_per_semantic[semantic.Name][semantic.Index];
         }
         if(match == NULL)
             return true; /* not found -- link error */
-        info->varyings_vs_reg[idx] = match->reg;
+        varying->reg = match->reg;
     }
+    info->num_varyings = fs->num_inputs;
     return false;
 }
