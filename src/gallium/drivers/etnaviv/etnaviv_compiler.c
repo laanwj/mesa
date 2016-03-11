@@ -136,7 +136,7 @@ struct etna_compile_data
     const struct tgsi_token *tokens;
     bool free_tokens;
 
-    uint processor; /* PIPE_SHADER_... */
+    struct tgsi_shader_info info;
 
     /* Register descriptions, per TGSI file, per register index */
     struct etna_compile_file file[TGSI_FILE_COUNT];
@@ -409,18 +409,11 @@ static void etna_compile_parse_declarations(struct etna_compile_data *cd)
     status = tgsi_parse_init(&ctx, cd->tokens);
     assert(status == TGSI_PARSE_OK);
 
-    cd->processor = ctx.FullHeader.Processor.Processor;
-
     while(!tgsi_parse_end_of_tokens(&ctx))
     {
         tgsi_parse_token(&ctx);
         switch(ctx.FullToken.Token.Type)
         {
-        case TGSI_TOKEN_TYPE_DECLARATION: {
-            const struct tgsi_full_declaration *decl = &ctx.FullToken.FullDeclaration;
-            /* Extend size of register file to encompass entire declaration */
-            cd->file[decl->Declaration.File].reg_size = MAX2(cd->file[decl->Declaration.File].reg_size, decl->Range.Last+1);
-            } break;
         case TGSI_TOKEN_TYPE_IMMEDIATE: { /* immediates are handled differently from other files; they are not declared
                                            explicitly, and always add four components */
             const struct tgsi_full_immediate *imm = &ctx.FullToken.FullImmediate;
@@ -429,7 +422,6 @@ static void etna_compile_parse_declarations(struct etna_compile_data *cd)
             {
                 cd->imm_data[cd->imm_size++] = imm->u[i].Uint;
             }
-            cd->file[TGSI_FILE_IMMEDIATE].reg_size = cd->imm_size / 4;
             } break;
         }
     }
@@ -443,6 +435,7 @@ static void etna_allocate_decls(struct etna_compile_data *cd)
     for(int x=0; x<TGSI_FILE_COUNT; ++x)
     {
         cd->file[x].reg = &cd->decl[idx];
+        cd->file[x].reg_size = cd->info.file_max[x] + 1;
         for(int sub=0; sub<cd->file[x].reg_size; ++sub)
         {
             cd->decl[idx].file = x;
@@ -537,7 +530,7 @@ static void etna_compile_pass_check_usage(struct etna_compile_data *cd)
 /* assign inputs that need to be assigned to specific registers */
 static void assign_special_inputs(struct etna_compile_data *cd)
 {
-    if(cd->processor == PIPE_SHADER_FRAGMENT)
+    if(cd->info.processor == PIPE_SHADER_FRAGMENT)
     {
         /* never assign t0 as it is the position output, start assigning at t1 */
         cd->next_free_native = 1;
@@ -1687,7 +1680,7 @@ static struct etna_reg_desc *find_decl_by_semantic(struct etna_compile_data *cd,
  */
 static void etna_compile_add_z_div_if_needed(struct etna_compile_data *cd)
 {
-    if(cd->processor == PIPE_SHADER_VERTEX && cd->specs->vs_need_z_div)
+    if(cd->info.processor == PIPE_SHADER_VERTEX && cd->specs->vs_need_z_div)
     {
         /* find position out */
         struct etna_reg_desc *pos_reg = find_decl_by_semantic(cd, TGSI_FILE_OUTPUT, TGSI_SEMANTIC_POSITION, 0);
@@ -1764,7 +1757,7 @@ static void assign_constants_and_immediates(struct etna_compile_data *cd)
 static void assign_texture_units(struct etna_compile_data *cd)
 {
     uint tex_base = 0;
-    if(cd->processor == PIPE_SHADER_VERTEX)
+    if(cd->info.processor == PIPE_SHADER_VERTEX)
     {
         tex_base = cd->specs->vertex_sampler_offset;
     }
@@ -1978,7 +1971,7 @@ static void fill_in_vs_outputs(struct etna_shader_object *sobj, struct etna_comp
 
 static bool etna_compile_check_limits(struct etna_compile_data *cd)
 {
-    int max_uniforms = (cd->processor == PIPE_SHADER_VERTEX) ?
+    int max_uniforms = (cd->info.processor == PIPE_SHADER_VERTEX) ?
                         cd->specs->max_vs_uniforms :
                         cd->specs->max_ps_uniforms;
     /* round up number of uniforms, including immediates, in units of four */
@@ -2015,7 +2008,6 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
      */
     bool ret = true;
     struct etna_compile_data *cd = CALLOC_STRUCT(etna_compile_data);
-    struct tgsi_shader_info info;
 
     struct tgsi_lowering_config lconfig = {
         .lower_SCS  = specs->has_sin_cos_sqrt,
@@ -2031,7 +2023,7 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
         return false;
 
     cd->specs = specs;
-    cd->tokens = tgsi_transform_lowering(&lconfig, tokens, &info);
+    cd->tokens = tgsi_transform_lowering(&lconfig, tokens, &cd->info);
     cd->free_tokens = !!cd->tokens;
     if (!cd->tokens) {
         /* no lowering */
@@ -2120,7 +2112,7 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
      * There is no "switchboard" for varyings (AFAIK!). The output color, however, can be routed
      * from an arbitrary temporary.
      */
-    if(cd->processor == PIPE_SHADER_FRAGMENT)
+    if(cd->info.processor == PIPE_SHADER_FRAGMENT)
     {
         permute_ps_inputs(cd);
     }
@@ -2151,7 +2143,7 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
 
     /* fill in output structure */
     struct etna_shader_object *sobj = CALLOC_STRUCT(etna_shader_object);
-    sobj->processor = cd->processor;
+    sobj->processor = cd->info.processor;
     sobj->code_size = cd->inst_ptr * 4;
     sobj->code = mem_dup(cd->code, cd->inst_ptr * 16);
     sobj->num_temps = cd->next_free_native;
@@ -2164,11 +2156,11 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
     sobj->vs_pointsize_out_reg = -1;
     sobj->ps_color_out_reg = -1;
     sobj->ps_depth_out_reg = -1;
-    if(cd->processor == PIPE_SHADER_VERTEX)
+    if(cd->info.processor == PIPE_SHADER_VERTEX)
     {
         fill_in_vs_inputs(sobj, cd);
         fill_in_vs_outputs(sobj, cd);
-    } else if(cd->processor == PIPE_SHADER_FRAGMENT) {
+    } else if(cd->info.processor == PIPE_SHADER_FRAGMENT) {
         fill_in_ps_inputs(sobj, cd);
         fill_in_ps_outputs(sobj, cd);
     }
