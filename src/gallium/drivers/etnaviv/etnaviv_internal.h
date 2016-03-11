@@ -24,6 +24,7 @@
 #ifndef H_ETNA_INTERNAL
 #define H_ETNA_INTERNAL
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -244,5 +245,23 @@ struct etna_3d_state
     uint32_t /*06000*/ PS_INST_MEM[VIVS_PS_INST_MEM__LEN];
     uint32_t /*07000*/ PS_UNIFORMS[VIVS_PS_UNIFORMS__LEN];
 };
+
+/* Helpers to assist creating and setting bitarrays (eg, for varyings).
+ * field_size must be a power of two, and <= 32. */
+#define DEFINE_ETNA_BITARRAY(name, num, field_size) \
+    uint32_t name[(num) * (field_size) / 32]
+
+static inline void etna_bitarray_set(uint32_t *array, size_t array_size, size_t field_size, size_t index, uint32_t value)
+{
+    size_t shift = (index * field_size) % 32;
+    size_t offset = (index * field_size) / 32;
+
+    assert(index < array_size * 32 / field_size);
+    assert(value < 1 << field_size);
+
+    array[offset] |= value << shift;
+}
+#define etna_bitarray_set(array, field_size, index, value) \
+    etna_bitarray_set((array), ARRAY_SIZE(array), field_size, index, value)
 
 #endif
