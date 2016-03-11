@@ -1836,25 +1836,26 @@ static void permute_ps_inputs(struct etna_compile_data *cd)
 /* fill in ps inputs into shader object */
 static void fill_in_ps_inputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
-    sobj->num_inputs = cd->num_varyings;
-    assert(sobj->num_inputs < ETNA_NUM_INPUTS);
+    sobj->num_inputs = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_INPUT].reg_size; ++idx)
     {
         struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT].reg[idx];
         if(reg->native.id > 0)
         {
-            int input_id = reg->native.id - 1;
-            sobj->inputs[input_id].reg = reg->native.id;
-            sobj->inputs[input_id].semantic = reg->semantic;
+            assert(sobj->num_inputs < ETNA_NUM_INPUTS);
+            sobj->inputs[sobj->num_inputs].reg = reg->native.id;
+            sobj->inputs[sobj->num_inputs].semantic = reg->semantic;
             /* convert usage mask to number of components (*=wildcard)
              *   .r    (0..1)  -> 1 component
              *   .*g   (2..3)  -> 2 component
              *   .**b  (4..7)  -> 3 components
              *   .***a (8..15) -> 4 components
              */
-            sobj->inputs[input_id].num_components = util_last_bit(reg->usage_mask);
+            sobj->inputs[sobj->num_inputs].num_components = util_last_bit(reg->usage_mask);
+            sobj->num_inputs++;
         }
     }
+    assert(sobj->num_inputs == cd->num_varyings);
     sobj->input_count_unk8 = 31; /* XXX what is this */
 }
 
