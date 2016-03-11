@@ -2246,9 +2246,10 @@ static const struct etna_shader_inout *etna_shader_vs_lookup(const struct etna_s
 
 bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct etna_shader_object *vs, const struct etna_shader_object *fs)
 {
-    /* For each fs input we need to find the associated ps input, which can be found by matching on
-     * semantic name and index.
-     * A binary search can be used because the vs outputs are sorted by semantic in fill_in_vs_outputs.
+    /* For each fragment input we need to find the associated vertex shader
+     * output, which can be found by matching on semantic name and index. A
+     * binary search could be used because the vs outputs are sorted by their
+     * semantic index and grouped by semantic type by fill_in_vs_outputs.
      */
     assert(fs->infile.num_reg < ETNA_NUM_INPUTS);
     for(int idx=0; idx<fs->infile.num_reg; ++idx)
