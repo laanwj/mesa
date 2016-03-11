@@ -312,6 +312,26 @@ fail:
     return NULL;
 }
 
+void etna_resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
+        enum etna_resource_status status)
+{
+    struct etna_resource *rsc;
+
+    if (!prsc)
+        return;
+
+    rsc = etna_resource(prsc);
+    rsc->status |= status;
+
+    /* TODO resources can actually be shared across contexts,
+      * so I'm not sure a single list-head will do the trick?
+      */
+    debug_assert((rsc->pending_ctx == ctx) || !rsc->pending_ctx);
+    list_delinit(&rsc->list);
+    list_addtail(&rsc->list, &ctx->used_resources);
+    rsc->pending_ctx = ctx;
+}
+
 void etna_resource_screen_init(struct pipe_screen *pscreen)
 {
     pscreen->can_create_resource = etna_screen_can_create_resource;

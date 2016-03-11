@@ -51,39 +51,6 @@
 
 #include "hw/common.xml.h"
 
-static void
-resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
-        enum etna_resource_status status)
-{
-    struct etna_resource *rsc;
-
-    if (!prsc)
-        return;
-
-    rsc = etna_resource(prsc);
-    rsc->status |= status;
-
-    /* TODO resources can actually be shared across contexts,
-      * so I'm not sure a single list-head will do the trick?
-      */
-    debug_assert((rsc->pending_ctx == ctx) || !rsc->pending_ctx);
-    list_delinit(&rsc->list);
-    list_addtail(&rsc->list, &ctx->used_resources);
-    rsc->pending_ctx = ctx;
-}
-
-static void
-resource_read(struct etna_context *ctx, struct pipe_resource *prsc)
-{
-    resource_used(ctx, prsc, ETNA_PENDING_READ);
-}
-
-static void
-resource_written(struct etna_context *ctx, struct pipe_resource *prsc)
-{
-    resource_used(ctx, prsc, ETNA_PENDING_WRITE);
-}
-
 static void etna_context_destroy(struct pipe_context *pctx)
 {
     struct etna_context *ctx = etna_context(pctx);
