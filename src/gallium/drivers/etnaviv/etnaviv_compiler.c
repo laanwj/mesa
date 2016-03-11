@@ -177,6 +177,11 @@ struct etna_compile_data
     const struct etna_specs *specs;
 };
 
+static struct etna_native_reg etna_native_temp(unsigned reg)
+{
+    return (struct etna_native_reg){ .valid=1, .rgroup=INST_RGROUP_TEMP, .id=reg};
+}
+
 /** Register allocation **/
 enum reg_sort_order
 {
@@ -235,9 +240,7 @@ static int sort_registers(
 static struct etna_native_reg alloc_new_native_reg(struct etna_compile_data *cd)
 {
     assert(cd->next_free_native < ETNA_MAX_TEMPS);
-    int rv = cd->next_free_native;
-    cd->next_free_native++;
-    return (struct etna_native_reg){ .valid=1, .rgroup=INST_RGROUP_TEMP, .id=rv };
+    return etna_native_temp(cd->next_free_native++);
 }
 
 /* assign TEMPs to native registers */
@@ -529,9 +532,7 @@ static void assign_special_inputs(struct etna_compile_data *cd)
             struct etna_reg_desc *reg = &cd->decl[idx];
             if(reg->active && reg->semantic.Name == TGSI_SEMANTIC_POSITION)
             {
-                reg->native.valid = 1;
-                reg->native.rgroup = INST_RGROUP_TEMP;
-                reg->native.id = 0;
+                reg->native = etna_native_temp(0);
             }
         }
     }
@@ -1904,11 +1905,7 @@ static void permute_ps_inputs(struct etna_compile_data *cd)
         if(!reg->active || reg->semantic.Name == TGSI_SEMANTIC_POSITION)
             continue;
         input_id = native_idx++;
-        swap_native_registers(cd, (struct etna_native_reg) {
-                .valid = 1,
-                .rgroup = INST_RGROUP_TEMP,
-                .id = input_id
-            }, cd->file[TGSI_FILE_INPUT][idx].native);
+        swap_native_registers(cd, etna_native_temp(input_id), cd->file[TGSI_FILE_INPUT][idx].native);
     }
     cd->num_varyings = native_idx-1;
     if(native_idx > cd->next_free_native)
