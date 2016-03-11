@@ -88,10 +88,17 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
         assert(0); /* linking failed: some fs inputs do not have corresponding vs outputs */
         return false;
     }
-    DBG_F(ETNA_DBG_LINKER_MSGS, "link result:");
-    for(int idx=0; idx<link.num_varyings; ++idx)
+    if(DBG_ENABLED(ETNA_DBG_LINKER_MSGS))
     {
-        DBG_F(ETNA_DBG_LINKER_MSGS,"  %i -> %i", link.varyings[idx].reg, idx+1);
+        debug_printf("link result:\n");
+        debug_printf("  vs  -> fs  comps use     pa_attr\n");
+        for(int idx=0; idx<link.num_varyings; ++idx)
+            debug_printf("  t%-2u -> t%-2u %-5.*s %u,%u,%u,%u 0x%08x\n",
+                         link.varyings[idx].reg, idx+1,
+                         link.varyings[idx].num_components, "xyzw",
+                         link.varyings[idx].use[0], link.varyings[idx].use[1],
+                         link.varyings[idx].use[2], link.varyings[idx].use[3],
+                         link.varyings[idx].pa_attributes);
     }
 
     /* set last_varying_2x flag if the last varying has 1 or 2 components */
