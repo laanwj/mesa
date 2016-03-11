@@ -55,6 +55,8 @@ renderonly_resource_unwrap(struct pipe_resource *resource)
 	return to_renderonly_resource(resource)->gpu;
 }
 
+boolean renderonly_can_create_resource(struct pipe_screen *pscreen,
+				   const struct pipe_resource *template);
 struct pipe_resource *
 renderonly_resource_create(struct pipe_screen *pscreen,
 		      const struct pipe_resource *template);

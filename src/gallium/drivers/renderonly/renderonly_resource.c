@@ -41,6 +41,14 @@
 #include "renderonly_resource.h"
 #include "renderonly_screen.h"
 
+boolean renderonly_can_create_resource(struct pipe_screen *pscreen,
+				   const struct pipe_resource *template)
+{
+	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
+
+	return screen->gpu->can_create_resource(screen->gpu, template);
+}
+
 static bool resource_import_scanout(struct renderonly_screen *screen,
 		     struct renderonly_resource *resource,
 		     const struct pipe_resource *template)

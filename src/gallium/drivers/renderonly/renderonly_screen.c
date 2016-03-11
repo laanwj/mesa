@@ -156,6 +156,7 @@ renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 	screen->base.context_create = renderonly_context_create;
 	screen->base.is_format_supported = renderonly_screen_is_format_supported;
 
+	screen->base.can_create_resource = renderonly_can_create_resource;
 	screen->base.resource_create = renderonly_resource_create;
 	screen->base.resource_from_handle = renderonly_resource_from_handle;
 	screen->base.resource_get_handle = renderonly_resource_get_handle;
