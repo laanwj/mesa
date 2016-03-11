@@ -81,14 +81,12 @@ static boolean etna_screen_can_create_resource(struct pipe_screen *pscreen,
     struct etna_screen *screen = etna_screen(pscreen);
     if (!translate_samples_to_xyscale(templat->nr_samples, NULL, NULL, NULL))
         return false;
-    if (templat->bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DEPTH_STENCIL | PIPE_BIND_SAMPLER_VIEW))
-    {
-        uint max_size = (templat->bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DEPTH_STENCIL)) ?
-                            screen->specs.max_rendertarget_size :
-                            screen->specs.max_texture_size;
-        if (templat->width0 > max_size || templat->height0 > max_size)
-            return false;
-    }
+
+    /* templat->bind is not set here, so we must use the minimum sizes */
+    uint max_size = MIN2(screen->specs.max_rendertarget_size,
+                         screen->specs.max_texture_size);
+    if (templat->width0 > max_size || templat->height0 > max_size)
+        return false;
     return true;
 }
 
