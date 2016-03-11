@@ -48,8 +48,6 @@ struct etna_shader_inout
     int reg; /* native register */
     struct tgsi_declaration_semantic semantic; /* tgsi semantic name and index */
     int num_components;
-    /* varyings */
-    uint32_t pa_attributes; /* PA_SHADER_ATTRIBUTES */
 };
 
 /* shader object, for linking */
