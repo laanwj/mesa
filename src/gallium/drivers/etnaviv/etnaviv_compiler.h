@@ -92,10 +92,18 @@ struct etna_shader_object
     uint32_t input_count_unk8;
 };
 
+struct etna_varying
+{
+    uint32_t pa_attributes;
+    uint8_t num_components;
+    uint8_t reg;
+};
+
 struct etna_shader_link_info
 {
     /* each PS input is annotated with the VS output reg */
-    unsigned varyings_vs_reg[ETNA_NUM_INPUTS];
+    unsigned num_varyings;
+    struct etna_varying varyings[ETNA_NUM_INPUTS];
 };
 
 /* Entry point to compiler.
