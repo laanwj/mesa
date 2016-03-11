@@ -96,6 +96,7 @@ struct etna_varying
 {
     uint32_t pa_attributes;
     uint8_t num_components;
+    uint8_t use[4];
     uint8_t reg;
 };
 

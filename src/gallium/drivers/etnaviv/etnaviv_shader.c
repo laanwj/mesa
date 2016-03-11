@@ -165,15 +165,7 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
         etna_bitarray_set(num_components, 4, idx, varying->num_components);
         for(int comp=0; comp<varying->num_components; ++comp)
         {
-            unsigned use = VARYING_COMPONENT_USE_USED;
-            if(fs->inputs[idx].semantic.Name == TGSI_SEMANTIC_PCOORD)
-            {
-                if(comp == 0)
-                    use = VARYING_COMPONENT_USE_POINTCOORD_X;
-                else if(comp == 1)
-                    use = VARYING_COMPONENT_USE_POINTCOORD_Y;
-            }
-            etna_bitarray_set(component_use, 2, total_components, use);
+            etna_bitarray_set(component_use, 2, total_components, varying->use[comp]);
             total_components += 1;
         }
     }
