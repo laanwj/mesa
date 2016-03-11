@@ -103,6 +103,21 @@ etna_resource(struct pipe_resource *p)
     return (struct etna_resource *)p;
 }
 
+void etna_resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
+        enum etna_resource_status status);
+
+static inline void
+resource_read(struct etna_context *ctx, struct pipe_resource *prsc)
+{
+    etna_resource_used(ctx, prsc, ETNA_PENDING_READ);
+}
+
+static inline void
+resource_written(struct etna_context *ctx, struct pipe_resource *prsc)
+{
+    etna_resource_used(ctx, prsc, ETNA_PENDING_WRITE);
+}
+
 /* Allocate Tile Status for an etna resource.
  * Tile status is a cache of the clear status per tile. This means a smaller surface
  * has to be cleared which is faster. This is also called "fast clear".
