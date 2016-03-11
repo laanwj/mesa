@@ -126,8 +126,8 @@ struct etna_context
     /* compiled bindable state */
     unsigned sample_mask;
     struct pipe_blend_state *blend;
-    unsigned num_vertex_samplers;
     unsigned num_fragment_samplers;
+    uint32_t active_samplers;
     struct pipe_sampler_state *sampler[PIPE_MAX_SAMPLERS];
     struct pipe_rasterizer_state *rasterizer;
     struct pipe_depth_stencil_alpha_state *zsa;
@@ -142,7 +142,7 @@ struct etna_context
     struct compiled_scissor_state scissor;
     struct compiled_viewport_state viewport;
     unsigned num_fragment_sampler_views;
-    unsigned num_vertex_sampler_views;
+    uint32_t active_sampler_views;
     struct pipe_sampler_view *sampler_view[PIPE_MAX_SAMPLERS];
     struct etna_vertexbuf_state vertex_buffer;
     struct etna_index_buffer index_buffer;
