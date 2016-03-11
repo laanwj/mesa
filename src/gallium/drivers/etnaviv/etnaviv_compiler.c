@@ -122,6 +122,14 @@ struct etna_compile_frame
     struct etna_compile_label *lbl_endif;
 };
 
+struct etna_compile_file
+{
+    /* Number of registers in each TGSI file (max register+1) */
+    size_t reg_size;
+    /* Register descriptions, per register index */
+    struct etna_reg_desc *reg;
+};
+
 /* scratch area for compiling shader, freed after compilation finishes */
 struct etna_compile_data
 {
@@ -131,10 +139,7 @@ struct etna_compile_data
     uint processor; /* PIPE_SHADER_... */
 
     /* Register descriptions, per TGSI file, per register index */
-    struct etna_reg_desc *file[TGSI_FILE_COUNT];
-
-    /* Number of registers in each TGSI file (max register+1) */
-    uint file_size[TGSI_FILE_COUNT];
+    struct etna_compile_file file[TGSI_FILE_COUNT];
 
     /* Keep track of TGSI register declarations */
     struct etna_reg_desc decl[ETNA_MAX_DECL];
@@ -179,12 +184,12 @@ struct etna_compile_data
 
 static struct etna_reg_desc *etna_get_dst_reg(struct etna_compile_data *cd, struct tgsi_dst_register dst)
 {
-    return &cd->file[dst.File][dst.Index];
+    return &cd->file[dst.File].reg[dst.Index];
 }
 
 static struct etna_reg_desc *etna_get_src_reg(struct etna_compile_data *cd, struct tgsi_src_register src)
 {
-    return &cd->file[src.File][src.Index];
+    return &cd->file[src.File].reg[src.Index];
 }
 
 static struct etna_native_reg etna_native_temp(unsigned reg)
@@ -218,13 +223,13 @@ static int sort_rec_compar(const struct sort_rec *a, const struct sort_rec *b)
 /* create an index on a register set based on certain criteria. */
 static int sort_registers(
         struct sort_rec *sorted,
-        struct etna_reg_desc *regs,
-        int count,
+        struct etna_compile_file *file,
         enum reg_sort_order so)
 {
+    struct etna_reg_desc *regs = file->reg;
     /* pre-populate keys from active registers */
     int ptr = 0;
-    for(int idx=0; idx<count; ++idx)
+    for(int idx=0; idx<file->reg_size; ++idx)
     {
         /* only interested in active registers now; will only assign inactive ones if no
          * space in active ones */
@@ -254,9 +259,10 @@ static struct etna_native_reg alloc_new_native_reg(struct etna_compile_data *cd)
 }
 
 /* assign TEMPs to native registers */
-static void assign_temporaries_to_native(struct etna_compile_data *cd, struct etna_reg_desc *temps, int num_temps)
+static void assign_temporaries_to_native(struct etna_compile_data *cd, struct etna_compile_file *file)
 {
-    for(int idx=0; idx<num_temps; ++idx)
+    struct etna_reg_desc *temps = file->reg;
+    for(int idx=0; idx<file->reg_size; ++idx)
     {
         temps[idx].native = alloc_new_native_reg(cd);
     }
@@ -274,11 +280,9 @@ static void assign_inouts_to_temporaries(struct etna_compile_data *cd, uint file
     int temp_ptr = 0, num_temps;
     struct sort_rec inout_order[ETNA_MAX_TEMPS];
     struct sort_rec temps_order[ETNA_MAX_TEMPS];
-    num_inouts = sort_registers(inout_order,
-            cd->file[file], cd->file_size[file],
+    num_inouts = sort_registers(inout_order, &cd->file[file],
             mode_inputs ? LAST_USE_ASC : FIRST_USE_ASC);
-    num_temps = sort_registers(temps_order,
-            cd->file[TGSI_FILE_TEMPORARY], cd->file_size[TGSI_FILE_TEMPORARY],
+    num_temps = sort_registers(temps_order, &cd->file[TGSI_FILE_TEMPORARY],
             mode_inputs ? FIRST_USE_ASC : LAST_USE_ASC);
 
     while(inout_ptr < num_inouts && temp_ptr < num_temps)
@@ -415,7 +419,7 @@ static void etna_compile_parse_declarations(struct etna_compile_data *cd)
         case TGSI_TOKEN_TYPE_DECLARATION: {
             const struct tgsi_full_declaration *decl = &ctx.FullToken.FullDeclaration;
             /* Extend size of register file to encompass entire declaration */
-            cd->file_size[decl->Declaration.File] = MAX2(cd->file_size[decl->Declaration.File], decl->Range.Last+1);
+            cd->file[decl->Declaration.File].reg_size = MAX2(cd->file[decl->Declaration.File].reg_size, decl->Range.Last+1);
             } break;
         case TGSI_TOKEN_TYPE_IMMEDIATE: { /* immediates are handled differently from other files; they are not declared
                                            explicitly, and always add four components */
@@ -425,7 +429,7 @@ static void etna_compile_parse_declarations(struct etna_compile_data *cd)
             {
                 cd->imm_data[cd->imm_size++] = imm->u[i].Uint;
             }
-            cd->file_size[TGSI_FILE_IMMEDIATE] = cd->imm_size / 4;
+            cd->file[TGSI_FILE_IMMEDIATE].reg_size = cd->imm_size / 4;
             } break;
         }
     }
@@ -438,8 +442,8 @@ static void etna_allocate_decls(struct etna_compile_data *cd)
     uint idx=0;
     for(int x=0; x<TGSI_FILE_COUNT; ++x)
     {
-        cd->file[x] = &cd->decl[idx];
-        for(int sub=0; sub<cd->file_size[x]; ++sub)
+        cd->file[x].reg = &cd->decl[idx];
+        for(int sub=0; sub<cd->file[x].reg_size; ++sub)
         {
             cd->decl[idx].file = x;
             cd->decl[idx].idx = sub;
@@ -488,12 +492,13 @@ static void etna_compile_pass_check_usage(struct etna_compile_data *cd)
         case TGSI_TOKEN_TYPE_DECLARATION: {
             /* Declaration: fill in file details */
             const struct tgsi_full_declaration *decl = &ctx.FullToken.FullDeclaration;
+            struct etna_compile_file *file = &cd->file[decl->Declaration.File];
             for(int idx=decl->Range.First; idx<=decl->Range.Last; ++idx)
             {
-                cd->file[decl->Declaration.File][idx].usage_mask = 0; // we'll compute this ourselves
-                cd->file[decl->Declaration.File][idx].has_semantic = decl->Declaration.Semantic;
-                cd->file[decl->Declaration.File][idx].semantic = decl->Semantic;
-                cd->file[decl->Declaration.File][idx].interp = decl->Interp;
+                file->reg[idx].usage_mask = 0; // we'll compute this ourselves
+                file->reg[idx].has_semantic = decl->Declaration.Semantic;
+                file->reg[idx].semantic = decl->Semantic;
+                file->reg[idx].interp = decl->Interp;
             }
             } break;
         case TGSI_TOKEN_TYPE_INSTRUCTION: {
@@ -502,7 +507,7 @@ static void etna_compile_pass_check_usage(struct etna_compile_data *cd)
             /* iterate over destination registers */
             for(int idx=0; idx<inst->Instruction.NumDstRegs; ++idx)
             {
-                struct etna_reg_desc *reg_desc = &cd->file[inst->Dst[idx].Register.File][inst->Dst[idx].Register.Index];
+                struct etna_reg_desc *reg_desc = &cd->file[inst->Dst[idx].Register.File].reg[inst->Dst[idx].Register.Index];
                 if(reg_desc->first_use == -1)
                     reg_desc->first_use = inst_idx;
                 reg_desc->last_use = inst_idx;
@@ -511,7 +516,7 @@ static void etna_compile_pass_check_usage(struct etna_compile_data *cd)
             /* iterate over source registers */
             for(int idx=0; idx<inst->Instruction.NumSrcRegs; ++idx)
             {
-                struct etna_reg_desc *reg_desc = &cd->file[inst->Src[idx].Register.File][inst->Src[idx].Register.Index];
+                struct etna_reg_desc *reg_desc = &cd->file[inst->Src[idx].Register.File].reg[inst->Src[idx].Register.Index];
                 if(reg_desc->first_use == -1)
                     reg_desc->first_use = inst_idx;
                 reg_desc->last_use = inst_idx;
@@ -598,13 +603,13 @@ static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd)
                  */
                 if(inst->Dst[0].Register.File == TGSI_FILE_OUTPUT &&
                    inst->Src[0].Register.File == TGSI_FILE_TEMPORARY &&
-                   !cd->file[TGSI_FILE_OUTPUT][out_idx].native.valid &&
-                   cd->file[TGSI_FILE_TEMPORARY][in_idx].last_use == inst_idx &&
+                   !cd->file[TGSI_FILE_OUTPUT].reg[out_idx].native.valid &&
+                   cd->file[TGSI_FILE_TEMPORARY].reg[in_idx].last_use == inst_idx &&
                    etna_mov_check_no_swizzle(inst->Dst[0].Register, inst->Src[0].Register))
                 {
-                    cd->file[TGSI_FILE_OUTPUT][out_idx].native = cd->file[TGSI_FILE_TEMPORARY][in_idx].native;
+                    cd->file[TGSI_FILE_OUTPUT].reg[out_idx].native = cd->file[TGSI_FILE_TEMPORARY].reg[in_idx].native;
                     /* prevent temp from being re-used for the rest of the shader */
-                    cd->file[TGSI_FILE_TEMPORARY][in_idx].last_use = ETNA_MAX_TOKENS;
+                    cd->file[TGSI_FILE_TEMPORARY].reg[in_idx].last_use = ETNA_MAX_TOKENS;
                     /* mark this MOV instruction as a no-op */
                     cd->dead_inst[inst_idx] = true;
                 }
@@ -616,14 +621,14 @@ static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd)
                  */
                 if(inst->Dst[0].Register.File == TGSI_FILE_OUTPUT &&
                    inst->Src[0].Register.File == TGSI_FILE_INPUT &&
-                   !cd->file[TGSI_FILE_INPUT][in_idx].native.valid &&
-                   !cd->file[TGSI_FILE_OUTPUT][out_idx].native.valid &&
-                   cd->file[TGSI_FILE_OUTPUT][out_idx].last_use == inst_idx &&
-                   cd->file[TGSI_FILE_OUTPUT][out_idx].first_use == inst_idx &&
+                   !cd->file[TGSI_FILE_INPUT].reg[in_idx].native.valid &&
+                   !cd->file[TGSI_FILE_OUTPUT].reg[out_idx].native.valid &&
+                   cd->file[TGSI_FILE_OUTPUT].reg[out_idx].last_use == inst_idx &&
+                   cd->file[TGSI_FILE_OUTPUT].reg[out_idx].first_use == inst_idx &&
                    etna_mov_check_no_swizzle(inst->Dst[0].Register, inst->Src[0].Register))
                 {
-                    cd->file[TGSI_FILE_OUTPUT][out_idx].native =
-                        cd->file[TGSI_FILE_INPUT][in_idx].native =
+                    cd->file[TGSI_FILE_OUTPUT].reg[out_idx].native =
+                        cd->file[TGSI_FILE_INPUT].reg[in_idx].native =
                             alloc_new_native_reg(cd);
                     /* mark this MOV instruction as a no-op */
                     cd->dead_inst[inst_idx] = true;
@@ -1665,9 +1670,9 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
 /* Look up register by semantic */
 static struct etna_reg_desc *find_decl_by_semantic(struct etna_compile_data *cd, uint file, uint name, uint index)
 {
-    for(int idx=0; idx<cd->file_size[file]; ++idx)
+    for(int idx=0; idx<cd->file[file].reg_size; ++idx)
     {
-        struct etna_reg_desc *reg = &cd->file[file][idx];
+        struct etna_reg_desc *reg = &cd->file[file].reg[idx];
         if(reg->semantic.Name == name && reg->semantic.Index == index)
         {
             return reg;
@@ -1731,13 +1736,13 @@ static void etna_compile_add_nop_if_needed(struct etna_compile_data *cd)
     }
 }
 
-static void assign_uniforms(struct etna_compile_data *cd, int file, unsigned base)
+static void assign_uniforms(struct etna_compile_file *file, unsigned base)
 {
-    for(int idx=0; idx<cd->file_size[file]; ++idx)
+    for(int idx=0; idx<file->reg_size; ++idx)
     {
-        cd->file[file][idx].native.valid = 1;
-        cd->file[file][idx].native.rgroup = INST_RGROUP_UNIFORM_0;
-        cd->file[file][idx].native.id = base + idx;
+        file->reg[idx].native.valid = 1;
+        file->reg[idx].native.rgroup = INST_RGROUP_UNIFORM_0;
+        file->reg[idx].native.id = base + idx;
     }
 }
 
@@ -1748,10 +1753,10 @@ static void assign_uniforms(struct etna_compile_data *cd, int file, unsigned bas
  */
 static void assign_constants_and_immediates(struct etna_compile_data *cd)
 {
-    assign_uniforms(cd, TGSI_FILE_CONSTANT, 0);
+    assign_uniforms(&cd->file[TGSI_FILE_CONSTANT], 0);
     /* immediates start after the constants */
-    cd->imm_base = cd->file_size[TGSI_FILE_CONSTANT] * 4;
-    assign_uniforms(cd, TGSI_FILE_IMMEDIATE, cd->imm_base/4);
+    cd->imm_base = cd->file[TGSI_FILE_CONSTANT].reg_size * 4;
+    assign_uniforms(&cd->file[TGSI_FILE_IMMEDIATE], cd->imm_base/4);
     DBG_F(ETNA_DBG_COMPILER_MSGS, "imm base: %i size: %i", cd->imm_base, cd->imm_size);
 }
 
@@ -1763,11 +1768,11 @@ static void assign_texture_units(struct etna_compile_data *cd)
     {
         tex_base = cd->specs->vertex_sampler_offset;
     }
-    for(int idx=0; idx<cd->file_size[TGSI_FILE_SAMPLER]; ++idx)
+    for(int idx=0; idx<cd->file[TGSI_FILE_SAMPLER].reg_size; ++idx)
     {
-        cd->file[TGSI_FILE_SAMPLER][idx].native.valid = 1;
-        cd->file[TGSI_FILE_SAMPLER][idx].native.is_tex = 1; // overrides rgroup
-        cd->file[TGSI_FILE_SAMPLER][idx].native.id = tex_base + idx;
+        cd->file[TGSI_FILE_SAMPLER].reg[idx].native.valid = 1;
+        cd->file[TGSI_FILE_SAMPLER].reg[idx].native.is_tex = 1; // overrides rgroup
+        cd->file[TGSI_FILE_SAMPLER].reg[idx].native.id = tex_base + idx;
     }
 }
 
@@ -1820,15 +1825,15 @@ static void permute_ps_inputs(struct etna_compile_data *cd)
      * gl_PointCoord VARYING_SLOT_PNTC  TGSI_SEMANTIC_PCOORD
      */
     uint native_idx = 1;
-    for(int idx=0; idx<cd->file_size[TGSI_FILE_INPUT]; ++idx)
+    for(int idx=0; idx<cd->file[TGSI_FILE_INPUT].reg_size; ++idx)
     {
-        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT][idx];
+        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT].reg[idx];
         uint input_id;
         assert(reg->has_semantic);
         if(!reg->active || reg->semantic.Name == TGSI_SEMANTIC_POSITION)
             continue;
         input_id = native_idx++;
-        swap_native_registers(cd, etna_native_temp(input_id), cd->file[TGSI_FILE_INPUT][idx].native);
+        swap_native_registers(cd, etna_native_temp(input_id), cd->file[TGSI_FILE_INPUT].reg[idx].native);
     }
     cd->num_varyings = native_idx-1;
     if(native_idx > cd->next_free_native)
@@ -1840,9 +1845,9 @@ static void fill_in_ps_inputs(struct etna_shader_object *sobj, struct etna_compi
 {
     sobj->num_inputs = cd->num_varyings;
     assert(sobj->num_inputs < ETNA_NUM_INPUTS);
-    for(int idx=0; idx<cd->file_size[TGSI_FILE_INPUT]; ++idx)
+    for(int idx=0; idx<cd->file[TGSI_FILE_INPUT].reg_size; ++idx)
     {
-        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT][idx];
+        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT].reg[idx];
         if(reg->native.id > 0)
         {
             int input_id = reg->native.id - 1;
@@ -1868,9 +1873,9 @@ static void fill_in_ps_inputs(struct etna_shader_object *sobj, struct etna_compi
 static void fill_in_ps_outputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
     sobj->num_outputs = 0;
-    for(int idx=0; idx<cd->file_size[TGSI_FILE_OUTPUT]; ++idx)
+    for(int idx=0; idx<cd->file[TGSI_FILE_OUTPUT].reg_size; ++idx)
     {
-        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_OUTPUT][idx];
+        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_OUTPUT].reg[idx];
         switch(reg->semantic.Name)
         {
         case TGSI_SEMANTIC_COLOR: /* FRAG_RESULT_COLOR */
@@ -1889,9 +1894,9 @@ static void fill_in_ps_outputs(struct etna_shader_object *sobj, struct etna_comp
 static void fill_in_vs_inputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
     sobj->num_inputs = 0;
-    for(int idx=0; idx<cd->file_size[TGSI_FILE_INPUT]; ++idx)
+    for(int idx=0; idx<cd->file[TGSI_FILE_INPUT].reg_size; ++idx)
     {
-        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT][idx];
+        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT].reg[idx];
         assert(sobj->num_inputs < ETNA_NUM_INPUTS);
         /* XXX exclude inputs with special semantics such as gl_frontFacing */
         sobj->inputs[sobj->num_inputs].reg = reg->native.id;
@@ -1928,9 +1933,9 @@ static void build_output_index(struct etna_shader_object *sobj)
 static void fill_in_vs_outputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
     sobj->num_outputs = 0;
-    for(int idx=0; idx<cd->file_size[TGSI_FILE_OUTPUT]; ++idx)
+    for(int idx=0; idx<cd->file[TGSI_FILE_OUTPUT].reg_size; ++idx)
     {
-        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_OUTPUT][idx];
+        struct etna_reg_desc *reg = &cd->file[TGSI_FILE_OUTPUT].reg[idx];
         assert(sobj->num_inputs < ETNA_NUM_INPUTS);
         switch(reg->semantic.Name)
         {
@@ -1961,7 +1966,7 @@ static void fill_in_vs_outputs(struct etna_shader_object *sobj, struct etna_comp
      * outputs may be unused and thus unmapped. Then again, in the general use case with GLSL the vertex and fragment
      * shaders are linked already before submitting to Gallium, thus all outputs are used.
      */
-    int half_out = (cd->file_size[TGSI_FILE_OUTPUT] + 1) / 2;
+    int half_out = (cd->file[TGSI_FILE_OUTPUT].reg_size + 1) / 2;
     assert(half_out);
     uint32_t b = ((20480/(cd->specs->vertex_output_buffer_size-2*half_out*cd->specs->vertex_cache_size))+9)/10;
     uint32_t a = (b+256/(cd->specs->shader_core_count*half_out))/2;
@@ -2048,7 +2053,7 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
     assign_special_inputs(cd);
 
     /* Assign native temp register to TEMPs */
-    assign_temporaries_to_native(cd, cd->file[TGSI_FILE_TEMPORARY], cd->file_size[TGSI_FILE_TEMPORARY]);
+    assign_temporaries_to_native(cd, &cd->file[TGSI_FILE_TEMPORARY]);
 
     /* optimize outputs */
     etna_compile_pass_optimize_outputs(cd);
