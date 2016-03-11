@@ -303,6 +303,43 @@ static void etna_resource_copy_region(struct pipe_context *pctx,
     }
 }
 
+static bool etna_manual_blit(
+    struct etna_resource *dst, struct etna_resource_level *dst_lev, unsigned int dst_offset,
+    struct etna_resource *src, struct etna_resource_level *src_lev, unsigned int src_offset, const struct pipe_blit_info *blit_info)
+{
+    void *smap, *srow, *dmap, *drow;
+    size_t tile_size;
+
+    assert(src->layout == ETNA_LAYOUT_TILED);
+    assert(dst->layout == ETNA_LAYOUT_TILED);
+    assert(src->base.nr_samples == 0);
+    assert(dst->base.nr_samples == 0);
+
+    tile_size = util_format_get_blocksize(blit_info->src.format) * 4 * 4;
+
+    smap = etna_bo_map(src->bo);
+    if (!smap)
+        return false;
+    dmap = etna_bo_map(dst->bo);
+    if (!dmap)
+        return false;
+
+    srow = smap + src_offset;
+    drow = dmap + dst_offset;
+
+    etna_bo_cpu_prep(src->bo, DRM_ETNA_PREP_READ);
+    etna_bo_cpu_prep(dst->bo, DRM_ETNA_PREP_WRITE);
+    for (int y = 0; y < blit_info->src.box.height; y += 4) {
+        memcpy(drow, srow, tile_size * blit_info->src.box.width);
+        srow += src_lev->stride * 4;
+        drow += dst_lev->stride * 4;
+    }
+    etna_bo_cpu_fini(dst->bo);
+    etna_bo_cpu_fini(src->bo);
+
+    return true;
+}
+
 static bool etna_try_rs_blit(struct pipe_context *pctx,
                              const struct pipe_blit_info *blit_info)
 {
@@ -369,6 +406,12 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    unsigned dst_offset = dst_lev->offset +
                          blit_info->dst.box.z * dst_lev->layer_stride;
 
+   if (src_lev->padded_width <= ETNA_RS_WIDTH_MASK ||
+       dst_lev->padded_width <= ETNA_RS_WIDTH_MASK ||
+       src_lev->padded_height <= ETNA_RS_HEIGHT_MASK ||
+       dst_lev->padded_height <= ETNA_RS_HEIGHT_MASK)
+       goto manual;
+
    /* If the width is not aligned to the RS width, but is within our
     * padding, adjust the width to suite the RS width restriction.
     * Note: the RS width/height are converted to source samples here. */
@@ -383,10 +426,9 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
        height = align(height, h_align);
 
    /* The padded dimensions are in samples */
-   assert(width <= src_lev->padded_width);
-   assert(width <= dst_lev->padded_width * msaa_xscale);
-   assert(height <= src_lev->padded_height);
-   assert(height <= dst_lev->padded_height * msaa_yscale);
+   if (width > src_lev->padded_width || width > dst_lev->padded_width * msaa_xscale ||
+       height > src_lev->padded_height || height > dst_lev->padded_height * msaa_yscale)
+       goto manual;
 
    if (src->base.nr_samples > 1)
    {
@@ -461,6 +503,15 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    dst->seqno++;
 
    return TRUE;
+
+manual:
+   if (src->layout == ETNA_LAYOUT_TILED && dst->layout == ETNA_LAYOUT_TILED)
+   {
+       etna_resource_wait(pctx, dst);
+       etna_resource_wait(pctx, src);
+       return etna_manual_blit(dst, dst_lev, dst_offset, src, src_lev, src_offset, blit_info);
+   }
+   return FALSE;
 }
 
 static void etna_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
