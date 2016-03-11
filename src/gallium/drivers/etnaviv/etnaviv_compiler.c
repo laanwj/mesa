@@ -1836,26 +1836,28 @@ static void permute_ps_inputs(struct etna_compile_data *cd)
 /* fill in ps inputs into shader object */
 static void fill_in_ps_inputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
-    sobj->infile.num_reg = 0;
+    struct etna_shader_io_file *sf = &sobj->infile;
+
+    sf->num_reg = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_INPUT].reg_size; ++idx)
     {
         struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT].reg[idx];
         if(reg->native.id > 0)
         {
-            assert(sobj->infile.num_reg < ETNA_NUM_INPUTS);
-            sobj->infile.reg[sobj->infile.num_reg].reg = reg->native.id;
-            sobj->infile.reg[sobj->infile.num_reg].semantic = reg->semantic;
+            assert(sf->num_reg < ETNA_NUM_INPUTS);
+            sf->reg[sf->num_reg].reg = reg->native.id;
+            sf->reg[sf->num_reg].semantic = reg->semantic;
             /* convert usage mask to number of components (*=wildcard)
              *   .r    (0..1)  -> 1 component
              *   .*g   (2..3)  -> 2 component
              *   .**b  (4..7)  -> 3 components
              *   .***a (8..15) -> 4 components
              */
-            sobj->infile.reg[sobj->infile.num_reg].num_components = util_last_bit(reg->usage_mask);
-            sobj->infile.num_reg++;
+            sf->reg[sf->num_reg].num_components = util_last_bit(reg->usage_mask);
+            sf->num_reg++;
         }
     }
-    assert(sobj->infile.num_reg == cd->num_varyings);
+    assert(sf->num_reg == cd->num_varyings);
     sobj->input_count_unk8 = 31; /* XXX what is this */
 }
 
@@ -1883,18 +1885,20 @@ static void fill_in_ps_outputs(struct etna_shader_object *sobj, struct etna_comp
 /* fill in inputs for vs into shader object */
 static void fill_in_vs_inputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
-    sobj->infile.num_reg = 0;
+    struct etna_shader_io_file *sf = &sobj->infile;
+
+    sf->num_reg = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_INPUT].reg_size; ++idx)
     {
         struct etna_reg_desc *reg = &cd->file[TGSI_FILE_INPUT].reg[idx];
-        assert(sobj->infile.num_reg < ETNA_NUM_INPUTS);
+        assert(sf->num_reg < ETNA_NUM_INPUTS);
         /* XXX exclude inputs with special semantics such as gl_frontFacing */
-        sobj->infile.reg[sobj->infile.num_reg].reg = reg->native.id;
-        sobj->infile.reg[sobj->infile.num_reg].semantic = reg->semantic;
-        sobj->infile.reg[sobj->infile.num_reg].num_components = util_last_bit(reg->usage_mask);
-        sobj->infile.num_reg++;
+        sf->reg[sf->num_reg].reg = reg->native.id;
+        sf->reg[sf->num_reg].semantic = reg->semantic;
+        sf->reg[sf->num_reg].num_components = util_last_bit(reg->usage_mask);
+        sf->num_reg++;
     }
-    sobj->input_count_unk8 = (sobj->infile.num_reg + 19)/16; /* XXX what is this */
+    sobj->input_count_unk8 = (sf->num_reg + 19)/16; /* XXX what is this */
 }
 
 /* build two-level output index [Semantic][Index] for fast linking */
@@ -1922,11 +1926,13 @@ static void build_output_index(struct etna_shader_object *sobj)
 /* fill in outputs for vs into shader object */
 static void fill_in_vs_outputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
 {
-    sobj->outfile.num_reg = 0;
+    struct etna_shader_io_file *sf = &sobj->outfile;
+
+    sf->num_reg = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_OUTPUT].reg_size; ++idx)
     {
         struct etna_reg_desc *reg = &cd->file[TGSI_FILE_OUTPUT].reg[idx];
-        assert(sobj->infile.num_reg < ETNA_NUM_INPUTS);
+        assert(sf->num_reg < ETNA_NUM_INPUTS);
         switch(reg->semantic.Name)
         {
         case TGSI_SEMANTIC_POSITION:
@@ -1936,10 +1942,10 @@ static void fill_in_vs_outputs(struct etna_shader_object *sobj, struct etna_comp
             sobj->vs_pointsize_out_reg = reg->native.id;
             break;
         default:
-            sobj->outfile.reg[sobj->outfile.num_reg].reg = reg->native.id;
-            sobj->outfile.reg[sobj->outfile.num_reg].semantic = reg->semantic;
-            sobj->outfile.reg[sobj->outfile.num_reg].num_components = 4; // XXX reg->num_components;
-            sobj->outfile.num_reg++;
+            sf->reg[sf->num_reg].reg = reg->native.id;
+            sf->reg[sf->num_reg].semantic = reg->semantic;
+            sf->reg[sf->num_reg].num_components = 4; // XXX reg->num_components;
+            sf->num_reg++;
             sobj->output_count_per_semantic[reg->semantic.Name] = MAX2(
                     reg->semantic.Index + 1,
                     sobj->output_count_per_semantic[reg->semantic.Name]);
