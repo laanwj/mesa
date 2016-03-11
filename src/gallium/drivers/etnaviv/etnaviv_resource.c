@@ -332,6 +332,21 @@ void etna_resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
     rsc->pending_ctx = ctx;
 }
 
+void etna_resource_wait(struct pipe_context *pctx, struct etna_resource *rsc)
+{
+    if (rsc->status & ETNA_PENDING_WRITE)
+    {
+        struct pipe_fence_handle *fence;
+        struct pipe_screen *pscreen = pctx->screen;
+
+        pctx->flush(pctx, &fence, 0);
+
+        if (!pscreen->fence_finish(pscreen, fence, 5000000000ULL))
+            BUG("fence timed out (hung GPU?)");
+        pscreen->fence_reference(pscreen, &fence, NULL);
+    }
+}
+
 void etna_resource_screen_init(struct pipe_screen *pscreen)
 {
     pscreen->can_create_resource = etna_screen_can_create_resource;

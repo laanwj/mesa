@@ -204,14 +204,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
      * rendering. */
     if(usage & PIPE_TRANSFER_READ || trans->rsc)
     {
-        struct pipe_fence_handle *fence;
-        struct pipe_screen *pscreen = pctx->screen;
-
-        pctx->flush(pctx, &fence, 0);
-
-        if (!pscreen->fence_finish(pscreen, fence, 5000000000ULL))
-            BUG("fence timed out (hung GPU?)");
-        pscreen->fence_reference(pscreen, &fence, NULL);
+        etna_resource_wait(pctx, rsc);
     }
     /* XXX we don't handle PIPE_TRANSFER_FLUSH_EXPLICIT; this flag can be ignored when mapping in-place,
      * but when not in place we need to fire off the copy operation in transfer_flush_region (currently
