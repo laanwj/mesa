@@ -2252,6 +2252,10 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
 
         if(semantic.Name == TGSI_SEMANTIC_PCOORD)
         {
+            varying->use[0] = VARYING_COMPONENT_USE_POINTCOORD_X;
+            varying->use[1] = VARYING_COMPONENT_USE_POINTCOORD_Y;
+            varying->use[2] = VARYING_COMPONENT_USE_USED;
+            varying->use[3] = VARYING_COMPONENT_USE_USED;
             varying->reg = 0; /* replaced by point coord -- doesn't matter */
             continue;
         }
@@ -2261,6 +2265,10 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
         }
         if(match == NULL)
             return true; /* not found -- link error */
+        varying->use[0] = VARYING_COMPONENT_USE_USED;
+        varying->use[1] = VARYING_COMPONENT_USE_USED;
+        varying->use[2] = VARYING_COMPONENT_USE_USED;
+        varying->use[3] = VARYING_COMPONENT_USE_USED;
         varying->reg = match->reg;
     }
     info->num_varyings = fs->num_inputs;
