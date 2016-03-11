@@ -2230,6 +2230,13 @@ void etna_destroy_shader_object(struct etna_shader_object *sobj)
     }
 }
 
+static const struct etna_shader_inout *etna_shader_vs_lookup(const struct etna_shader_object *sobj, const struct etna_shader_inout *in)
+{
+    if(in->semantic.Index < sobj->output_count_per_semantic[in->semantic.Name])
+        return sobj->output_per_semantic[in->semantic.Name][in->semantic.Index];
+    return NULL;
+}
+
 bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct etna_shader_object *vs, const struct etna_shader_object *fs)
 {
     /* For each fs input we need to find the associated ps input, which can be found by matching on
@@ -2240,7 +2247,7 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
     for(int idx=0; idx<fs->num_inputs; ++idx)
     {
         struct tgsi_declaration_semantic semantic = fs->inputs[idx].semantic;
-        struct etna_shader_inout *match = NULL;
+        const struct etna_shader_inout *match = etna_shader_vs_lookup(vs, &fs->inputs[idx]);
         struct etna_varying *varying = &info->varyings[idx];
 
         varying->num_components = fs->inputs[idx].num_components;
@@ -2257,10 +2264,6 @@ bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct e
             varying->use[3] = VARYING_COMPONENT_USE_USED;
             varying->reg = 0; /* replaced by point coord -- doesn't matter */
             continue;
-        }
-        if(semantic.Index < vs->output_count_per_semantic[semantic.Name])
-        {
-            match = vs->output_per_semantic[semantic.Name][semantic.Index];
         }
         if(match == NULL)
             return true; /* not found -- link error */
