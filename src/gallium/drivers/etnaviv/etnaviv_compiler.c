@@ -801,14 +801,12 @@ static struct etna_inst_tex convert_tex(struct etna_compile_data *cd, const stru
 }
 
 /* convert source operand */
-static struct etna_inst_src etna_create_src(const struct tgsi_full_src_register *tgsi, const struct etna_native_reg *native, uint32_t swizzle)
+static struct etna_inst_src etna_create_src(const struct tgsi_full_src_register *tgsi, const struct etna_native_reg *native)
 {
     const struct tgsi_src_register *reg = &tgsi->Register;
     struct etna_inst_src rv = {
         .use = 1,
-        .swiz = inst_swiz_compose(
-                    INST_SWIZ(reg->SwizzleX, reg->SwizzleY, reg->SwizzleZ, reg->SwizzleW),
-                    swizzle),
+        .swiz = INST_SWIZ(reg->SwizzleX, reg->SwizzleY, reg->SwizzleZ, reg->SwizzleW),
         .neg = reg->Negate,
         .abs = reg->Absolute,
         .rgroup = native->rgroup,
@@ -942,7 +940,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 if (!n->valid || n->is_tex)
                     continue;
 
-                src[i] = etna_create_src(reg, n, INST_SWIZ_IDENTITY);
+                src[i] = etna_create_src(reg, n);
             }
 
             /* Use a naive switch statement to get up and running, later on when we have more experience with
