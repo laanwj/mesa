@@ -228,11 +228,7 @@ void etna_submit_rs_state(struct etna_context *ctx, const struct compiled_rs_sta
  */
 static uint32_t active_samplers_bits(struct etna_context *ctx)
 {
-    unsigned num_fragment_samplers = MIN2(ctx->num_fragment_samplers, ctx->num_fragment_sampler_views);
-    unsigned num_vertex_samplers = MIN2(ctx->num_vertex_samplers, ctx->num_vertex_sampler_views);
-    uint32_t active_samplers = etna_bits_ones(num_fragment_samplers) |
-                               etna_bits_ones(num_vertex_samplers) << ctx->specs.vertex_sampler_offset;
-    return active_samplers;
+    return ctx->active_sampler_views & ctx->active_samplers;
 }
 
 #define ETNA_3D_CONTEXT_SIZE (400) /* keep this number above "Total state updates (fixed)" from gen_weave_state tool */

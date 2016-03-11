@@ -68,17 +68,30 @@ static void etna_bind_sampler_states(struct pipe_context *pctx,
 {
     /* bind fragment sampler */
     struct etna_context *ctx = etna_context(pctx);
+    int offset;
 
-    ctx->num_fragment_samplers = num_samplers;
-    for(int idx=0; idx<num_samplers; ++idx)
+    switch(shader)
     {
-        ctx->sampler[idx] = samplers[idx];
+    case PIPE_SHADER_FRAGMENT:
+        offset = 0;
+        ctx->num_fragment_samplers = num_samplers;
+        break;
+    case PIPE_SHADER_VERTEX:
+        offset = ctx->specs.vertex_sampler_offset;
+        break;
+    default:
+        assert(!"Invalid shader");
+        return;
     }
 
-    /* bind vertex sampler */
-    for(int idx=0; idx<num_samplers; ++idx)
+    uint32_t mask = 1 << offset;
+    for(int idx=0; idx<num_samplers; ++idx, mask <<= 1)
     {
-        ctx->sampler[ctx->specs.vertex_sampler_offset + idx] = samplers[idx];
+        ctx->sampler[offset + idx] = samplers[idx];
+        if (samplers[idx])
+            ctx->active_samplers |= mask;
+        else
+            ctx->active_samplers &= ~mask;
     }
 
     ctx->dirty |= ETNA_DIRTY_SAMPLERS;
@@ -200,13 +213,23 @@ static void etna_sampler_view_destroy(struct pipe_context *pctx,
 static void set_sampler_views(struct etna_context *ctx, unsigned start, unsigned end,
                                         unsigned nr, struct pipe_sampler_view **views)
 {
-    unsigned i;
+    unsigned i, j;
+    uint32_t mask = 1 << start;
 
-    for (i = start; i < nr; i++)
-        pipe_sampler_view_reference(&ctx->sampler_view[i], views[i]);
+    for (i = start, j = 0; j < nr; i++, j++, mask <<= 1)
+    {
+        pipe_sampler_view_reference(&ctx->sampler_view[i], views[j]);
+        if (views[j])
+            ctx->active_sampler_views |= mask;
+        else
+            ctx->active_sampler_views &= ~mask;
+    }
 
-    for (; i < end; i++)
+    for (; i < end; i++, mask <<= 1)
+    {
         pipe_sampler_view_reference(&ctx->sampler_view[i], NULL);
+        ctx->active_sampler_views &= ~mask;
+    }
 }
 
 static inline void etna_fragtex_set_sampler_views(struct etna_context *ctx, unsigned nr,
@@ -227,7 +250,6 @@ static inline void etna_vertex_set_sampler_views(struct etna_context *ctx, unsig
     unsigned end = start + ctx->specs.vertex_sampler_count;
 
     set_sampler_views(ctx, start, end, nr, views);
-    ctx->num_vertex_sampler_views = nr;
 }
 
 static void etna_set_sampler_views(struct pipe_context *pctx, unsigned shader,
