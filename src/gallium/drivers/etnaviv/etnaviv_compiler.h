@@ -50,6 +50,12 @@ struct etna_shader_inout
     int num_components;
 };
 
+struct etna_shader_io_file
+{
+    size_t num_reg;
+    struct etna_shader_inout reg[ETNA_NUM_INPUTS];
+};
+
 /* shader object, for linking */
 struct etna_shader_object
 {
@@ -66,12 +72,11 @@ struct etna_shader_object
 
     /* inputs (for linking)
      *   for fs, the inputs must be in register 1..N */
-    unsigned num_inputs;
-    struct etna_shader_inout inputs[ETNA_NUM_INPUTS];
+    struct etna_shader_io_file infile;
 
     /* outputs (for linking) */
-    unsigned num_outputs;
-    struct etna_shader_inout outputs[ETNA_NUM_INPUTS];
+    struct etna_shader_io_file outfile;
+
     /* index into outputs (for linking) */
     int output_count_per_semantic[TGSI_SEMANTIC_COUNT];
     struct etna_shader_inout **output_per_semantic_list; /* list of pointers to outputs */
