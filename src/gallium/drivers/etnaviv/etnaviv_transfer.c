@@ -183,6 +183,7 @@ static void *etna_transfer_map(struct pipe_context *pctx,
         }
 
         struct pipe_resource templ = *prsc;
+        templ.nr_samples = 0;
         templ.bind = PIPE_BIND_RENDER_TARGET;
 
         trans->rsc = etna_resource_alloc(pctx->screen, ETNA_LAYOUT_LINEAR, &templ);
