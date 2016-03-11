@@ -346,18 +346,6 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    assert(blit_info->src.box.z < src->base.array_size);
    assert(blit_info->dst.box.z < dst->base.array_size);
 
-   uint32_t to_flush = 0;
-
-   if (src->base.bind & PIPE_BIND_RENDER_TARGET)
-       to_flush |= VIVS_GL_FLUSH_CACHE_COLOR;
-   if (src->base.bind & PIPE_BIND_DEPTH_STENCIL)
-       to_flush |= VIVS_GL_FLUSH_CACHE_DEPTH;
-
-   if (to_flush) {
-       etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, to_flush);
-       etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
-   }
-
    struct etna_resource_level *src_lev = &src->levels[blit_info->src.level];
    struct etna_resource_level *dst_lev = &dst->levels[blit_info->dst.level];
 
@@ -373,11 +361,42 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
    unsigned dst_offset = dst_lev->offset +
                          blit_info->dst.box.z * dst_lev->layer_stride;
 
+   /* If the width is not aligned to the RS width, but is within our
+    * padding, adjust the width to suite the RS width restriction.
+    * Note: the RS width/height are converted to source samples here. */
+   unsigned int width = blit_info->src.box.width * msaa_xscale;
+   unsigned int height = blit_info->src.box.height * msaa_yscale;
+   unsigned int w_align = ETNA_RS_WIDTH_MASK + 1;
+   unsigned int h_align = (ETNA_RS_HEIGHT_MASK + 1) * ctx->specs.pixel_pipes;
+
+   if (width & (w_align - 1) && width >= src_lev->width * msaa_xscale && width >= dst_lev->width)
+       width = align(width, w_align);
+   if (height & (h_align - 1) && height >= src_lev->height * msaa_yscale && height >= dst_lev->height)
+       height = align(height, h_align);
+
+   /* The padded dimensions are in samples */
+   assert(width <= src_lev->padded_width);
+   assert(width <= dst_lev->padded_width * msaa_xscale);
+   assert(height <= src_lev->padded_height);
+   assert(height <= dst_lev->padded_height * msaa_yscale);
+
    if (src->base.nr_samples > 1)
    {
       uint32_t msaa_format = translate_msaa_format(blit_info->src.format, false);
       assert(msaa_format != ETNA_NO_MATCH);
       ts_mem_config |= VIVS_TS_MEM_CONFIG_MSAA | msaa_format;
+   }
+
+   uint32_t to_flush = 0;
+
+   if (src->base.bind & PIPE_BIND_RENDER_TARGET)
+       to_flush |= VIVS_GL_FLUSH_CACHE_COLOR;
+   if (src->base.bind & PIPE_BIND_DEPTH_STENCIL)
+       to_flush |= VIVS_GL_FLUSH_CACHE_DEPTH;
+
+   if (to_flush) {
+       etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, to_flush);
+       etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
    }
 
    /* Set up color TS to source surface before blit, if needed */
@@ -405,25 +424,6 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
       etna_set_state(ctx->stream, VIVS_TS_MEM_CONFIG, ts_mem_config);
    }
    ctx->dirty |= ETNA_DIRTY_TS;
-
-   /* If the width is not aligned to the RS width, but is within our
-    * padding, adjust the width to suite the RS width restriction.
-    * Note: the RS width/height are converted to source samples here. */
-   unsigned int width = blit_info->src.box.width * msaa_xscale;
-   unsigned int height = blit_info->src.box.height * msaa_yscale;
-   unsigned int w_align = ETNA_RS_WIDTH_MASK + 1;
-   unsigned int h_align = (ETNA_RS_HEIGHT_MASK + 1) * ctx->specs.pixel_pipes;
-
-   if (width & (w_align - 1) && width >= src_lev->width * msaa_xscale && width >= dst_lev->width)
-       width = align(width, w_align);
-   if (height & (h_align - 1) && height >= src_lev->height * msaa_yscale && height >= dst_lev->height)
-       height = align(height, h_align);
-
-   /* The padded dimensions are in samples */
-   assert(width <= src_lev->padded_width);
-   assert(width <= dst_lev->padded_width * msaa_xscale);
-   assert(height <= src_lev->padded_height);
-   assert(height <= dst_lev->padded_height * msaa_yscale);
 
    /* Kick off RS here */
    etna_compile_rs_state(ctx, &copy_to_screen, &(struct rs_state){
