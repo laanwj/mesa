@@ -587,6 +587,12 @@ static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd)
             switch(inst->Instruction.Opcode)
             {
             case TGSI_OPCODE_MOV: {
+                /* We are only interested in eliminating MOVs which write to
+                 * the shader outputs. Test for this early. */
+                if(inst->Dst[0].Register.File != TGSI_FILE_OUTPUT)
+                    break;
+                if(!etna_mov_check_no_swizzle(inst->Dst[0].Register, inst->Src[0].Register))
+                    break;
                 uint out_idx = inst->Dst[0].Register.Index;
                 uint in_idx = inst->Src[0].Register.Index;
                 /* assignment of temporary to output --
@@ -594,11 +600,9 @@ static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd)
                  * and the last use of the temporary is this instruction
                  * and the MOV does not do a swizzle
                  */
-                if(inst->Dst[0].Register.File == TGSI_FILE_OUTPUT &&
-                   inst->Src[0].Register.File == TGSI_FILE_TEMPORARY &&
+                if(inst->Src[0].Register.File == TGSI_FILE_TEMPORARY &&
                    !cd->file[TGSI_FILE_OUTPUT].reg[out_idx].native.valid &&
-                   cd->file[TGSI_FILE_TEMPORARY].reg[in_idx].last_use == inst_idx &&
-                   etna_mov_check_no_swizzle(inst->Dst[0].Register, inst->Src[0].Register))
+                   cd->file[TGSI_FILE_TEMPORARY].reg[in_idx].last_use == inst_idx)
                 {
                     cd->file[TGSI_FILE_OUTPUT].reg[out_idx].native = cd->file[TGSI_FILE_TEMPORARY].reg[in_idx].native;
                     /* prevent temp from being re-used for the rest of the shader */
@@ -612,13 +616,11 @@ static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd)
                  * allocate a new register, and associate both input and output to it
                  * and the MOV does not do a swizzle
                  */
-                if(inst->Dst[0].Register.File == TGSI_FILE_OUTPUT &&
-                   inst->Src[0].Register.File == TGSI_FILE_INPUT &&
+                if(inst->Src[0].Register.File == TGSI_FILE_INPUT &&
                    !cd->file[TGSI_FILE_INPUT].reg[in_idx].native.valid &&
                    !cd->file[TGSI_FILE_OUTPUT].reg[out_idx].native.valid &&
                    cd->file[TGSI_FILE_OUTPUT].reg[out_idx].last_use == inst_idx &&
-                   cd->file[TGSI_FILE_OUTPUT].reg[out_idx].first_use == inst_idx &&
-                   etna_mov_check_no_swizzle(inst->Dst[0].Register, inst->Src[0].Register))
+                   cd->file[TGSI_FILE_OUTPUT].reg[out_idx].first_use == inst_idx)
                 {
                     cd->file[TGSI_FILE_OUTPUT].reg[out_idx].native =
                         cd->file[TGSI_FILE_INPUT].reg[in_idx].native =
