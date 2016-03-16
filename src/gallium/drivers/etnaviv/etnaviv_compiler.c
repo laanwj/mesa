@@ -591,7 +591,11 @@ static void etna_compile_pass_optimize_outputs(struct etna_compile_data *cd)
                  * the shader outputs. Test for this early. */
                 if(inst->Dst[0].Register.File != TGSI_FILE_OUTPUT)
                     break;
-                if(!etna_mov_check_no_swizzle(inst->Dst[0].Register, inst->Src[0].Register))
+                /* Elimination of a MOV must have no visible effect on the
+                 * resulting shader: this means the MOV must not swizzle or
+                 * saturate, and its source must not have the negate or
+                 * absolute modifiers. */
+                if(!etna_mov_check_no_swizzle(inst->Dst[0].Register, inst->Src[0].Register) || inst->Instruction.Saturate || inst->Src[0].Register.Negate || inst->Src[0].Register.Absolute)
                     break;
                 uint out_idx = inst->Dst[0].Register.Index;
                 uint in_idx = inst->Src[0].Register.Index;
