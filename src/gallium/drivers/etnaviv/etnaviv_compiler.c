@@ -857,28 +857,6 @@ static bool etna_src_uniforms_conflict(struct etna_inst_src a, struct etna_inst_
            (a.rgroup != b.rgroup || a.reg != b.reg);
 }
 
-/* convert destination to source operand (for operation in place)
- * i.e,
- *    MUL dst0.x__w, src0.xyzw, 2/PI
- *    SIN dst0.x__w, dst0.xyzw
- */
-#if 0
-static struct etna_inst_src convert_dst_to_src(struct etna_compile_data *cd,  const struct tgsi_full_dst_register *in)
-{
-    struct etna_inst_src rv = {
-        .use = 1,
-        .swiz = INST_SWIZ_IDENTITY, /* no swizzle needed, destination does selection */
-        .neg = 0,
-        .abs = 0,
-    };
-    struct etna_native_reg native_reg = etna_get_dst_reg(cd, in->Register)->native;
-    assert(native_reg.valid && !native_reg.is_tex);
-    rv.rgroup = native_reg.rgroup;
-    rv.reg = native_reg.id;
-    return rv;
-}
-#endif
-
 /* create a new label */
 static struct etna_compile_label *alloc_new_label(struct etna_compile_data *cd)
 {
