@@ -26,6 +26,8 @@
 
 #include "etnaviv_texture.h"
 
+#include "hw/common.xml.h"
+
 #include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
 #include "etnaviv_emit.h"
@@ -115,6 +117,24 @@ static void etna_update_sampler_source(struct pipe_sampler_view *view)
     }
 }
 
+static bool etna_resource_sampler_compatible(struct etna_resource *res)
+{
+    /* The sampler (as we currently know it) only accepts tiled layouts */
+    if (res->layout != ETNA_LAYOUT_TILED)
+        return false;
+
+    /* If we have HALIGN support, we can allow for the RS padding */
+    struct etna_screen *screen = etna_screen(res->base.screen);
+    if (VIV_FEATURE(screen, chipMinorFeatures1, TEXTURE_HALIGN))
+        return true;
+
+    /* Non-HALIGN GPUs only accept 4x4 tile-aligned textures */
+    if (res->halign != TEXTURE_HALIGN_FOUR)
+        return false;
+
+    return true;
+}
+
 static struct pipe_sampler_view *etna_create_sampler_view(struct pipe_context *pctx,
                                                  struct pipe_resource *prsc,
                                                  const struct pipe_sampler_view *so)
@@ -126,9 +146,9 @@ static struct pipe_sampler_view *etna_create_sampler_view(struct pipe_context *p
     if (!sv)
         return NULL;
 
-    if (res->layout != ETNA_LAYOUT_TILED) {
-        /* The original resource is not tiled appropriately for our
-         * sampler.  Allocate an appropriately tiled texture. */
+    if (!etna_resource_sampler_compatible(res)) {
+        /* The original resource is not compatible with the sampler.
+         * Allocate an appropriately tiled texture. */
         if (!res->texture) {
             struct pipe_resource templat = *prsc;
 
