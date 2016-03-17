@@ -129,8 +129,12 @@ static struct pipe_sampler_view *etna_create_sampler_view(struct pipe_context *p
     if (res->layout != ETNA_LAYOUT_TILED) {
         /* The original resource is not tiled appropriately for our
          * sampler.  Allocate an appropriately tiled texture. */
-        if (!res->texture)
-            res->texture = etna_resource_alloc(pctx->screen, ETNA_LAYOUT_TILED, prsc);
+        if (!res->texture) {
+            struct pipe_resource templat = *prsc;
+
+            templat.bind &= ~(PIPE_BIND_DEPTH_STENCIL|PIPE_BIND_RENDER_TARGET|PIPE_BIND_BLENDABLE);
+            res->texture = etna_resource_alloc(pctx->screen, ETNA_LAYOUT_TILED, &templat);
+        }
         if (!res->texture) {
             free(sv);
             return NULL;
