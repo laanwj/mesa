@@ -393,7 +393,7 @@ static void print_opc_imm(struct opc_operands *operands)
     print_dst(operands->dst, true);
     print_src(operands->src0, true);
     print_src(operands->src1, true);
-    printf("label_%x", operands->imm);
+    printf("label_%04d", operands->imm);
 }
 
 #define OPC_BITS 7
