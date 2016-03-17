@@ -113,12 +113,15 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
         return NULL;
     }
 
+    /* If we have the TEXTURE_HALIGN feature, we can always align to the
+     * resolve engine's width.  If not, we must not align resources used
+     * only for textures. */
+    bool rs_align = VIV_FEATURE(screen, chipMinorFeatures1, TEXTURE_HALIGN) || !etna_resource_sampler_only(templat);
+
     /* Determine needed padding (alignment of height/width) */
     unsigned paddingX = 0, paddingY = 0;
     unsigned halign = TEXTURE_HALIGN_FOUR;
-    etna_layout_multiple(layout,
-                         screen->specs.pixel_pipes,
-            (templat->bind & PIPE_BIND_SAMPLER_VIEW) && !VIV_FEATURE(screen, chipMinorFeatures1, TEXTURE_HALIGN),
+    etna_layout_multiple(layout, screen->specs.pixel_pipes, rs_align,
             &paddingX, &paddingY, &halign);
     assert(paddingX && paddingY);
 

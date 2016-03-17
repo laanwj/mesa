@@ -436,27 +436,29 @@ static inline uint32_t translate_draw_mode(unsigned mode)
  * This is affected by many different parameters:
  *   - A horizontal multiple of 16 is used when possible as resolve can be used
  *       at the cost of only a little bit extra memory usage.
- *   - If the surface is a texture, and HALIGN can not be specified on thie GPU, set tex_no_halign to 1
- *       If set, an horizontal multiple of 4 will be used for tiled and linear surfaces, otherwise one of 16.
+ *   - If the surface is to be used with the resolve engine, set rs_align true.
+ *       If set, a horizontal multiple of 16 will be used for tiled and linear,
+ *       otherwise one of 16.  However, such a surface will be incompatible
+ *       with the samplers if the GPU does hot support the HALIGN feature.
  *   - If the surface is supertiled, horizontal and vertical multiple is always 64
  *   - If the surface is multi tiled or supertiled, make sure that the vertical size
  *     is a multiple of the number of pixel pipes as well.
  * */
 static inline void etna_layout_multiple(unsigned layout, unsigned pixel_pipes,
-        bool tex_no_halign,
+        bool rs_align,
         unsigned *paddingX, unsigned *paddingY, unsigned *halign)
 {
     switch(layout)
     {
     case ETNA_LAYOUT_LINEAR:
-        *paddingX = 16;
+        *paddingX = rs_align ? 16 : 4;
         *paddingY = 1;
-        *halign = tex_no_halign ? TEXTURE_HALIGN_FOUR : TEXTURE_HALIGN_SIXTEEN;
+        *halign = rs_align ? TEXTURE_HALIGN_SIXTEEN : TEXTURE_HALIGN_FOUR;
         break;
     case ETNA_LAYOUT_TILED:
-        *paddingX = 16;
+        *paddingX = rs_align ? 16 : 4;
         *paddingY = 4;
-        *halign = tex_no_halign ? TEXTURE_HALIGN_FOUR : TEXTURE_HALIGN_SIXTEEN;
+        *halign = rs_align ? TEXTURE_HALIGN_SIXTEEN : TEXTURE_HALIGN_FOUR;
         break;
     case ETNA_LAYOUT_SUPER_TILED:
         *paddingX = 64;
