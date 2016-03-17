@@ -161,7 +161,10 @@ static void *etna_transfer_map(struct pipe_context *pctx,
     }
     else if (rsc->ts_bo ||
              (rsc->layout != ETNA_LAYOUT_LINEAR &&
-              util_format_get_blocksize(format) > 1))
+              util_format_get_blocksize(format) > 1 &&
+              /* HALIGN 4 resources are incompatible with the resolve engine,
+               * so fall back to using software to detile this resource. */
+              rsc->halign != TEXTURE_HALIGN_FOUR))
     {
         /* If the surface has tile status, we need to resolve it first.
          * The strategy we implement here is to use the RS to copy the
