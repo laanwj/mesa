@@ -97,6 +97,12 @@ static inline bool etna_resource_older(struct etna_resource *a, struct etna_reso
     return (int)(a->seqno - b->seqno) < 0;
 }
 
+/* is the resource only used on the sampler? */
+static inline bool etna_resource_sampler_only(const struct pipe_resource *pres)
+{
+    return (pres->bind & (PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET | PIPE_BIND_DEPTH_STENCIL | PIPE_BIND_BLENDABLE)) == PIPE_BIND_SAMPLER_VIEW;
+}
+
 static inline struct etna_resource *
 etna_resource(struct pipe_resource *p)
 {
