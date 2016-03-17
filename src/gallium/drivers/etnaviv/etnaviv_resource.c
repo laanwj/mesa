@@ -204,7 +204,14 @@ static struct pipe_resource *etna_resource_create(struct pipe_screen *pscreen,
      * Buffers always have LINEAR layout.
      */
     unsigned layout = ETNA_LAYOUT_LINEAR;
-    if (templat->target != PIPE_BUFFER)
+    if (etna_resource_sampler_only(templat))
+    {
+        /* The buffer is only used for texturing, so create something
+         * directly compatible with the sampler.  Such a buffer can
+         * never be rendered to. */
+        layout = ETNA_LAYOUT_TILED;
+    }
+    else if (templat->target != PIPE_BUFFER)
     {
         bool want_multitiled = screen->specs.pixel_pipes > 1;
         bool want_supertiled = screen->specs.can_supertile && !DBG_ENABLED(ETNA_DBG_NO_SUPERTILE);
