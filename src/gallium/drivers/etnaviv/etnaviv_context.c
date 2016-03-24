@@ -130,8 +130,8 @@ static void etna_draw_vbo(struct pipe_context *pctx,
     }
 
     /* Mark constant buffers as being read */
-    resource_read(ctx, ctx->vs_cbuf_s.buffer);
-    resource_read(ctx, ctx->fs_cbuf_s.buffer);
+    resource_read(ctx, ctx->constant_buffer[PIPE_SHADER_VERTEX].buffer);
+    resource_read(ctx, ctx->constant_buffer[PIPE_SHADER_FRAGMENT].buffer);
 
     /* Mark VBOs as being read */
     for (i = 0; i < ctx->vertex_buffer.count; i++) {

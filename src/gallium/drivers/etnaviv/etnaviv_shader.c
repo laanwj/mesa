@@ -37,12 +37,11 @@
  * bank as dirty. */
 static void etna_fetch_uniforms(struct etna_context *ctx, uint shader)
 {
-    struct pipe_constant_buffer *buf = NULL;
+    struct pipe_constant_buffer *buf = &ctx->constant_buffer[shader];
 
     switch(shader)
     {
     case PIPE_SHADER_VERTEX:
-        buf = &ctx->vs_cbuf_s;
         if(buf->user_buffer && ctx->vs)
         {
             memcpy(ctx->shader_state.VS_UNIFORMS, buf->user_buffer, MIN2(buf->buffer_size, ctx->vs->const_size * 4));
@@ -50,7 +49,6 @@ static void etna_fetch_uniforms(struct etna_context *ctx, uint shader)
         }
         break;
     case PIPE_SHADER_FRAGMENT:
-        buf = &ctx->fs_cbuf_s;
         if(buf->user_buffer && ctx->fs)
         {
             memcpy(ctx->shader_state.PS_UNIFORMS, buf->user_buffer, MIN2(buf->buffer_size, ctx->fs->const_size * 4));
@@ -268,26 +266,12 @@ static void etna_set_constant_buffer(struct pipe_context *pctx,
 
     if(buf == NULL) /* Unbinding constant buffer */
     {
-        switch(shader)
-        {
-        case PIPE_SHADER_VERTEX:
-            ctx->vs_cbuf_s.user_buffer = 0; break;
-        case PIPE_SHADER_FRAGMENT:
-            ctx->fs_cbuf_s.user_buffer = 0; break;
-        default: DBG("Unhandled shader type %i", shader);
-        }
+        ctx->constant_buffer[shader].buffer = 0;
     } else {
         assert(buf->buffer == NULL && buf->user_buffer != NULL);
 
         /* copy only up to shader-specific constant size; never overwrite immediates */
-        switch(shader)
-        {
-        case PIPE_SHADER_VERTEX:
-            ctx->vs_cbuf_s = *buf; break;
-        case PIPE_SHADER_FRAGMENT:
-            ctx->fs_cbuf_s = *buf; break;
-        default: DBG("Unhandled shader type %i", shader);
-        }
+        ctx->constant_buffer[shader] = *buf;
         etna_fetch_uniforms(ctx, shader);
     }
 }
