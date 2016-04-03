@@ -149,6 +149,7 @@ struct etna_compile_data
     bool dead_inst[ETNA_MAX_TOKENS];
 
     /* Immediate data */
+    bool imm_used[ETNA_MAX_IMM];
     uint32_t imm_data[ETNA_MAX_IMM];
     uint32_t imm_base; /* base of immediates (in 32 bit units) */
     uint32_t imm_size; /* size of immediates (in 32 bit units) */
@@ -333,6 +334,7 @@ static struct etna_inst_src alloc_imm_u32(struct etna_compile_data *cd, uint32_t
         assert(cd->imm_size < ETNA_MAX_IMM);
         idx = cd->imm_size++;
         cd->imm_data[idx] = value;
+        cd->imm_used[idx] = true;
     }
 
     /* swizzle so that component with value is returned in all components */
@@ -361,11 +363,12 @@ static struct etna_inst_src alloc_imm_vec4u(struct etna_compile_data *cd, const 
     }
     if (idx + 3 >= cd->imm_size)
     {
-        /* It would be nice to remember that there could be a space... */
         idx = align(cd->imm_size, 4);
         assert(idx + 4 <= ETNA_MAX_IMM);
-        for (i = 0; i < 4; i++)
+        for (i = 0; i < 4; i++) {
             cd->imm_data[idx + i] = values[i];
+            cd->imm_used[idx + i] = true;
+        }
         cd->imm_size = idx + 4;
     }
 
@@ -420,7 +423,10 @@ static void etna_compile_parse_declarations(struct etna_compile_data *cd)
             assert(cd->imm_size <= (ETNA_MAX_IMM-4));
             for(int i=0; i<4; ++i)
             {
-                cd->imm_data[cd->imm_size++] = imm->u[i].Uint;
+                unsigned idx = cd->imm_size++;
+
+                cd->imm_data[idx] = imm->u[i].Uint;
+                cd->imm_used[idx] = true;
             }
             } break;
         }
