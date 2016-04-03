@@ -329,6 +329,15 @@ static struct etna_inst_src alloc_imm_u32(struct etna_compile_data *cd, uint32_t
         if(cd->imm_data[idx] == value)
             break;
     }
+
+    /* look if there is an unused slot */
+    if (idx == cd->imm_size) {
+        for (idx = 0; idx < cd->imm_size; ++idx) {
+            if (!cd->imm_used[idx])
+                break;
+        }
+    }
+
     if(idx == cd->imm_size) /* allocate new immediate */
     {
         assert(cd->imm_size < ETNA_MAX_IMM);
