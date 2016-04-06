@@ -51,6 +51,7 @@ static const struct etna_specs specs_gc2000 = {
 	.max_registers = 64,
 	.max_vs_uniforms = 168,
 	.max_ps_uniforms = 128,
+	.num_constants = 168,
 };
 
 static int read_file(const char *filename, void **ptr, size_t *size)
