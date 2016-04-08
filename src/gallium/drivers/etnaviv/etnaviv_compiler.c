@@ -897,6 +897,23 @@ static void label_mark_use(struct etna_compile_data *cd, struct etna_compile_lab
     cd->lbl_usage[cd->inst_ptr] = label;
 }
 
+struct instr_translater {
+    void (*fxn)(const struct instr_translater *t,
+            struct etna_compile_data *cd,
+            const struct tgsi_full_instruction *inst,
+            struct etna_inst_src *src);
+    unsigned tgsi_opc;
+    uint8_t opc;
+
+    /* tgsi src -> etna src swizzle */
+    int src[3];
+};
+
+static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
+#define INSTR(n, f, ...) \
+    [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
+};
+
 /* Pass -- compile instructions */
 static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
 {
@@ -940,9 +957,19 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 src[i] = etna_create_src(reg, n);
             }
 
+            const unsigned opc = inst->Instruction.Opcode;
+            const struct instr_translater *t = &translaters[opc];
+
+            if (t->fxn) {
+                t->fxn(t, cd, inst, src);
+
+                inst_idx += 1;
+                continue;
+            }
+
             /* Use a naive switch statement to get up and running, later on when we have more experience with
              * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
-            switch(inst->Instruction.Opcode)
+            switch (opc)
             {
             case TGSI_OPCODE_ARL:
                 emit_inst(cd, &(struct etna_inst) {
