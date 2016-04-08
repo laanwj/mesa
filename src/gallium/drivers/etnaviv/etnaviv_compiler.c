@@ -909,9 +909,48 @@ struct instr_translater {
     int src[3];
 };
 
+static void trans_instr(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    const struct tgsi_opcode_info *info = tgsi_get_opcode_info(inst->Instruction.Opcode);
+    struct etna_inst instr = {};
+
+    instr.opcode = t->opc;
+    instr.sat = inst->Instruction.Saturate;
+    instr.dst = convert_dst(cd, &inst->Dst[0]);
+
+    assert(info->num_src <= ETNA_NUM_SRC);
+
+    for (unsigned i = 0; i < info->num_src; i++) {
+        int swizzle = t->src[i];
+
+        assert(swizzle != -1);
+        instr.src[swizzle] = src[i];
+    }
+
+    emit_inst(cd, &instr);
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
+
+    INSTR(ARL,  trans_instr, .opc = INST_OPCODE_MOVAR, .src = { 2, -1, -1 } ),
+    INSTR(MOV,  trans_instr, .opc = INST_OPCODE_MOV,   .src = { 2, -1, -1 } ),
+    INSTR(RCP,  trans_instr, .opc = INST_OPCODE_RCP,   .src = { 2, -1, -1 } ),
+    INSTR(RSQ,  trans_instr, .opc = INST_OPCODE_RSQ,   .src = { 2, -1, -1 } ),
+    INSTR(MUL,  trans_instr, .opc = INST_OPCODE_MUL,   .src = { 0,  1, -1 } ),
+    INSTR(ADD,  trans_instr, .opc = INST_OPCODE_ADD,   .src = { 0,  2, -1 } ),
+    INSTR(DP3,  trans_instr, .opc = INST_OPCODE_DP3,   .src = { 0,  1, -1 } ),
+    INSTR(DP4,  trans_instr, .opc = INST_OPCODE_DP4,   .src = { 0,  1, -1 } ),
+    INSTR(DST,  trans_instr, .opc = INST_OPCODE_DST,   .src = { 0,  1, -1 } ),
+    INSTR(MAD,  trans_instr, .opc = INST_OPCODE_MAD,   .src = { 0,  1,  2 } ),
+    INSTR(EX2,  trans_instr, .opc = INST_OPCODE_EXP,   .src = { 2, -1, -1 } ),
+    INSTR(LG2,  trans_instr, .opc = INST_OPCODE_LOG,   .src = { 2, -1, -1 } ),
+    INSTR(SQRT, trans_instr, .opc = INST_OPCODE_SQRT,  .src = { 2, -1, -1 } ),
+    INSTR(FRC,  trans_instr, .opc = INST_OPCODE_FRC,   .src = { 2, -1, -1 } ),
 };
 
 /* Pass -- compile instructions */
@@ -971,22 +1010,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
              * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
             switch (opc)
             {
-            case TGSI_OPCODE_ARL:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_MOVAR,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
-                break;
-            case TGSI_OPCODE_MOV:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_MOV,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
-                break;
             case TGSI_OPCODE_LIT: {
                 /* SELECT.LT tmp._y__, 0, src.yyyy, 0
                  *  - can be eliminated if src.y is a uniform and >= 0
@@ -1063,67 +1086,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .src[2] = etna_native_to_src(inner_temp, SWIZZLE(X,X,X,X)),
                         });
                 } break;
-            case TGSI_OPCODE_RCP:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_RCP,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
-                break;
-            case TGSI_OPCODE_RSQ:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_RSQ,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
-                break;
-            case TGSI_OPCODE_MUL:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_MUL,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[1] = src[1],
-                        });
-                break;
-            case TGSI_OPCODE_ADD:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_ADD,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[2] = src[1],
-                        });
-                break;
-            case TGSI_OPCODE_DP3:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_DP3,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[1] = src[1],
-                        });
-                break;
-            case TGSI_OPCODE_DP4:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_DP4,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[1] = src[1],
-                        });
-                break;
-            case TGSI_OPCODE_DST:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_DST,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[1] = src[1],
-                        });
-                break;
             case TGSI_OPCODE_MIN:
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_SELECT,
@@ -1171,16 +1133,7 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .src[1] = src[1],
                         });
                 } break;
-            case TGSI_OPCODE_MAD:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_MAD,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[1] = src[1],
-                        .src[2] = src[2],
-                        });
-                break;
+
             case TGSI_OPCODE_SUB: { /* ADD with negated SRC1 */
                 struct etna_inst inst_out = {
                     .opcode = INST_OPCODE_ADD,
@@ -1222,22 +1175,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 emit_inst(cd, &mad[0]);
                 emit_inst(cd, &mad[1]);
                 } break;
-            case TGSI_OPCODE_SQRT: /* only generated if HAS_SQRT_TRIG */
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_SQRT,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
-                break;
-            case TGSI_OPCODE_FRC:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_FRC,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
-                break;
             case TGSI_OPCODE_FLR: /* XXX HAS_SIGN_FLOOR_CEIL */
                 if (cd->specs->has_sign_floor_ceil)
                 {
@@ -1317,22 +1254,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                     emit_inst(cd, &ins[0]);
                     emit_inst(cd, &ins[1]);
                 }
-                break;
-            case TGSI_OPCODE_EX2:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_EXP,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
-                break;
-            case TGSI_OPCODE_LG2:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_LOG,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
                 break;
             case TGSI_OPCODE_XPD: {
                 /*
