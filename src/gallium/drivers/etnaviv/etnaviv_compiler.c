@@ -922,7 +922,10 @@ static void trans_instr(const struct instr_translater *t,
     instr.opcode = t->opc;
     instr.cond = t->cond;
     instr.sat = inst->Instruction.Saturate;
-    instr.dst = convert_dst(cd, &inst->Dst[0]);
+
+    assert(info->num_dst <= 1);
+    if (info->num_dst)
+        instr.dst = convert_dst(cd, &inst->Dst[0]);
 
     assert(info->num_src <= ETNA_NUM_SRC);
 
@@ -970,6 +973,9 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(LG2,  trans_instr, .opc = INST_OPCODE_LOG,   .src = { 2, -1, -1 } ),
     INSTR(SQRT, trans_instr, .opc = INST_OPCODE_SQRT,  .src = { 2, -1, -1 } ),
     INSTR(FRC,  trans_instr, .opc = INST_OPCODE_FRC,   .src = { 2, -1, -1 } ),
+
+    INSTR(KILL, trans_instr, .opc = INST_OPCODE_TEXKILL ),
+    INSTR(KILL_IF, trans_instr, .opc = INST_OPCODE_TEXKILL, .src = { 0 , -1, -1},  .cond = INST_CONDITION_LZ ),
 
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
@@ -1445,21 +1451,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .dst = convert_dst(cd, &inst->Dst[0]),
                         .src[0] = src[0],
                         .src[2] = src[0],
-                        });
-                break;
-            case TGSI_OPCODE_KILL_IF:
-                /* discard if (src.x < 0 || src.y < 0 || src.z < 0 || src.w < 0) */
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_TEXKILL,
-                        .cond = INST_CONDITION_LZ,
-                        .src[0] = src[0]
-                        });
-                break;
-            case TGSI_OPCODE_KILL:
-                /* discard always */
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_TEXKILL,
-                        .cond = INST_CONDITION_TRUE
                         });
                 break;
             case TGSI_OPCODE_TEX:
