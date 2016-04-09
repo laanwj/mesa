@@ -973,6 +973,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(LG2,  trans_instr, .opc = INST_OPCODE_LOG,   .src = { 2, -1, -1 } ),
     INSTR(SQRT, trans_instr, .opc = INST_OPCODE_SQRT,  .src = { 2, -1, -1 } ),
     INSTR(FRC,  trans_instr, .opc = INST_OPCODE_FRC,   .src = { 2, -1, -1 } ),
+    INSTR(CMP,  trans_instr, .opc = INST_OPCODE_SELECT,.src = { 0,  1,  2 }, .cond = INST_CONDITION_LZ ),
 
     INSTR(KILL, trans_instr, .opc = INST_OPCODE_TEXKILL ),
     INSTR(KILL_IF, trans_instr, .opc = INST_OPCODE_TEXKILL, .src = { 0 , -1, -1},  .cond = INST_CONDITION_LZ ),
@@ -1485,17 +1486,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .src[0] = etna_native_to_src(temp, INST_SWIZ_IDENTITY), /* tmp.xyzw */
                         });
                 } break;
-            case TGSI_OPCODE_CMP: /* componentwise dst = (src0 < 0) ? src1 : src2 */
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_SELECT,
-                        .cond = INST_CONDITION_LZ,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[1] = src[1],
-                        .src[2] = src[2],
-                        });
-                break;
             case TGSI_OPCODE_IF:  {
                 struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp++];
                 struct etna_inst_src imm_0 = alloc_imm_f32(cd, 0.0f);
