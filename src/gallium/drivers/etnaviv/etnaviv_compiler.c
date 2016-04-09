@@ -920,6 +920,7 @@ static void trans_instr(const struct instr_translater *t,
     struct etna_inst instr = {};
 
     instr.opcode = t->opc;
+    instr.cond = t->cond;
     instr.sat = inst->Instruction.Saturate;
     instr.dst = convert_dst(cd, &inst->Dst[0]);
 
@@ -972,6 +973,13 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
+
+    INSTR(SLT, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_LT ),
+    INSTR(SGE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_GE ),
+    INSTR(SEQ, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_EQ ),
+    INSTR(SGT, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_GT ),
+    INSTR(SLE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_LE ),
+    INSTR(SNE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_NE ),
 };
 
 /* Pass -- compile instructions */
@@ -1107,32 +1115,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .src[2] = etna_native_to_src(inner_temp, SWIZZLE(X,X,X,X)),
                         });
                 } break;
-            case TGSI_OPCODE_SLT:
-            case TGSI_OPCODE_SGE:
-            case TGSI_OPCODE_SEQ:
-            case TGSI_OPCODE_SGT:
-            case TGSI_OPCODE_SLE:
-            case TGSI_OPCODE_SNE: {
-                uint cond = 0;
-                switch(inst->Instruction.Opcode)
-                {
-                case TGSI_OPCODE_SLT: cond = INST_CONDITION_LT; break;
-                case TGSI_OPCODE_SGE: cond = INST_CONDITION_GE; break;
-                case TGSI_OPCODE_SEQ: cond = INST_CONDITION_EQ; break;
-                case TGSI_OPCODE_SGT: cond = INST_CONDITION_GT; break;
-                case TGSI_OPCODE_SLE: cond = INST_CONDITION_LE; break;
-                case TGSI_OPCODE_SNE: cond = INST_CONDITION_NE; break;
-                }
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_SET,
-                        .cond = cond,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[1] = src[1],
-                        });
-                } break;
-
             case TGSI_OPCODE_SUB: { /* ADD with negated SRC1 */
                 struct etna_inst inst_out = {
                     .opcode = INST_OPCODE_ADD,
