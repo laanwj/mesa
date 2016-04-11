@@ -1226,6 +1226,14 @@ static void trans_ssg(const struct instr_translater *t,
     }
 }
 
+static void trans_dummy(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    /* nothing to do */
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1271,6 +1279,9 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(SGT, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_GT ),
     INSTR(SLE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_LE ),
     INSTR(SNE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_NE ),
+
+    INSTR(NOP, trans_dummy),
+    INSTR(END, trans_dummy),
 };
 
 /* Pass -- compile instructions */
@@ -1602,8 +1613,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .src[0] = etna_native_to_src(temp, INST_SWIZ_IDENTITY), /* tmp.xyzw */
                         });
                 } break;
-            case TGSI_OPCODE_NOP: break;
-            case TGSI_OPCODE_END: /* Nothing to do */ break;
 
             case TGSI_OPCODE_PK2H:
             case TGSI_OPCODE_PK2US:
