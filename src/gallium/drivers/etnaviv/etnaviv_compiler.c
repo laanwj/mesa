@@ -1091,6 +1091,21 @@ static void trans_sub(const struct instr_translater *t,
     emit_inst(cd, &inst_out);
 }
 
+static void trans_abs(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    /* XXX can be propagated into uses of destination operand */
+    src[0].abs = 1;
+    emit_inst(cd, &(struct etna_inst) {
+            .opcode = INST_OPCODE_MOV,
+            .sat = inst->Instruction.Saturate,
+            .dst = convert_dst(cd, &inst->Dst[0]),
+            .src[2] = src[0],
+            });
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1126,6 +1141,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 
     INSTR(LRP, trans_lrp),
     INSTR(SUB, trans_sub),
+    INSTR(ABS, trans_abs),
 
     INSTR(SLT, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_LT ),
     INSTR(SGE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_GE ),
@@ -1386,15 +1402,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 emit_inst(cd, &ins[1]);
                 emit_inst(cd, &ins[2]);
                 } break;
-            case TGSI_OPCODE_ABS: /* XXX can be propagated into uses of destination operand */
-                src[0].abs = 1;
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_MOV,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = src[0],
-                        });
-                break;
             case TGSI_OPCODE_DPH: { /* src0.x * src1.x + src0.y * src1.y + src0.z * src1.z + src1.w */
                 /*
                 DP3 tmp.xyzw, src0.xyzw, src1,xyzw, void
