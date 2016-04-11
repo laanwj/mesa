@@ -1009,6 +1009,22 @@ static void trans_else(const struct instr_translater *t,
      label_place(cd, f->lbl_else);
 }
 
+static void trans_endif(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    assert(cd->frame_sp>0);
+    struct etna_compile_frame *f = &cd->frame_stack[--cd->frame_sp];
+
+    assert(f->type == ETNA_COMPILE_FRAME_IF);
+    /* assign "endif" or "else" (if no ELSE) label to current position in instruction stream, pop IF */
+    if (f->lbl_endif != NULL)
+        label_place(cd, f->lbl_endif);
+    else
+        label_place(cd, f->lbl_else);
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1034,6 +1050,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 
     INSTR(IF,   trans_if),
     INSTR(ELSE, trans_else),
+    INSTR(ENDIF, trans_endif),
 
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
@@ -1542,16 +1559,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
                         .src[0] = etna_native_to_src(temp, INST_SWIZ_IDENTITY), /* tmp.xyzw */
                         });
-                } break;
-            case TGSI_OPCODE_ENDIF: {
-                assert(cd->frame_sp>0);
-                struct etna_compile_frame *f = &cd->frame_stack[--cd->frame_sp];
-                assert(f->type == ETNA_COMPILE_FRAME_IF);
-                /* assign "endif" or "else" (if no ELSE) label to current position in instruction stream, pop IF */
-                if(f->lbl_endif != NULL)
-                    label_place(cd, f->lbl_endif);
-                else
-                    label_place(cd, f->lbl_else);
                 } break;
             case TGSI_OPCODE_NOP: break;
             case TGSI_OPCODE_END: /* Nothing to do */ break;
