@@ -1189,6 +1189,43 @@ static void trans_lit(const struct instr_translater *t,
              });
 }
 
+static void trans_ssg(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    if (cd->specs->has_sign_floor_ceil)
+    {
+        emit_inst(cd, &(struct etna_inst) {
+                .opcode = INST_OPCODE_SIGN,
+                .sat = inst->Instruction.Saturate,
+                .dst = convert_dst(cd, &inst->Dst[0]),
+                .src[2] = src[0],
+                });
+    }
+    else
+    {
+        struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+        struct etna_inst ins[2] = { };
+
+        ins[0].opcode = INST_OPCODE_SET;
+        ins[0].cond = INST_CONDITION_NZ;
+        ins[0].dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W);
+        ins[0].src[0] = src[0];
+
+        ins[1].opcode = INST_OPCODE_SELECT;
+        ins[1].cond = INST_CONDITION_LZ;
+        ins[1].sat = inst->Instruction.Saturate;
+        ins[1].dst = convert_dst(cd, &inst->Dst[0]);
+        ins[1].src[0] = src[0];
+        ins[1].src[2] = etna_native_to_src(temp, INST_SWIZ_IDENTITY);
+        ins[1].src[1] = negate(ins[1].src[2]);
+
+        emit_inst(cd, &ins[0]);
+        emit_inst(cd, &ins[1]);
+    }
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1224,6 +1261,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 
     INSTR(LRP, trans_lrp),
     INSTR(LIT, trans_lit),
+    INSTR(SSG, trans_ssg),
     INSTR(SUB, trans_sub),
     INSTR(ABS, trans_abs),
 
@@ -1338,38 +1376,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 {
                     BUG("Unhandled instruction %s", tgsi_get_opcode_name(inst->Instruction.Opcode));
                     assert(0);
-                }
-                break;
-            case TGSI_OPCODE_SSG: /* XXX HAS_SIGN_FLOOR_CEIL */
-                if (cd->specs->has_sign_floor_ceil)
-                {
-                    emit_inst(cd, &(struct etna_inst) {
-                            .opcode = INST_OPCODE_SIGN,
-                            .sat = sat,
-                            .dst = convert_dst(cd, &inst->Dst[0]),
-                            .src[2] = src[0],
-                            });
-                }
-                else
-                {
-                    struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
-                    struct etna_inst ins[2] = { };
-
-                    ins[0].opcode = INST_OPCODE_SET;
-                    ins[0].cond = INST_CONDITION_NZ;
-                    ins[0].dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W);
-                    ins[0].src[0] = src[0];
-
-                    ins[1].opcode = INST_OPCODE_SELECT;
-                    ins[1].cond = INST_CONDITION_LZ;
-                    ins[1].sat = sat;
-                    ins[1].dst = convert_dst(cd, &inst->Dst[0]);
-                    ins[1].src[0] = src[0];
-                    ins[1].src[2] = etna_native_to_src(temp, INST_SWIZ_IDENTITY);
-                    ins[1].src[1] = negate(ins[1].src[2]);
-
-                    emit_inst(cd, &ins[0]);
-                    emit_inst(cd, &ins[1]);
                 }
                 break;
             case TGSI_OPCODE_XPD: {
