@@ -988,6 +988,27 @@ static void trans_if(const struct instr_translater *t,
             });
 }
 
+static void trans_else(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+     assert(cd->frame_sp > 0);
+     struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp - 1];
+     assert(f->type == ETNA_COMPILE_FRAME_IF);
+
+     /* create "endif" label, and branch to endif label */
+     f->lbl_endif = alloc_new_label(cd);
+     label_mark_use(cd, f->lbl_endif);
+     emit_inst(cd, &(struct etna_inst) {
+             .opcode = INST_OPCODE_BRANCH,
+             .cond = INST_CONDITION_TRUE,
+             /* imm is filled in later */
+             });
+     /* mark "else" label at this position in instruction stream */
+     label_place(cd, f->lbl_else);
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1012,6 +1033,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(KILL_IF, trans_instr, .opc = INST_OPCODE_TEXKILL, .src = { 0 , -1, -1},  .cond = INST_CONDITION_LZ ),
 
     INSTR(IF,   trans_if),
+    INSTR(ELSE, trans_else),
 
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
@@ -1520,21 +1542,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
                         .src[0] = etna_native_to_src(temp, INST_SWIZ_IDENTITY), /* tmp.xyzw */
                         });
-                } break;
-            case TGSI_OPCODE_ELSE: {
-                assert(cd->frame_sp>0);
-                struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp-1];
-                assert(f->type == ETNA_COMPILE_FRAME_IF);
-                /* create "endif" label, and branch to endif label */
-                f->lbl_endif = alloc_new_label(cd);
-                label_mark_use(cd, f->lbl_endif);
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_BRANCH,
-                        .cond = INST_CONDITION_TRUE,
-                        /* imm is filled in later */
-                        });
-                /* mark "else" label at this position in instruction stream */
-                label_place(cd, f->lbl_else);
                 } break;
             case TGSI_OPCODE_ENDIF: {
                 assert(cd->frame_sp>0);
