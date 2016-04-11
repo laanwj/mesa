@@ -1074,6 +1074,23 @@ static void trans_lrp(const struct instr_translater *t,
     emit_inst(cd, &mad[1]);
 }
 
+static void trans_sub(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    struct etna_inst inst_out = {
+        .opcode = INST_OPCODE_ADD,
+        .sat = inst->Instruction.Saturate,
+        .dst = convert_dst(cd, &inst->Dst[0]),
+        .src[0] = src[0],
+        .src[2] = src[1],
+    };
+
+    inst_out.src[2].neg = !inst_out.src[2].neg;
+    emit_inst(cd, &inst_out);
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1108,6 +1125,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
 
     INSTR(LRP, trans_lrp),
+    INSTR(SUB, trans_sub),
 
     INSTR(SLT, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_LT ),
     INSTR(SGE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_GE ),
@@ -1249,17 +1267,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .src[1] = swizzle(src[0], SWIZZLE(X,X,X,X)),
                         .src[2] = etna_native_to_src(inner_temp, SWIZZLE(X,X,X,X)),
                         });
-                } break;
-            case TGSI_OPCODE_SUB: { /* ADD with negated SRC1 */
-                struct etna_inst inst_out = {
-                    .opcode = INST_OPCODE_ADD,
-                    .sat = sat,
-                    .dst = convert_dst(cd, &inst->Dst[0]),
-                    .src[0] = src[0],
-                    .src[2] = src[1],
-                };
-                inst_out.src[2].neg = !inst_out.src[2].neg;
-                emit_inst(cd, &inst_out);
                 } break;
             case TGSI_OPCODE_FLR: /* XXX HAS_SIGN_FLOOR_CEIL */
                 if (cd->specs->has_sign_floor_ceil)
