@@ -1025,6 +1025,20 @@ static void trans_endif(const struct instr_translater *t,
         label_place(cd, f->lbl_else);
 }
 
+static void trans_deriv(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    emit_inst(cd, &(struct etna_inst) {
+            .opcode = t->opc,
+            .sat = inst->Instruction.Saturate,
+            .dst = convert_dst(cd, &inst->Dst[0]),
+            .src[0] = src[0],
+            .src[2] = src[0],
+            });
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1047,6 +1061,9 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 
     INSTR(KILL, trans_instr, .opc = INST_OPCODE_TEXKILL ),
     INSTR(KILL_IF, trans_instr, .opc = INST_OPCODE_TEXKILL, .src = { 0 , -1, -1},  .cond = INST_CONDITION_LZ ),
+
+    INSTR(DDX,  trans_deriv, .opc = INST_OPCODE_DSX),
+    INSTR(DDY,  trans_deriv, .opc = INST_OPCODE_DSY),
 
     INSTR(IF,   trans_if),
     INSTR(ELSE, trans_else),
@@ -1517,16 +1534,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                     for(int i = 0; &ins[i] <= p; i++)
                         emit_inst(cd, &ins[i]);
                 }
-                break;
-            case TGSI_OPCODE_DDX:
-            case TGSI_OPCODE_DDY:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = inst->Instruction.Opcode == TGSI_OPCODE_DDX ? INST_OPCODE_DSX : INST_OPCODE_DSY,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = src[0],
-                        .src[2] = src[0],
-                        });
                 break;
             case TGSI_OPCODE_TEX:
                 emit_inst(cd, &(struct etna_inst) {
