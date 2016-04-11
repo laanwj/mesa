@@ -1106,6 +1106,89 @@ static void trans_abs(const struct instr_translater *t,
             });
 }
 
+static void trans_lit(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+     /* SELECT.LT tmp._y__, 0, src.yyyy, 0
+      *  - can be eliminated if src.y is a uniform and >= 0
+      * SELECT.GT tmp.___w, 128, src.wwww, 128
+      * SELECT.LT tmp.___w, -128, tmp.wwww, -128
+      *  - can be eliminated if src.w is a uniform and fits clamp
+      * LOG tmp.x, void, void, tmp.yyyy
+      * MUL tmp.x, tmp.xxxx, tmp.wwww, void
+      * LITP dst, undef, src.xxxx, tmp.xxxx
+      */
+     struct etna_native_reg inner_temp = etna_compile_get_inner_temp(cd);
+     struct etna_inst_src src_y = { };
+
+     if (!etna_rgroup_is_uniform(src[0].rgroup))
+     {
+          src_y = etna_native_to_src(inner_temp, SWIZZLE(Y,Y,Y,Y));
+
+          struct etna_inst ins = { };
+          ins.opcode = INST_OPCODE_SELECT;
+          ins.cond = INST_CONDITION_LT;
+          ins.dst = etna_native_to_dst(inner_temp, INST_COMPS_Y);
+          ins.src[0] = ins.src[2] = alloc_imm_f32(cd, 0.0);
+          ins.src[1] = swizzle(src[0], SWIZZLE(Y,Y,Y,Y));
+          emit_inst(cd, &ins);
+     }
+     else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 1)) < 0)
+          src_y = alloc_imm_f32(cd, 0.0);
+     else
+          src_y = swizzle(src[0], SWIZZLE(Y,Y,Y,Y));
+
+     struct etna_inst_src src_w = { };
+
+     if (!etna_rgroup_is_uniform(src[0].rgroup))
+     {
+          src_w = etna_native_to_src(inner_temp, SWIZZLE(W,W,W,W));
+
+          struct etna_inst ins = { };
+          ins.opcode = INST_OPCODE_SELECT;
+          ins.cond = INST_CONDITION_GT;
+          ins.dst = etna_native_to_dst(inner_temp, INST_COMPS_W);
+          ins.src[0] = ins.src[2] = alloc_imm_f32(cd, 128.);
+          ins.src[1] = swizzle(src[0], SWIZZLE(W,W,W,W));
+          emit_inst(cd, &ins);
+          ins.cond = INST_CONDITION_LT;
+          ins.src[0].neg = !ins.src[0].neg;
+          ins.src[2].neg = !ins.src[2].neg;
+          ins.src[1] = src_w;
+          emit_inst(cd, &ins);
+     }
+     else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 3)) < -128.)
+          src_w = alloc_imm_f32(cd, -128.);
+     else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 3)) > 128.)
+          src_w = alloc_imm_f32(cd, 128.);
+     else
+          src_w = swizzle(src[0], SWIZZLE(W,W,W,W));
+
+     struct etna_inst ins[3] = { };
+     ins[0].opcode = INST_OPCODE_LOG;
+     ins[0].dst = etna_native_to_dst(inner_temp, INST_COMPS_X);
+     ins[0].src[2] = src_y;
+
+     emit_inst(cd, &ins[0]);
+     emit_inst(cd, &(struct etna_inst) {
+             .opcode = INST_OPCODE_MUL,
+             .sat = 0,
+             .dst = etna_native_to_dst(inner_temp, INST_COMPS_X),
+             .src[0] = etna_native_to_src(inner_temp, SWIZZLE(X,X,X,X)),
+             .src[1] = src_w,
+             });
+     emit_inst(cd, &(struct etna_inst) {
+             .opcode = INST_OPCODE_LITP,
+             .sat = 0,
+             .dst = convert_dst(cd, &inst->Dst[0]),
+             .src[0] = swizzle(src[0], SWIZZLE(X,X,X,X)),
+             .src[1] = swizzle(src[0], SWIZZLE(X,X,X,X)),
+             .src[2] = etna_native_to_src(inner_temp, SWIZZLE(X,X,X,X)),
+             });
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1140,6 +1223,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
 
     INSTR(LRP, trans_lrp),
+    INSTR(LIT, trans_lit),
     INSTR(SUB, trans_sub),
     INSTR(ABS, trans_abs),
 
@@ -1208,82 +1292,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
              * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
             switch (opc)
             {
-            case TGSI_OPCODE_LIT: {
-                /* SELECT.LT tmp._y__, 0, src.yyyy, 0
-                 *  - can be eliminated if src.y is a uniform and >= 0
-                 * SELECT.GT tmp.___w, 128, src.wwww, 128
-                 * SELECT.LT tmp.___w, -128, tmp.wwww, -128
-                 *  - can be eliminated if src.w is a uniform and fits clamp
-                 * LOG tmp.x, void, void, tmp.yyyy
-                 * MUL tmp.x, tmp.xxxx, tmp.wwww, void
-                 * LITP dst, undef, src.xxxx, tmp.xxxx
-                 */
-                struct etna_native_reg inner_temp = etna_compile_get_inner_temp(cd);
-                struct etna_inst_src src_y = { };
-                if (!etna_rgroup_is_uniform(src[0].rgroup))
-                {
-                     src_y = etna_native_to_src(inner_temp, SWIZZLE(Y,Y,Y,Y));
-
-                     struct etna_inst ins = { };
-                     ins.opcode = INST_OPCODE_SELECT;
-                     ins.cond = INST_CONDITION_LT;
-                     ins.dst = etna_native_to_dst(inner_temp, INST_COMPS_Y);
-                     ins.src[0] = ins.src[2] = alloc_imm_f32(cd, 0.0);
-                     ins.src[1] = swizzle(src[0], SWIZZLE(Y,Y,Y,Y));
-                     emit_inst(cd, &ins);
-                }
-                else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 1)) < 0)
-                     src_y = alloc_imm_f32(cd, 0.0);
-                else
-                     src_y = swizzle(src[0], SWIZZLE(Y,Y,Y,Y));
-
-                struct etna_inst_src src_w = { };
-                if (!etna_rgroup_is_uniform(src[0].rgroup))
-                {
-                     src_w = etna_native_to_src(inner_temp, SWIZZLE(W,W,W,W));
-
-                     struct etna_inst ins = { };
-                     ins.opcode = INST_OPCODE_SELECT;
-                     ins.cond = INST_CONDITION_GT;
-                     ins.dst = etna_native_to_dst(inner_temp, INST_COMPS_W);
-                     ins.src[0] = ins.src[2] = alloc_imm_f32(cd, 128.);
-                     ins.src[1] = swizzle(src[0], SWIZZLE(W,W,W,W));
-                     emit_inst(cd, &ins);
-                     ins.cond = INST_CONDITION_LT;
-                     ins.src[0].neg = !ins.src[0].neg;
-                     ins.src[2].neg = !ins.src[2].neg;
-                     ins.src[1] = src_w;
-                     emit_inst(cd, &ins);
-                }
-                else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 3)) < -128.)
-                     src_w = alloc_imm_f32(cd, -128.);
-                else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 3)) > 128.)
-                     src_w = alloc_imm_f32(cd, 128.);
-                else
-                     src_w = swizzle(src[0], SWIZZLE(W,W,W,W));
-
-                struct etna_inst ins[3] = { };
-                ins[0].opcode = INST_OPCODE_LOG;
-                ins[0].dst = etna_native_to_dst(inner_temp, INST_COMPS_X);
-                ins[0].src[2] = src_y;
-
-                emit_inst(cd, &ins[0]);
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_MUL,
-                        .sat = 0,
-                        .dst = etna_native_to_dst(inner_temp, INST_COMPS_X),
-                        .src[0] = etna_native_to_src(inner_temp, SWIZZLE(X,X,X,X)),
-                        .src[1] = src_w,
-                        });
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_LITP,
-                        .sat = 0,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[0] = swizzle(src[0], SWIZZLE(X,X,X,X)),
-                        .src[1] = swizzle(src[0], SWIZZLE(X,X,X,X)),
-                        .src[2] = etna_native_to_src(inner_temp, SWIZZLE(X,X,X,X)),
-                        });
-                } break;
             case TGSI_OPCODE_FLR: /* XXX HAS_SIGN_FLOOR_CEIL */
                 if (cd->specs->has_sign_floor_ceil)
                 {
