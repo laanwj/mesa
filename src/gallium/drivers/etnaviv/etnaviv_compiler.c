@@ -1039,6 +1039,41 @@ static void trans_deriv(const struct instr_translater *t,
             });
 }
 
+static void trans_lrp(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    /* dst = src0 * src1 + (1 - src0) * src2
+     *     => src0 * src1 - (src0 - 1) * src2
+     *     => src0 * src1 - (src0 * src2 - src2)
+     * MAD tTEMP.xyzw, tSRC0.xyzw, tSRC2.xyzw, -tSRC2.xyzw
+     * MAD tDST.xyzw, tSRC0.xyzw, tSRC1.xyzw, -tTEMP.xyzw
+     */
+    struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+    if (etna_src_uniforms_conflict(src[0], src[1]) ||
+        etna_src_uniforms_conflict(src[0], src[2]))
+    {
+        src[0] = etna_mov_src(cd, src[0]);
+    }
+    struct etna_inst mad[2] = { };
+    mad[0].opcode = INST_OPCODE_MAD;
+    mad[0].sat = 0;
+    mad[0].dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W);
+    mad[0].src[0] = src[0];
+    mad[0].src[1] = src[2];
+    mad[0].src[2] = negate(src[2]);
+    mad[1].opcode = INST_OPCODE_MAD;
+    mad[1].sat = inst->Instruction.Saturate;
+    mad[1].dst = convert_dst(cd, &inst->Dst[0]),
+    mad[1].src[0] = src[0];
+    mad[1].src[1] = src[1];
+    mad[1].src[2] = negate(etna_native_to_src(temp, INST_SWIZ_IDENTITY));
+
+    emit_inst(cd, &mad[0]);
+    emit_inst(cd, &mad[1]);
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -1071,6 +1106,8 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
+
+    INSTR(LRP, trans_lrp),
 
     INSTR(SLT, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_LT ),
     INSTR(SGE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_GE ),
@@ -1223,36 +1260,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 };
                 inst_out.src[2].neg = !inst_out.src[2].neg;
                 emit_inst(cd, &inst_out);
-                } break;
-            case TGSI_OPCODE_LRP: {
-                /* dst = src0 * src1 + (1 - src0) * src2
-                 *     => src0 * src1 - (src0 - 1) * src2
-                 *     => src0 * src1 - (src0 * src2 - src2)
-                 * MAD tTEMP.xyzw, tSRC0.xyzw, tSRC2.xyzw, -tSRC2.xyzw
-                 * MAD tDST.xyzw, tSRC0.xyzw, tSRC1.xyzw, -tTEMP.xyzw
-                 */
-                struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
-                if (etna_src_uniforms_conflict(src[0], src[1]) ||
-                    etna_src_uniforms_conflict(src[0], src[2]))
-                {
-                    src[0] = etna_mov_src(cd, src[0]);
-                }
-                struct etna_inst mad[2] = { };
-                mad[0].opcode = INST_OPCODE_MAD;
-                mad[0].sat = 0;
-                mad[0].dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W);
-                mad[0].src[0] = src[0];
-                mad[0].src[1] = src[2];
-                mad[0].src[2] = negate(src[2]);
-                mad[1].opcode = INST_OPCODE_MAD;
-                mad[1].sat = sat;
-                mad[1].dst = convert_dst(cd, &inst->Dst[0]),
-                mad[1].src[0] = src[0];
-                mad[1].src[1] = src[1];
-                mad[1].src[2] = negate(etna_native_to_src(temp, INST_SWIZ_IDENTITY));
-
-                emit_inst(cd, &mad[0]);
-                emit_inst(cd, &mad[1]);
                 } break;
             case TGSI_OPCODE_FLR: /* XXX HAS_SIGN_FLOOR_CEIL */
                 if (cd->specs->has_sign_floor_ceil)
