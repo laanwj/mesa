@@ -955,6 +955,39 @@ static void trans_min_max(const struct instr_translater *t,
             });
 }
 
+static void trans_if(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp++];
+    struct etna_inst_src imm_0 = alloc_imm_f32(cd, 0.0f);
+
+    /* push IF to stack */
+    f->type = ETNA_COMPILE_FRAME_IF;
+    /* create "else" label */
+    f->lbl_else = alloc_new_label(cd);
+    f->lbl_endif = NULL;
+
+    /* We need to avoid the emit_inst() below becoming two instructions */
+    if (etna_src_uniforms_conflict(src[0], imm_0))
+    {
+        src[0] = etna_mov_src(cd, src[0]);
+    }
+
+    /* mark position in instruction stream of label reference so that it can be filled in in next pass */
+    label_mark_use(cd, f->lbl_else);
+
+    /* create conditional branch to label if src0 EQ 0 */
+    emit_inst(cd, &(struct etna_inst) {
+            .opcode = INST_OPCODE_BRANCH,
+            .cond = INST_CONDITION_EQ,
+            .src[0] = src[0],
+            .src[1] = imm_0,
+            /* imm is filled in later */
+            });
+}
+
 static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
@@ -977,6 +1010,8 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 
     INSTR(KILL, trans_instr, .opc = INST_OPCODE_TEXKILL ),
     INSTR(KILL_IF, trans_instr, .opc = INST_OPCODE_TEXKILL, .src = { 0 , -1, -1},  .cond = INST_CONDITION_LZ ),
+
+    INSTR(IF,   trans_if),
 
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
@@ -1484,30 +1519,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                         .dst = convert_dst(cd, &inst->Dst[0]),
                         .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
                         .src[0] = etna_native_to_src(temp, INST_SWIZ_IDENTITY), /* tmp.xyzw */
-                        });
-                } break;
-            case TGSI_OPCODE_IF:  {
-                struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp++];
-                struct etna_inst_src imm_0 = alloc_imm_f32(cd, 0.0f);
-                /* push IF to stack */
-                f->type = ETNA_COMPILE_FRAME_IF;
-                /* create "else" label */
-                f->lbl_else = alloc_new_label(cd);
-                f->lbl_endif = NULL;
-                /* We need to avoid the emit_inst() below becoming two instructions */
-                if(etna_src_uniforms_conflict(src[0], imm_0))
-                {
-                    src[0] = etna_mov_src(cd, src[0]);
-                }
-                /* mark position in instruction stream of label reference so that it can be filled in in next pass */
-                label_mark_use(cd, f->lbl_else);
-                /* create conditional branch to label if src0 EQ 0 */
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_BRANCH,
-                        .cond = INST_CONDITION_EQ,
-                        .src[0] = src[0],
-                        .src[1] = imm_0,
-                        /* imm is filled in later */
                         });
                 } break;
             case TGSI_OPCODE_ELSE: {
