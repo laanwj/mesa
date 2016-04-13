@@ -1226,6 +1226,142 @@ static void trans_ssg(const struct instr_translater *t,
     }
 }
 
+static void trans_trig(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+     if (cd->specs->has_sin_cos_sqrt)
+     {
+         /* TGSI lowering should deal with SCS */
+         assert(inst->Instruction.Opcode != TGSI_OPCODE_SCS);
+
+         struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+         /* add divide by PI/2, using a temp register. GC2000
+          * fails with src==dst for the trig instruction. */
+         emit_inst(cd, &(struct etna_inst) {
+             .opcode = INST_OPCODE_MUL,
+             .sat = 0,
+             .dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W),
+             .src[0] = src[0], /* any swizzling happens here */
+             .src[1] = alloc_imm_f32(cd, 2.0f/M_PI),
+         });
+         emit_inst(cd, &(struct etna_inst) {
+             .opcode = inst->Instruction.Opcode == TGSI_OPCODE_COS ? INST_OPCODE_COS : INST_OPCODE_SIN,
+             .sat = inst->Instruction.Saturate,
+             .dst = convert_dst(cd, &inst->Dst[0]),
+             .src[2] = etna_native_to_src(temp, INST_SWIZ_IDENTITY),
+         });
+     }
+     else
+     {
+         /* Implement Nick's fast sine/cosine. Taken from:
+          * http://forum.devmaster.net/t/fast-and-accurate-sine-cosine/9648
+          * A=(1/2*PI 0 1/2*PI 0) B=(0.75 0 0.5 0) C=(-4 4 X X)
+          *  MAD t.x_zw, src.xxxx, A, B
+          *  FRC t.x_z_, void, void, t.xwzw
+          *  MAD t.x_z_, t.xwzw, 2, -1
+          *  MUL t._y__, t.wzww, |t.wzww|, void  (for sin/scs)
+          *  DP3 t.x_z_, t.zyww, C, void         (for sin)
+          *  DP3 t.__z_, t.zyww, C, void         (for scs)
+          *  MUL t._y__, t.wxww, |t.wxww|, void  (for cos/scs)
+          *  DP3 t.x_z_, t.xyww, C, void         (for cos)
+          *  DP3 t.x___, t.xyww, C, void         (for scs)
+          *  MAD t._y_w, t,xxzz, |t.xxzz|, -t.xxzz
+          *  MAD dst, t.ywyw, .2225, t.xzxz
+          *
+          * TODO: we don't set dst.zw correctly for SCS.
+          */
+         struct etna_inst *p, ins[9] = { };
+         struct etna_native_reg t0 = etna_compile_get_inner_temp(cd);
+         struct etna_inst_src t0s = etna_native_to_src(t0, INST_SWIZ_IDENTITY);
+         struct etna_inst_src sincos[3], in = src[0];
+         sincos[0] = etna_imm_vec4f(cd, sincos_const[0]);
+         sincos[1] = etna_imm_vec4f(cd, sincos_const[1]);
+
+         /* A uniform source will cause the inner temp limit to
+          * be exceeded.  Explicitly deal with that scenario.
+          */
+         if (etna_rgroup_is_uniform(src[0].rgroup))
+         {
+             struct etna_inst ins = { };
+             ins.opcode = INST_OPCODE_MOV;
+             ins.dst = etna_native_to_dst(t0, INST_COMPS_X);
+             ins.src[2] = in;
+             emit_inst(cd, &ins);
+             in = t0s;
+         }
+
+         ins[0].opcode = INST_OPCODE_MAD;
+         ins[0].dst = etna_native_to_dst(t0, INST_COMPS_X | INST_COMPS_Z | INST_COMPS_W);
+         ins[0].src[0] = swizzle(in, SWIZZLE(X,X,X,X));
+         ins[0].src[1] = swizzle(sincos[1], SWIZZLE(X,W,X,W)); /* 1/2*PI */
+         ins[0].src[2] = swizzle(sincos[1], SWIZZLE(Y,W,Z,W)); /* 0.75, 0, 0.5, 0 */
+
+         ins[1].opcode = INST_OPCODE_FRC;
+         ins[1].dst = etna_native_to_dst(t0, INST_COMPS_X | INST_COMPS_Z);
+         ins[1].src[2] = swizzle(t0s, SWIZZLE(X,W,Z,W));
+
+         ins[2].opcode = INST_OPCODE_MAD;
+         ins[2].dst = etna_native_to_dst(t0, INST_COMPS_X | INST_COMPS_Z);
+         ins[2].src[0] = swizzle(t0s, SWIZZLE(X,W,Z,W));
+         ins[2].src[1] = swizzle(sincos[0], SWIZZLE(X,X,X,X)); /* 2 */
+         ins[2].src[2] = swizzle(sincos[0], SWIZZLE(Y,Y,Y,Y)); /* -1 */
+
+         unsigned mul_swiz, dp3_swiz;
+         if (inst->Instruction.Opcode == TGSI_OPCODE_SIN)
+         {
+             mul_swiz = SWIZZLE(W,Z,W,W);
+             dp3_swiz = SWIZZLE(Z,Y,W,W);
+         }
+         else
+         {
+             mul_swiz = SWIZZLE(W,X,W,W);
+             dp3_swiz = SWIZZLE(X,Y,W,W);
+         }
+
+         ins[3].opcode = INST_OPCODE_MUL;
+         ins[3].dst = etna_native_to_dst(t0, INST_COMPS_Y);
+         ins[3].src[0] = swizzle(t0s, mul_swiz);
+         ins[3].src[1] = absolute(ins[3].src[0]);
+
+         ins[4].opcode = INST_OPCODE_DP3;
+         ins[4].dst = etna_native_to_dst(t0, INST_COMPS_X | INST_COMPS_Z);
+         ins[4].src[0] = swizzle(t0s, dp3_swiz);
+         ins[4].src[1] = swizzle(sincos[0], SWIZZLE(Z,W,W,W));
+
+         if (inst->Instruction.Opcode == TGSI_OPCODE_SCS) {
+             ins[5] = ins[3];
+             ins[6] = ins[4];
+             ins[4].dst.comps = INST_COMPS_X;
+             ins[6].dst.comps = INST_COMPS_Z;
+             ins[5].src[0] = swizzle(t0s, SWIZZLE(W,Z,W,W));
+             ins[6].src[0] = swizzle(t0s, SWIZZLE(Z,Y,W,W));
+             ins[5].src[1] = absolute(ins[5].src[0]);
+             p = &ins[7];
+         } else {
+             p = &ins[5];
+         }
+
+         p->opcode = INST_OPCODE_MAD;
+         p->dst = etna_native_to_dst(t0, INST_COMPS_Y | INST_COMPS_W);
+         p->src[0] = swizzle(t0s, SWIZZLE(X,X,Z,Z));
+         p->src[1] = absolute(p->src[0]);
+         p->src[2] = negate(p->src[0]);
+
+         p++;
+         p->opcode = INST_OPCODE_MAD;
+         p->sat = inst->Instruction.Saturate;
+         p->dst = convert_dst(cd, &inst->Dst[0]),
+         p->src[0] = swizzle(t0s, SWIZZLE(Y,W,Y,W));
+         p->src[1] = alloc_imm_f32(cd, 0.2225);
+         p->src[2] = swizzle(t0s, SWIZZLE(X,Z,X,Z));
+
+         for(int i = 0; &ins[i] <= p; i++)
+             emit_inst(cd, &ins[i]);
+     }
+}
+
 static void trans_dummy(const struct instr_translater *t,
         struct etna_compile_data *cd,
         const struct tgsi_full_instruction *inst,
@@ -1272,6 +1408,10 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(SSG, trans_ssg),
     INSTR(SUB, trans_sub),
     INSTR(ABS, trans_abs),
+
+    INSTR(SIN, trans_trig),
+    INSTR(COS, trans_trig),
+    INSTR(SCS, trans_trig),
 
     INSTR(SLT, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_LT ),
     INSTR(SGE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_GE ),
@@ -1448,139 +1588,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 emit_inst(cd, &ins[0]);
                 emit_inst(cd, &ins[1]);
                 } break;
-            case TGSI_OPCODE_COS: /* fall through */
-            case TGSI_OPCODE_SIN: /* fall through */
-            case TGSI_OPCODE_SCS:
-                if(cd->specs->has_sin_cos_sqrt)
-                {
-                    /* TGSI lowering should deal with SCS */
-                    assert(inst->Instruction.Opcode != TGSI_OPCODE_SCS);
-
-                    struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
-                    /* add divide by PI/2, using a temp register. GC2000
-                     * fails with src==dst for the trig instruction. */
-                    emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_MUL,
-                        .sat = 0,
-                        .dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W),
-                        .src[0] = src[0], /* any swizzling happens here */
-                        .src[1] = alloc_imm_f32(cd, 2.0f/M_PI),
-                    });
-                    emit_inst(cd, &(struct etna_inst) {
-                        .opcode = inst->Instruction.Opcode == TGSI_OPCODE_COS ? INST_OPCODE_COS : INST_OPCODE_SIN,
-                        .sat = sat,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .src[2] = etna_native_to_src(temp, INST_SWIZ_IDENTITY),
-                    });
-                }
-                else
-                {
-                    /* Implement Nick's fast sine/cosine. Taken from:
-                     * http://forum.devmaster.net/t/fast-and-accurate-sine-cosine/9648
-                     * A=(1/2*PI 0 1/2*PI 0) B=(0.75 0 0.5 0) C=(-4 4 X X)
-                     *  MAD t.x_zw, src.xxxx, A, B
-                     *  FRC t.x_z_, void, void, t.xwzw
-                     *  MAD t.x_z_, t.xwzw, 2, -1
-                     *  MUL t._y__, t.wzww, |t.wzww|, void  (for sin/scs)
-                     *  DP3 t.x_z_, t.zyww, C, void         (for sin)
-                     *  DP3 t.__z_, t.zyww, C, void         (for scs)
-                     *  MUL t._y__, t.wxww, |t.wxww|, void  (for cos/scs)
-                     *  DP3 t.x_z_, t.xyww, C, void         (for cos)
-                     *  DP3 t.x___, t.xyww, C, void         (for scs)
-                     *  MAD t._y_w, t,xxzz, |t.xxzz|, -t.xxzz
-                     *  MAD dst, t.ywyw, .2225, t.xzxz
-                     *
-                     * TODO: we don't set dst.zw correctly for SCS.
-                     */
-                    struct etna_inst *p, ins[9] = { };
-                    struct etna_native_reg t0 = etna_compile_get_inner_temp(cd);
-                    struct etna_inst_src t0s = etna_native_to_src(t0, INST_SWIZ_IDENTITY);
-                    struct etna_inst_src sincos[3], in = src[0];
-                    sincos[0] = etna_imm_vec4f(cd, sincos_const[0]);
-                    sincos[1] = etna_imm_vec4f(cd, sincos_const[1]);
-
-                    /* A uniform source will cause the inner temp limit to
-                     * be exceeded.  Explicitly deal with that scenario.
-                     */
-                    if (etna_rgroup_is_uniform(src[0].rgroup))
-                    {
-                        struct etna_inst ins = { };
-                        ins.opcode = INST_OPCODE_MOV;
-                        ins.dst = etna_native_to_dst(t0, INST_COMPS_X);
-                        ins.src[2] = in;
-                        emit_inst(cd, &ins);
-                        in = t0s;
-                    }
-
-                    ins[0].opcode = INST_OPCODE_MAD;
-                    ins[0].dst = etna_native_to_dst(t0, INST_COMPS_X | INST_COMPS_Z | INST_COMPS_W);
-                    ins[0].src[0] = swizzle(in, SWIZZLE(X,X,X,X));
-                    ins[0].src[1] = swizzle(sincos[1], SWIZZLE(X,W,X,W)); /* 1/2*PI */
-                    ins[0].src[2] = swizzle(sincos[1], SWIZZLE(Y,W,Z,W)); /* 0.75, 0, 0.5, 0 */
-
-                    ins[1].opcode = INST_OPCODE_FRC;
-                    ins[1].dst = etna_native_to_dst(t0, INST_COMPS_X | INST_COMPS_Z);
-                    ins[1].src[2] = swizzle(t0s, SWIZZLE(X,W,Z,W));
-
-                    ins[2].opcode = INST_OPCODE_MAD;
-                    ins[2].dst = etna_native_to_dst(t0, INST_COMPS_X | INST_COMPS_Z);
-                    ins[2].src[0] = swizzle(t0s, SWIZZLE(X,W,Z,W));
-                    ins[2].src[1] = swizzle(sincos[0], SWIZZLE(X,X,X,X)); /* 2 */
-                    ins[2].src[2] = swizzle(sincos[0], SWIZZLE(Y,Y,Y,Y)); /* -1 */
-
-                    unsigned mul_swiz, dp3_swiz;
-                    if (inst->Instruction.Opcode == TGSI_OPCODE_SIN)
-                    {
-                        mul_swiz = SWIZZLE(W,Z,W,W);
-                        dp3_swiz = SWIZZLE(Z,Y,W,W);
-                    }
-                    else
-                    {
-                        mul_swiz = SWIZZLE(W,X,W,W);
-                        dp3_swiz = SWIZZLE(X,Y,W,W);
-                    }
-
-                    ins[3].opcode = INST_OPCODE_MUL;
-                    ins[3].dst = etna_native_to_dst(t0, INST_COMPS_Y);
-                    ins[3].src[0] = swizzle(t0s, mul_swiz);
-                    ins[3].src[1] = absolute(ins[3].src[0]);
-
-                    ins[4].opcode = INST_OPCODE_DP3;
-                    ins[4].dst = etna_native_to_dst(t0, INST_COMPS_X | INST_COMPS_Z);
-                    ins[4].src[0] = swizzle(t0s, dp3_swiz);
-                    ins[4].src[1] = swizzle(sincos[0], SWIZZLE(Z,W,W,W));
-
-                    if (inst->Instruction.Opcode == TGSI_OPCODE_SCS) {
-                        ins[5] = ins[3];
-                        ins[6] = ins[4];
-                        ins[4].dst.comps = INST_COMPS_X;
-                        ins[6].dst.comps = INST_COMPS_Z;
-                        ins[5].src[0] = swizzle(t0s, SWIZZLE(W,Z,W,W));
-                        ins[6].src[0] = swizzle(t0s, SWIZZLE(Z,Y,W,W));
-                        ins[5].src[1] = absolute(ins[5].src[0]);
-                        p = &ins[7];
-                    } else {
-                        p = &ins[5];
-                    }
-
-                    p->opcode = INST_OPCODE_MAD;
-                    p->dst = etna_native_to_dst(t0, INST_COMPS_Y | INST_COMPS_W);
-                    p->src[0] = swizzle(t0s, SWIZZLE(X,X,Z,Z));
-                    p->src[1] = absolute(p->src[0]);
-                    p->src[2] = negate(p->src[0]);
-
-                    p++;
-                    p->opcode = INST_OPCODE_MAD;
-                    p->sat = sat;
-                    p->dst = convert_dst(cd, &inst->Dst[0]),
-                    p->src[0] = swizzle(t0s, SWIZZLE(Y,W,Y,W));
-                    p->src[1] = alloc_imm_f32(cd, 0.2225);
-                    p->src[2] = swizzle(t0s, SWIZZLE(X,Z,X,Z));
-
-                    for(int i = 0; &ins[i] <= p; i++)
-                        emit_inst(cd, &ins[i]);
-                }
-                break;
             case TGSI_OPCODE_TEX:
                 emit_inst(cd, &(struct etna_inst) {
                         .opcode = INST_OPCODE_TEXLD,
