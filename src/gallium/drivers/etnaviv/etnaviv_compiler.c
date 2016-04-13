@@ -1420,6 +1420,49 @@ static void trans_ceil(const struct instr_translater *t,
      }
 }
 
+static void trans_xpd(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+     /*
+      * MUL tTEMP.xyzw, src0.zxyw, src1.yzxw, void
+      * MAD tDST.xyz_, src0.yzxw, src1.zxyw, -tTEMP.xyzw
+      * MOV tDST.___w, void, void, 1
+      */
+     struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+     struct etna_inst_dst dst = convert_dst(cd, &inst->Dst[0]);
+     /* If we have two uniforms, sort it out here so we don't
+      * emit additional unnecessary MOVs */
+     if(etna_src_uniforms_conflict(src[0], src[1]))
+     {
+         src[1] = etna_mov_src(cd, src[1]);
+     }
+     struct etna_inst ins[3] = { };
+     ins[0].opcode = INST_OPCODE_MUL;
+     ins[0].sat = 0;
+     ins[0].dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W);
+     ins[0].src[0] = swizzle(src[0], SWIZZLE(Z,X,Y,W));
+     ins[0].src[1] = swizzle(src[1], SWIZZLE(Y,Z,X,W));
+
+     ins[1].opcode = INST_OPCODE_MAD;
+     ins[1].sat = inst->Instruction.Saturate;
+     ins[1].dst = dst;
+     ins[1].dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z;
+     ins[1].src[0] = swizzle(src[0], SWIZZLE(Y,Z,X,W));
+     ins[1].src[1] = swizzle(src[1], SWIZZLE(Z,X,Y,W));
+     ins[1].src[2] = negate(etna_native_to_src(temp, INST_SWIZ_IDENTITY));
+
+     ins[2].opcode = INST_OPCODE_MOV;
+     ins[2].dst = dst;
+     ins[2].dst.comps = INST_COMPS_W;
+     ins[2].src[2] = alloc_imm_f32(cd, 1.0f);
+
+     emit_inst(cd, &ins[0]);
+     emit_inst(cd, &ins[1]);
+     emit_inst(cd, &ins[2]);
+}
+
 static void trans_dummy(const struct instr_translater *t,
         struct etna_compile_data *cd,
         const struct tgsi_full_instruction *inst,
@@ -1464,6 +1507,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(LRP, trans_lrp),
     INSTR(LIT, trans_lit),
     INSTR(SSG, trans_ssg),
+    INSTR(XPD, trans_xpd),
     INSTR(SUB, trans_sub),
     INSTR(ABS, trans_abs),
 
@@ -1542,44 +1586,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
              * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
             switch (opc)
             {
-            case TGSI_OPCODE_XPD: {
-                /*
-                 * MUL tTEMP.xyzw, src0.zxyw, src1.yzxw, void
-                 * MAD tDST.xyz_, src0.yzxw, src1.zxyw, -tTEMP.xyzw
-                 * MOV tDST.___w, void, void, 1
-                 */
-                struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
-                struct etna_inst_dst dst = convert_dst(cd, &inst->Dst[0]);
-                /* If we have two uniforms, sort it out here so we don't
-                 * emit additional unnecessary MOVs */
-                if(etna_src_uniforms_conflict(src[0], src[1]))
-                {
-                    src[1] = etna_mov_src(cd, src[1]);
-                }
-                struct etna_inst ins[3] = { };
-                ins[0].opcode = INST_OPCODE_MUL;
-                ins[0].sat = 0;
-                ins[0].dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W);
-                ins[0].src[0] = swizzle(src[0], SWIZZLE(Z,X,Y,W));
-                ins[0].src[1] = swizzle(src[1], SWIZZLE(Y,Z,X,W));
-
-                ins[1].opcode = INST_OPCODE_MAD;
-                ins[1].sat = sat;
-                ins[1].dst = dst;
-                ins[1].dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z;
-                ins[1].src[0] = swizzle(src[0], SWIZZLE(Y,Z,X,W));
-                ins[1].src[1] = swizzle(src[1], SWIZZLE(Z,X,Y,W));
-                ins[1].src[2] = negate(etna_native_to_src(temp, INST_SWIZ_IDENTITY));
-
-                ins[2].opcode = INST_OPCODE_MOV;
-                ins[2].dst = dst;
-                ins[2].dst.comps = INST_COMPS_W;
-                ins[2].src[2] = alloc_imm_f32(cd, 1.0f);
-
-                emit_inst(cd, &ins[0]);
-                emit_inst(cd, &ins[1]);
-                emit_inst(cd, &ins[2]);
-                } break;
             case TGSI_OPCODE_DPH: { /* src0.x * src1.x + src0.y * src1.y + src0.z * src1.z + src1.w */
                 /*
                 DP3 tmp.xyzw, src0.xyzw, src1,xyzw, void
