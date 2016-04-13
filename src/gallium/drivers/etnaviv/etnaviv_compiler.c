@@ -1399,6 +1399,27 @@ static void trans_floor(const struct instr_translater *t,
       }
 }
 
+static void trans_ceil(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+     if (cd->specs->has_sign_floor_ceil)
+     {
+         emit_inst(cd, &(struct etna_inst) {
+                 .opcode = INST_OPCODE_CEIL,
+                 .sat = inst->Instruction.Saturate,
+                 .dst = convert_dst(cd, &inst->Dst[0]),
+                 .src[2] = src[0],
+                 });
+     }
+     else
+     {
+         BUG("Unhandled instruction %s", tgsi_get_opcode_name(inst->Instruction.Opcode));
+         assert(0);
+     }
+}
+
 static void trans_dummy(const struct instr_translater *t,
         struct etna_compile_data *cd,
         const struct tgsi_full_instruction *inst,
@@ -1447,6 +1468,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(ABS, trans_abs),
 
     INSTR(FLR, trans_floor),
+    INSTR(CEIL, trans_ceil),
 
     INSTR(SIN, trans_trig),
     INSTR(COS, trans_trig),
@@ -1520,22 +1542,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
              * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
             switch (opc)
             {
-            case TGSI_OPCODE_CEIL: /* XXX HAS_SIGN_FLOOR_CEIL */
-                if (cd->specs->has_sign_floor_ceil)
-                {
-                    emit_inst(cd, &(struct etna_inst) {
-                            .opcode = INST_OPCODE_CEIL,
-                            .sat = sat,
-                            .dst = convert_dst(cd, &inst->Dst[0]),
-                            .src[2] = src[0],
-                            });
-                }
-                else
-                {
-                    BUG("Unhandled instruction %s", tgsi_get_opcode_name(inst->Instruction.Opcode));
-                    assert(0);
-                }
-                break;
             case TGSI_OPCODE_XPD: {
                 /*
                  * MUL tTEMP.xyzw, src0.zxyw, src1.yzxw, void
