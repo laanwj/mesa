@@ -1489,6 +1489,54 @@ static void trans_dph(const struct instr_translater *t,
     emit_inst(cd, &ins[1]);
 }
 
+static void trans_sampler(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    switch (inst->Instruction.Opcode)
+    {
+    case TGSI_OPCODE_TEX:
+        emit_inst(cd, &(struct etna_inst) {
+              .opcode = INST_OPCODE_TEXLD,
+              .sat = 0,
+              .dst = convert_dst(cd, &inst->Dst[0]),
+              .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
+              .src[0] = src[0],
+              });
+        break;
+
+    case TGSI_OPCODE_TXP: { /* divide src.xyz by src.w */
+        struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+        emit_inst(cd, &(struct etna_inst) {
+              .opcode = INST_OPCODE_RCP,
+              .sat = 0,
+              .dst = etna_native_to_dst(temp, INST_COMPS_W), /* tmp.w */
+              .src[2] = swizzle(src[0], SWIZZLE(W,W,W,W)),
+              });
+        emit_inst(cd, &(struct etna_inst) {
+              .opcode = INST_OPCODE_MUL,
+              .sat = 0,
+              .dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z), /* tmp.xyz */
+              .src[0] = etna_native_to_src(temp, SWIZZLE(W,W,W,W)),
+              .src[1] = src[0], /* src.xyzw */
+        });
+        emit_inst(cd, &(struct etna_inst) {
+              .opcode = INST_OPCODE_TEXLD,
+              .sat = 0,
+              .dst = convert_dst(cd, &inst->Dst[0]),
+              .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
+              .src[0] = etna_native_to_src(temp, INST_SWIZ_IDENTITY), /* tmp.xyzw */
+              });
+        } break;
+
+    default:
+        BUG("Unhandled instruction %s", tgsi_get_opcode_name(inst->Instruction.Opcode));
+        assert(0);
+        break;
+    }
+}
+
 static void trans_dummy(const struct instr_translater *t,
         struct etna_compile_data *cd,
         const struct tgsi_full_instruction *inst,
@@ -1552,6 +1600,9 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(SLE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_LE ),
     INSTR(SNE, trans_instr, .opc = INST_OPCODE_SET, .src = { 0, 1, -1 }, .cond = INST_CONDITION_NE ),
 
+    INSTR(TEX, trans_sampler),
+    INSTR(TXP, trans_sampler),
+
     INSTR(NOP, trans_dummy),
     INSTR(END, trans_dummy),
 };
@@ -1613,39 +1664,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
              * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
             switch (opc)
             {
-            case TGSI_OPCODE_TEX:
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_TEXLD,
-                        .sat = 0,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
-                        .src[0] = src[0],
-                        });
-                break;
-            case TGSI_OPCODE_TXP: { /* divide src.xyz by src.w */
-                struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_RCP,
-                        .sat = 0,
-                        .dst = etna_native_to_dst(temp, INST_COMPS_W), /* tmp.w */
-                        .src[2] = swizzle(src[0], SWIZZLE(W,W,W,W)),
-                        });
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_MUL,
-                        .sat = 0,
-                        .dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z), /* tmp.xyz */
-                        .src[0] = etna_native_to_src(temp, SWIZZLE(W,W,W,W)),
-                        .src[1] = src[0], /* src.xyzw */
-                });
-                emit_inst(cd, &(struct etna_inst) {
-                        .opcode = INST_OPCODE_TEXLD,
-                        .sat = 0,
-                        .dst = convert_dst(cd, &inst->Dst[0]),
-                        .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
-                        .src[0] = etna_native_to_src(temp, INST_SWIZ_IDENTITY), /* tmp.xyzw */
-                        });
-                } break;
-
             case TGSI_OPCODE_PK2H:
             case TGSI_OPCODE_PK2US:
             case TGSI_OPCODE_PK4B:
