@@ -1633,7 +1633,6 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 inst_idx++;
                 continue;
             }
-            int sat = inst->Instruction.Saturate;
 
             /* Lookup the TGSI information and generate the source arguments */
             struct etna_inst_src src[ETNA_NUM_SRC];
@@ -1657,38 +1656,10 @@ static void etna_compile_pass_generate_code(struct etna_compile_data *cd)
                 t->fxn(t, cd, inst, src);
 
                 inst_idx += 1;
-                continue;
-            }
-
-            /* Use a naive switch statement to get up and running, later on when we have more experience with
-             * Vivante instructions generation, this may be shortened greatly by using lookup in a table with patterns. */
-            switch (opc)
-            {
-            case TGSI_OPCODE_PK2H:
-            case TGSI_OPCODE_PK2US:
-            case TGSI_OPCODE_PK4B:
-            case TGSI_OPCODE_PK4UB:
-            case TGSI_OPCODE_ROUND:
-            case TGSI_OPCODE_CLAMP:
-            case TGSI_OPCODE_TXB: /* XXX INST_OPCODE_TEXLDB */
-            case TGSI_OPCODE_TXL: /* XXX INST_OPCODE_TEXLDL */
-            case TGSI_OPCODE_UP2H:
-            case TGSI_OPCODE_UP2US:
-            case TGSI_OPCODE_UP4B:
-            case TGSI_OPCODE_UP4UB:
-            case TGSI_OPCODE_ARR: /* round */
-            case TGSI_OPCODE_CAL: /* XXX INST_OPCODE_CALL */
-            case TGSI_OPCODE_RET: /* XXX INST_OPCODE_RET */
-            case TGSI_OPCODE_BRK: /* break from loop */
-            case TGSI_OPCODE_BGNLOOP:
-            case TGSI_OPCODE_ENDLOOP:
-            case TGSI_OPCODE_BGNSUB:
-            case TGSI_OPCODE_ENDSUB:
-            default:
-                BUG("Unhandled instruction %s", tgsi_get_opcode_name(inst->Instruction.Opcode));
+            } else {
+                BUG("Unhandled instruction %s", tgsi_get_opcode_name(opc));
                 assert(0);
             }
-            inst_idx += 1;
             break;
         }
     }
