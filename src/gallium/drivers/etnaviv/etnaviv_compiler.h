@@ -64,7 +64,6 @@ struct etna_shader_object
     uint32_t *code;
     unsigned num_temps;
 
-    uint32_t const_base; /* base of constants (in 32 bit units) */
     uint32_t const_size; /* size of constants, also base of immediates (in 32 bit units) */
     uint32_t imm_base; /* base of immediates (in 32 bit units) */
     uint32_t imm_size; /* size of immediates (in 32 bit units) */
