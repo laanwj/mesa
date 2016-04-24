@@ -2019,6 +2019,15 @@ static bool etna_compile_check_limits(struct etna_compile_data *cd)
     return true;
 }
 
+static void copy_uniform_state_to_shader(struct etna_compile_data *cd,
+        struct etna_shader_object *sobj)
+{
+    sobj->const_size = cd->imm_base;
+    sobj->imm_base = cd->imm_base;
+    sobj->imm_size = cd->imm_size;
+    sobj->imm_data = mem_dup(cd->imm_data, cd->imm_size * 4);
+}
+
 bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens, struct etna_shader_object** out)
 {
     /* Create scratch space that may be too large to fit on stack
@@ -2164,14 +2173,12 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
     sobj->code_size = cd->inst_ptr * 4;
     sobj->code = mem_dup(cd->code, cd->inst_ptr * 16);
     sobj->num_temps = cd->next_free_native;
-    sobj->const_size = cd->imm_base;
-    sobj->imm_base = cd->imm_base;
-    sobj->imm_size = cd->imm_size;
-    sobj->imm_data = mem_dup(cd->imm_data, cd->imm_size * 4);
     sobj->vs_pos_out_reg = -1;
     sobj->vs_pointsize_out_reg = -1;
     sobj->ps_color_out_reg = -1;
     sobj->ps_depth_out_reg = -1;
+    copy_uniform_state_to_shader(cd, sobj);
+
     if(cd->info.processor == PIPE_SHADER_VERTEX)
     {
         fill_in_vs_inputs(sobj, cd);
