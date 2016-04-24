@@ -2156,7 +2156,6 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
     sobj->code_size = cd->inst_ptr * 4;
     sobj->code = mem_dup(cd->code, cd->inst_ptr * 16);
     sobj->num_temps = cd->next_free_native;
-    sobj->const_base = 0;
     sobj->const_size = cd->imm_base;
     sobj->imm_base = cd->imm_base;
     sobj->imm_size = cd->imm_size;
