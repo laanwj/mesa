@@ -252,29 +252,6 @@ bool etna_shader_update_vertex(struct etna_context *ctx)
     return etna_shader_update_vs_inputs(ctx, &ctx->shader_state, ctx->vs, ctx->vertex_elements);
 }
 
-static void etna_set_constant_buffer(struct pipe_context *pctx,
-                                uint shader, uint index,
-                                struct pipe_constant_buffer *buf)
-{
-    struct etna_context *ctx = etna_context(pctx);
-
-    if (unlikely(index > 0))
-    {
-        DBG("Unhandled buffer index %i", index);
-        return;
-    }
-
-    if(buf == NULL) /* Unbinding constant buffer */
-    {
-        ctx->constant_buffer[shader].buffer = 0;
-    } else {
-        assert(buf->buffer == NULL && buf->user_buffer != NULL);
-
-        /* copy only up to shader-specific constant size; never overwrite immediates */
-        ctx->constant_buffer[shader] = *buf;
-    }
-}
-
 static void *etna_create_shader_state(struct pipe_context *pctx, const struct pipe_shader_state *pss)
 {
     struct etna_context *ctx = etna_context(pctx);
@@ -323,5 +300,4 @@ void etna_shader_init(struct pipe_context *pctx)
     pctx->create_vs_state = etna_create_shader_state;
     pctx->bind_vs_state = etna_bind_vs_state;
     pctx->delete_vs_state = etna_delete_shader_state;
-    pctx->set_constant_buffer = etna_set_constant_buffer;
 }

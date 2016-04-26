@@ -81,6 +81,29 @@ static void etna_set_sample_mask(struct pipe_context *pctx, unsigned sample_mask
     ctx->dirty |= ETNA_DIRTY_SAMPLE_MASK;
 }
 
+static void etna_set_constant_buffer(struct pipe_context *pctx,
+                                uint shader, uint index,
+                                struct pipe_constant_buffer *buf)
+{
+    struct etna_context *ctx = etna_context(pctx);
+
+    if (unlikely(index > 0))
+    {
+        DBG("Unhandled buffer index %i", index);
+        return;
+    }
+
+    if(buf == NULL) /* Unbinding constant buffer */
+    {
+        ctx->constant_buffer[shader].buffer = 0;
+    } else {
+        assert(buf->buffer == NULL && buf->user_buffer != NULL);
+
+        /* copy only up to shader-specific constant size; never overwrite immediates */
+        ctx->constant_buffer[shader] = *buf;
+    }
+}
+
 static void etna_update_render_resource(struct pipe_context *pctx, struct pipe_resource *pres)
 {
     struct etna_resource *res = etna_resource(pres);
@@ -606,6 +629,7 @@ void etna_state_init(struct pipe_context *pctx)
     pctx->set_stencil_ref = etna_set_stencil_ref;
     pctx->set_clip_state = etna_set_clip_state;
     pctx->set_sample_mask = etna_set_sample_mask;
+    pctx->set_constant_buffer = etna_set_constant_buffer;
     pctx->set_framebuffer_state = etna_set_framebuffer_state;
     pctx->set_polygon_stipple = etna_set_polygon_stipple;
     pctx->set_scissor_states = etna_set_scissor_states;
