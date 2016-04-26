@@ -272,7 +272,6 @@ static void etna_set_constant_buffer(struct pipe_context *pctx,
 
         /* copy only up to shader-specific constant size; never overwrite immediates */
         ctx->constant_buffer[shader] = *buf;
-        etna_fetch_uniforms(ctx, shader);
     }
 }
 
