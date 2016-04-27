@@ -95,7 +95,7 @@ static void etna_set_constant_buffer(struct pipe_context *pctx,
 
     if(buf == NULL) /* Unbinding constant buffer */
     {
-        ctx->constant_buffer[shader].buffer = 0;
+        ctx->constant_buffer[shader].user_buffer = NULL;
     } else {
         assert(buf->buffer == NULL && buf->user_buffer != NULL);
 
