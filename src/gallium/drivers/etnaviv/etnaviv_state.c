@@ -81,9 +81,8 @@ static void etna_set_sample_mask(struct pipe_context *pctx, unsigned sample_mask
     ctx->dirty |= ETNA_DIRTY_SAMPLE_MASK;
 }
 
-static void etna_set_constant_buffer(struct pipe_context *pctx,
-                                uint shader, uint index,
-                                struct pipe_constant_buffer *buf)
+static void etna_set_constant_buffer(struct pipe_context *pctx, uint shader, uint index,
+        struct pipe_constant_buffer *cb)
 {
     struct etna_context *ctx = etna_context(pctx);
 
@@ -93,15 +92,19 @@ static void etna_set_constant_buffer(struct pipe_context *pctx,
         return;
     }
 
-    if(buf == NULL) /* Unbinding constant buffer */
-    {
+    /* Note that the state tracker can unbind constant buffers by
+     * passing NULL here.
+     */
+    if (unlikely(!cb)) {
         ctx->constant_buffer[shader].user_buffer = NULL;
-    } else {
-        assert(buf->buffer == NULL && buf->user_buffer != NULL);
-
-        /* copy only up to shader-specific constant size; never overwrite immediates */
-        ctx->constant_buffer[shader] = *buf;
+        return;
     }
+
+    /* there is no support for ARB_uniform_buffer_object  */
+    assert(cb->buffer == NULL && cb->user_buffer != NULL);
+
+    ctx->constant_buffer[shader].buffer_size = cb->buffer_size;
+    ctx->constant_buffer[shader].user_buffer = cb->user_buffer;
 }
 
 static void etna_update_render_resource(struct pipe_context *pctx, struct pipe_resource *pres)
