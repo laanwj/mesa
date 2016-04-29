@@ -42,14 +42,14 @@ static void etna_fetch_uniforms(struct etna_context *ctx, uint shader)
     switch(shader)
     {
     case PIPE_SHADER_VERTEX:
-        if(buf->user_buffer && ctx->vs)
+        if(buf->user_buffer)
         {
             memcpy(ctx->shader_state.VS_UNIFORMS, buf->user_buffer, MIN2(buf->buffer_size, ctx->vs->const_size * 4));
             ctx->dirty |= ETNA_DIRTY_VS_UNIFORMS;
         }
         break;
     case PIPE_SHADER_FRAGMENT:
-        if(buf->user_buffer && ctx->fs)
+        if(buf->user_buffer)
         {
             memcpy(ctx->shader_state.PS_UNIFORMS, buf->user_buffer, MIN2(buf->buffer_size, ctx->fs->const_size * 4));
             ctx->dirty |= ETNA_DIRTY_PS_UNIFORMS;
