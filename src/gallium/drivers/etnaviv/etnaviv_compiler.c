@@ -320,7 +320,7 @@ static void assign_inouts_to_temporaries(struct etna_compile_data *cd, uint file
 /* Allocate an immediate with a certain value and return the index. If
  * there is already an immediate with that value, return that.
  */
-static struct etna_inst_src alloc_imm_u32(struct etna_compile_data *cd, uint32_t value)
+static struct etna_inst_src alloc_imm(struct etna_compile_data *cd, uint32_t value)
 {
     int idx;
     /* Could use a hash table to speed this up */
@@ -355,6 +355,11 @@ static struct etna_inst_src alloc_imm_u32(struct etna_compile_data *cd, uint32_t
         .swiz = INST_SWIZ_BROADCAST(idx & 3)
     };
     return imm_src;
+}
+
+static struct etna_inst_src alloc_imm_u32(struct etna_compile_data *cd, uint32_t value)
+{
+    return alloc_imm(cd, value);
 }
 
 static struct etna_inst_src alloc_imm_vec4u(struct etna_compile_data *cd, const uint32_t *values)
