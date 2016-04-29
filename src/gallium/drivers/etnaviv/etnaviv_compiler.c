@@ -50,6 +50,7 @@
 #include "etnaviv_compiler.h"
 
 #include "etnaviv_asm.h"
+#include "etnaviv_context.h"
 #include "etnaviv_debug.h"
 #include "etnaviv_disasm.h"
 #include "etnaviv_util.h"
@@ -149,7 +150,7 @@ struct etna_compile_data
     bool dead_inst[ETNA_MAX_TOKENS];
 
     /* Immediate data */
-    bool imm_used[ETNA_MAX_IMM];
+    enum etna_immediate_contents imm_contents[ETNA_MAX_IMM];
     uint32_t imm_data[ETNA_MAX_IMM];
     uint32_t imm_base; /* base of immediates (in 32 bit units) */
     uint32_t imm_size; /* size of immediates (in 32 bit units) */
@@ -320,20 +321,21 @@ static void assign_inouts_to_temporaries(struct etna_compile_data *cd, uint file
 /* Allocate an immediate with a certain value and return the index. If
  * there is already an immediate with that value, return that.
  */
-static struct etna_inst_src alloc_imm(struct etna_compile_data *cd, uint32_t value)
+static struct etna_inst_src alloc_imm(struct etna_compile_data *cd,
+        enum etna_immediate_contents contents, uint32_t value)
 {
     int idx;
     /* Could use a hash table to speed this up */
     for(idx = 0; idx<cd->imm_size; ++idx)
     {
-        if(cd->imm_data[idx] == value)
+        if (cd->imm_contents[idx] == contents && cd->imm_data[idx] == value)
             break;
     }
 
     /* look if there is an unused slot */
     if (idx == cd->imm_size) {
         for (idx = 0; idx < cd->imm_size; ++idx) {
-            if (!cd->imm_used[idx])
+            if (cd->imm_contents[idx] == ETNA_IMMEDIATE_UNUSED)
                 break;
         }
     }
@@ -343,7 +345,7 @@ static struct etna_inst_src alloc_imm(struct etna_compile_data *cd, uint32_t val
         assert(cd->imm_size < ETNA_MAX_IMM);
         idx = cd->imm_size++;
         cd->imm_data[idx] = value;
-        cd->imm_used[idx] = true;
+        cd->imm_contents[idx] = contents;
     }
 
     /* swizzle so that component with value is returned in all components */
@@ -359,10 +361,11 @@ static struct etna_inst_src alloc_imm(struct etna_compile_data *cd, uint32_t val
 
 static struct etna_inst_src alloc_imm_u32(struct etna_compile_data *cd, uint32_t value)
 {
-    return alloc_imm(cd, value);
+    return alloc_imm(cd, ETNA_IMMEDIATE_CONSTANT, value);
 }
 
-static struct etna_inst_src alloc_imm_vec4u(struct etna_compile_data *cd, const uint32_t *values)
+static struct etna_inst_src alloc_imm_vec4u(struct etna_compile_data *cd,
+        enum etna_immediate_contents contents, const uint32_t *values)
 {
     struct etna_inst_src imm_src = { };
     int idx, i;
@@ -370,7 +373,7 @@ static struct etna_inst_src alloc_imm_vec4u(struct etna_compile_data *cd, const 
     {
         /* What if we can use a uniform with a different swizzle? */
         for (i = 0; i < 4; i++)
-            if (cd->imm_data[idx + i] != values[i])
+            if (cd->imm_contents[idx + i] != contents || cd->imm_data[idx + i] != values[i])
                 break;
         if (i == 4)
             break;
@@ -381,7 +384,7 @@ static struct etna_inst_src alloc_imm_vec4u(struct etna_compile_data *cd, const 
         assert(idx + 4 <= ETNA_MAX_IMM);
         for (i = 0; i < 4; i++) {
             cd->imm_data[idx + i] = values[i];
-            cd->imm_used[idx + i] = true;
+            cd->imm_contents[idx + i] = contents;
         }
         cd->imm_size = idx + 4;
     }
@@ -415,7 +418,7 @@ static struct etna_inst_src etna_imm_vec4f(struct etna_compile_data *cd, const f
     uint32_t val[4];
     for(int i = 0; i < 4; i++)
         val[i] = etna_f32_to_u32(vec4[i]);
-    return alloc_imm_vec4u(cd, val);
+    return alloc_imm_vec4u(cd, ETNA_IMMEDIATE_CONSTANT, val);
 }
 
 /* Pass -- check register file declarations and immediates */
@@ -440,7 +443,7 @@ static void etna_compile_parse_declarations(struct etna_compile_data *cd)
                 unsigned idx = cd->imm_size++;
 
                 cd->imm_data[idx] = imm->u[i].Uint;
-                cd->imm_used[idx] = true;
+                cd->imm_contents[idx] = ETNA_IMMEDIATE_CONSTANT;
             }
             } break;
         }
