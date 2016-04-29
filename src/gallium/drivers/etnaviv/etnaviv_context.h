@@ -82,6 +82,12 @@ struct etna_vertexbuf_state {
     uint32_t enabled_mask;
 };
 
+enum etna_immediate_contents
+{
+    ETNA_IMMEDIATE_UNUSED = 0,
+    ETNA_IMMEDIATE_CONSTANT,
+};
+
 /* private opaque context structure */
 struct etna_context
 {
