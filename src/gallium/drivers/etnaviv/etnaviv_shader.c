@@ -277,7 +277,7 @@ static void etna_bind_fs_state(struct pipe_context *pctx, void *fss_)
         return;
     assert(fss == NULL || fss->processor == PIPE_SHADER_FRAGMENT);
     ctx->fs = fss;
-    ctx->dirty |= ETNA_DIRTY_SHADER | ETNA_DIRTY_PS_UNIFORMS;
+    ctx->dirty |= ETNA_DIRTY_SHADER;
 }
 
 static void etna_bind_vs_state(struct pipe_context *pctx, void *vss_)
@@ -289,7 +289,7 @@ static void etna_bind_vs_state(struct pipe_context *pctx, void *vss_)
         return;
     assert(vss == NULL || vss->processor == PIPE_SHADER_VERTEX);
     ctx->vs = vss;
-    ctx->dirty |= ETNA_DIRTY_SHADER | ETNA_DIRTY_VS_UNIFORMS;
+    ctx->dirty |= ETNA_DIRTY_SHADER;
 }
 
 void etna_shader_init(struct pipe_context *pctx)
