@@ -33,33 +33,6 @@
 #include "util/u_memory.h"
 #include "util/u_math.h"
 
-/* Fetch uniforms from user buffer, if bound, and mark respective uniform
- * bank as dirty. */
-static void etna_fetch_uniforms(struct etna_context *ctx, uint shader)
-{
-    struct pipe_constant_buffer *buf = &ctx->constant_buffer[shader];
-
-    switch(shader)
-    {
-    case PIPE_SHADER_VERTEX:
-        if(buf->user_buffer)
-        {
-            memcpy(ctx->shader_state.VS_UNIFORMS, buf->user_buffer, MIN2(buf->buffer_size, ctx->vs->const_size * 4));
-            ctx->dirty |= ETNA_DIRTY_VS_UNIFORMS;
-        }
-        break;
-    case PIPE_SHADER_FRAGMENT:
-        if(buf->user_buffer)
-        {
-            memcpy(ctx->shader_state.PS_UNIFORMS, buf->user_buffer, MIN2(buf->buffer_size, ctx->fs->const_size * 4));
-            ctx->dirty |= ETNA_DIRTY_PS_UNIFORMS;
-        }
-        break;
-    default: DBG("Unhandled shader type %i", shader);
-    }
-}
-
-
 /* Link vs and fs together: fill in shader_state from vs and fs
  * as this function is called every time a new fs or vs is bound, the goal is to do
  * little processing as possible here, and to precompute as much as possible in the
@@ -187,14 +160,12 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
 
     /* uniforms layout -- first constants, then immediates */
     cs->vs_uniforms_size = vs->const_size + vs->imm_size;
+    memset(cs->VS_UNIFORMS, 0, sizeof(cs->VS_UNIFORMS));
     memcpy(&cs->VS_UNIFORMS[vs->imm_base], vs->imm_data, vs->imm_size*4);
 
     cs->ps_uniforms_size = fs->const_size + fs->imm_size;
+    memset(cs->PS_UNIFORMS, 0, sizeof(cs->PS_UNIFORMS));
     memcpy(&cs->PS_UNIFORMS[fs->imm_base], fs->imm_data, fs->imm_size*4);
-
-    /* fetch any previous uniforms from buffer */
-    etna_fetch_uniforms(ctx, PIPE_SHADER_VERTEX);
-    etna_fetch_uniforms(ctx, PIPE_SHADER_FRAGMENT);
 
     return true;
 }

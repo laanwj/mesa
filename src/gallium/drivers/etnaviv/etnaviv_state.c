@@ -105,6 +105,8 @@ static void etna_set_constant_buffer(struct pipe_context *pctx, uint shader, uin
 
     ctx->constant_buffer[shader].buffer_size = cb->buffer_size;
     ctx->constant_buffer[shader].user_buffer = cb->user_buffer;
+
+    ctx->dirty |= ETNA_DIRTY_CONSTBUF;
 }
 
 static void etna_update_render_resource(struct pipe_context *pctx, struct pipe_resource *pres)

@@ -111,13 +111,12 @@ struct etna_context
         ETNA_DIRTY_FRAMEBUFFER     = (1 << 10),
         ETNA_DIRTY_SCISSOR         = (1 << 11),
         ETNA_DIRTY_SAMPLER_VIEWS   = (1 << 12),
-        ETNA_DIRTY_VERTEX_BUFFERS  = (1 << 13),
-        ETNA_DIRTY_INDEX_BUFFER    = (1 << 14),
-        ETNA_DIRTY_SHADER          = (1 << 15),
-        ETNA_DIRTY_VS_UNIFORMS     = (1 << 16),
-        ETNA_DIRTY_PS_UNIFORMS     = (1 << 17),
-        ETNA_DIRTY_TS              = (1 << 18), /* set after clear and when RS blit operations from other surface affect TS */
-        ETNA_DIRTY_TEXTURE_CACHES  = (1 << 19), /* set when texture has been modified/uploaded */
+        ETNA_DIRTY_CONSTBUF        = (1 << 13),
+        ETNA_DIRTY_VERTEX_BUFFERS  = (1 << 14),
+        ETNA_DIRTY_INDEX_BUFFER    = (1 << 15),
+        ETNA_DIRTY_SHADER          = (1 << 16),
+        ETNA_DIRTY_TS              = (1 << 17), /* set after clear and when RS blit operations from other surface affect TS */
+        ETNA_DIRTY_TEXTURE_CACHES  = (1 << 18), /* set when texture has been modified/uploaded */
     } dirty;
 
     uint32_t prim_hwsupport;
