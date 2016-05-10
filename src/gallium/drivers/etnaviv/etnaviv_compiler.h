@@ -27,6 +27,7 @@
 #ifndef H_ETNAVIV_COMPILER
 #define H_ETNAVIV_COMPILER
 
+#include "etnaviv_context.h"
 #include "etnaviv_internal.h"
 #include "pipe/p_compiler.h"
 #include "pipe/p_shader_tokens.h"
@@ -64,10 +65,7 @@ struct etna_shader_object
     uint32_t *code;
     unsigned num_temps;
 
-    uint32_t const_size; /* size of constants, also base of immediates (in 32 bit units) */
-    uint32_t imm_base; /* base of immediates (in 32 bit units) */
-    uint32_t imm_size; /* size of immediates (in 32 bit units) */
-    uint32_t *imm_data;
+    struct etna_shader_uniform_info uniforms;
 
     /* inputs (for linking)
      *   for fs, the inputs must be in register 1..N */
