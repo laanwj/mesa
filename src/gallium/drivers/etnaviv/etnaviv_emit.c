@@ -724,10 +724,10 @@ void etna_emit_state(struct etna_context *ctx)
     if (dirty & (ETNA_DIRTY_SHADER))
     {
         if (ctx->constant_buffer[PIPE_SHADER_VERTEX].user_buffer)
-            fetch_cb(ctx, PIPE_SHADER_VERTEX, ctx->shader_state.VS_UNIFORMS, ctx->vs->const_size);
+            fetch_cb(ctx, PIPE_SHADER_VERTEX, ctx->shader_state.VS_UNIFORMS, ctx->vs->uniforms.const_count);
 
         if (ctx->constant_buffer[PIPE_SHADER_FRAGMENT].user_buffer)
-            fetch_cb(ctx, PIPE_SHADER_FRAGMENT, ctx->shader_state.PS_UNIFORMS, ctx->fs->const_size);
+            fetch_cb(ctx, PIPE_SHADER_FRAGMENT, ctx->shader_state.PS_UNIFORMS, ctx->fs->uniforms.const_count);
 
         /* Special case: a new shader was loaded; simply re-load all uniforms and shader code at once */
         /*04000 or 0C000*/
@@ -752,7 +752,7 @@ void etna_emit_state(struct etna_context *ctx)
         {
             if (ctx->constant_buffer[PIPE_SHADER_VERTEX].user_buffer)
             {
-                unsigned size = fetch_cb(ctx, PIPE_SHADER_VERTEX, ctx->shader_state.VS_UNIFORMS, ctx->vs->const_size);
+                unsigned size = fetch_cb(ctx, PIPE_SHADER_VERTEX, ctx->shader_state.VS_UNIFORMS, ctx->vs->uniforms.const_count);
 
                 etna_coalesce_start(stream, &coalesce, size); /* worst case */
                 for (int x = 0; x < size; ++x)
@@ -768,7 +768,7 @@ void etna_emit_state(struct etna_context *ctx)
 
             if (ctx->constant_buffer[PIPE_SHADER_FRAGMENT].user_buffer)
             {
-                unsigned size = fetch_cb(ctx, PIPE_SHADER_FRAGMENT, ctx->shader_state.PS_UNIFORMS, ctx->fs->const_size);
+                unsigned size = fetch_cb(ctx, PIPE_SHADER_FRAGMENT, ctx->shader_state.PS_UNIFORMS, ctx->fs->uniforms.const_count);
 
                 etna_coalesce_start(stream, &coalesce, size); /* worst case */
                 for (int x = 0; x < size; ++x)

@@ -2022,10 +2022,13 @@ static bool etna_compile_check_limits(struct etna_compile_data *cd)
 static void copy_uniform_state_to_shader(struct etna_compile_data *cd,
         struct etna_shader_object *sobj)
 {
-    sobj->const_size = cd->imm_base;
-    sobj->imm_base = cd->imm_base;
-    sobj->imm_size = cd->imm_size;
-    sobj->imm_data = mem_dup(cd->imm_data, cd->imm_size * 4);
+    uint32_t count = cd->imm_size;
+    struct etna_shader_uniform_info *uinfo = &sobj->uniforms;
+
+    uinfo->const_count = cd->imm_base;
+    uinfo->imm_count = count;
+    uinfo->imm_data = mem_dup(cd->imm_data, count * sizeof(*cd->imm_data));
+    uinfo->imm_contents = mem_dup(cd->imm_contents, count * sizeof(*cd->imm_contents));
 }
 
 bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens, struct etna_shader_object** out)
@@ -2210,12 +2213,12 @@ void etna_dump_shader_object(const struct etna_shader_object *sobj)
     etna_disasm(sobj->code, sobj->code_size, PRINT_RAW);
 
     printf("num temps: %i\n", sobj->num_temps);
-    printf("num const: %i\n", sobj->const_size);
+    printf("num const: %i\n", sobj->uniforms.const_count);
     printf("immediates:\n");
-    for(int idx=0; idx<sobj->imm_size; ++idx)
+    for(int idx=0; idx<sobj->uniforms.imm_count; ++idx)
     {
-        printf(" [%i].%s = %f (0x%08x)\n", (idx+sobj->imm_base)/4, tgsi_swizzle_names[idx%4],
-                *((float*)&sobj->imm_data[idx]), sobj->imm_data[idx]);
+        printf(" [%i].%s = %f (0x%08x)\n", (idx+sobj->uniforms.const_count)/4, tgsi_swizzle_names[idx%4],
+                *((float*)&sobj->uniforms.imm_data[idx]), sobj->uniforms.imm_data[idx]);
     }
     printf("inputs:\n");
     for(int idx=0; idx<sobj->infile.num_reg; ++idx)
@@ -2251,7 +2254,8 @@ void etna_destroy_shader_object(struct etna_shader_object *sobj)
     if(sobj != NULL)
     {
         FREE(sobj->code);
-        FREE(sobj->imm_data);
+        FREE(sobj->uniforms.imm_data);
+        FREE(sobj->uniforms.imm_contents);
         FREE(sobj->output_per_semantic_list);
         FREE(sobj);
     }

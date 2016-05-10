@@ -88,6 +88,13 @@ enum etna_immediate_contents
     ETNA_IMMEDIATE_CONSTANT,
 };
 
+struct etna_shader_uniform_info {
+    enum etna_immediate_contents *imm_contents;
+    uint32_t *imm_data;
+    uint32_t imm_count;
+    uint32_t const_count;
+};
+
 /* private opaque context structure */
 struct etna_context
 {
