@@ -17,6 +17,7 @@ C_SOURCES :=  \
 	etnaviv_tiling.c \
 	etnaviv_texture.c \
 	etnaviv_transfer.c \
+	etnaviv_uniforms.c \
 	etnaviv_zsa.c
 
 CPP_SOURCES :=
