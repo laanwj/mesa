@@ -67,6 +67,10 @@ struct etna_shader_object
 
     struct etna_shader_uniform_info uniforms;
 
+    /* ETNA_DIRTY_* flags that, when set in context dirty, mean that the
+     * uniforms have to get (partial) reloaded. */
+    uint32_t uniforms_dirty_bits;
+
     /* inputs (for linking)
      *   for fs, the inputs must be in register 1..N */
     struct etna_shader_io_file infile;

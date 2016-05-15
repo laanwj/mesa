@@ -49,3 +49,18 @@ void etna_uniforms_write(const struct etna_shader_object *sobj,
 
     *size = uinfo->const_count + uinfo->imm_count;
 }
+
+void etna_set_shader_uniforms_dirty_flags(struct etna_shader_object *sobj)
+{
+    uint32_t dirty = 0;
+
+    for (uint32_t i = 0; i < sobj->uniforms.imm_count; i++) {
+        switch (sobj->uniforms.imm_contents[i]) {
+        case ETNA_IMMEDIATE_UNUSED:
+        case ETNA_IMMEDIATE_CONSTANT:
+            break;
+        }
+    }
+
+    sobj->uniforms_dirty_bits = dirty;
+}

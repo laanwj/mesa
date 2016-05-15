@@ -53,6 +53,7 @@
 #include "etnaviv_context.h"
 #include "etnaviv_debug.h"
 #include "etnaviv_disasm.h"
+#include "etnaviv_uniforms.h"
 #include "etnaviv_util.h"
 
 #include "tgsi/tgsi_iterate.h"
@@ -2029,6 +2030,8 @@ static void copy_uniform_state_to_shader(struct etna_compile_data *cd,
     uinfo->imm_count = count;
     uinfo->imm_data = mem_dup(cd->imm_data, count * sizeof(*cd->imm_data));
     uinfo->imm_contents = mem_dup(cd->imm_contents, count * sizeof(*cd->imm_contents));
+
+    etna_set_shader_uniforms_dirty_flags(sobj);
 }
 
 bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens, struct etna_shader_object** out)
