@@ -34,4 +34,6 @@ struct etna_shader_object;
 void etna_uniforms_write(const struct etna_shader_object *sobj,
         uint32_t *uniforms, unsigned *size);
 
+void etna_set_shader_uniforms_dirty_flags(struct etna_shader_object *sobj);
+
 #endif /* ETNAVIV_UNIFORMS_H_ */
