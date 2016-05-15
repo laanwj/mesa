@@ -25,15 +25,21 @@
  */
 
 #include "etnaviv_uniforms.h"
+
 #include "etnaviv_compiler.h"
+#include "pipe/p_defines.h"
+#include "util/u_math.h"
 
 void etna_uniforms_write(const struct etna_shader_object *sobj,
-        uint32_t *uniforms, unsigned *size)
+        struct pipe_constant_buffer *cb, uint32_t *uniforms, unsigned *size)
 {
     const struct etna_shader_uniform_info *uinfo = &sobj->uniforms;
 
-    /* constant buffer gets written during emit */
-    memset(uniforms, 0, sizeof(uinfo->const_count) * 4);
+    if (cb->user_buffer) {
+        unsigned size = MIN2(cb->buffer_size, uinfo->const_count * 4);
+
+        memcpy(uniforms, cb->user_buffer, size);
+    }
 
     for (uint32_t i = 0; i < uinfo->imm_count; i++) {
         switch (uinfo->imm_contents[i]) {
