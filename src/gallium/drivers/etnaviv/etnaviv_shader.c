@@ -29,7 +29,6 @@
 #include "etnaviv_context.h"
 #include "etnaviv_compiler.h"
 #include "etnaviv_debug.h"
-#include "etnaviv_uniforms.h"
 
 #include "util/u_memory.h"
 #include "util/u_math.h"
@@ -158,9 +157,6 @@ static bool etna_link_shaders(struct etna_context* ctx, struct compiled_shader_s
     cs->VS_INST_MEM = vs->code;
     cs->ps_inst_mem_size = fs->code_size;
     cs->PS_INST_MEM = fs->code;
-
-    etna_uniforms_write(vs, cs->VS_UNIFORMS, &cs->vs_uniforms_size);
-    etna_uniforms_write(fs, cs->PS_UNIFORMS, &cs->ps_uniforms_size);
 
     return true;
 }

@@ -38,6 +38,7 @@
 #include "etnaviv_shader.h"
 #include "etnaviv_texture.h"
 #include "etnaviv_translate.h"
+#include "etnaviv_uniforms.h"
 #include "etnaviv_util.h"
 #include "etnaviv_zsa.h"
 #include "util/u_math.h"
@@ -221,16 +222,6 @@ void etna_submit_rs_state(struct etna_context *ctx, const struct compiled_rs_sta
     {
         abort();
     }
-}
-
-static inline unsigned fetch_cb(struct etna_context *ctx, uint shader, uint32_t *uniforms,
-        unsigned const_size)
-{
-    unsigned size = MIN2(ctx->constant_buffer[shader].buffer_size, const_size * 4);
-
-    memcpy(uniforms, ctx->constant_buffer[shader].user_buffer, size);
-
-    return size;
 }
 
 /* Create bit field that specifies which samplers are active and thus need to be programmed
@@ -720,15 +711,28 @@ void etna_emit_state(struct etna_context *ctx)
         ctx->specs.vs_offset > 0x4000)
         etna_stall(ctx->stream, SYNC_RECIPIENT_FE, SYNC_RECIPIENT_PE);
 
+    /* We need to update the uniform cache only if one of the following bits are
+     * set in ctx->dirty:
+     * - ETNA_DIRTY_SHADER
+     * - ETNA_DIRTY_CONSTBUF
+     * - uniforms_dirty_bits
+     *
+     * In case of ETNA_DIRTY_SHADER we need load all uniforms from the cache. In all
+     * other cases we can load on the changed uniforms.
+     */
+    static const uint32_t uniform_dirty_bits = ETNA_DIRTY_SHADER | ETNA_DIRTY_CONSTBUF;
+
+    if (dirty & (uniform_dirty_bits | ctx->fs->uniforms_dirty_bits))
+        etna_uniforms_write(ctx->vs, &ctx->constant_buffer[PIPE_SHADER_VERTEX],
+            ctx->shader_state.VS_UNIFORMS, &ctx->shader_state.vs_uniforms_size);
+
+    if (dirty & (uniform_dirty_bits | ctx->vs->uniforms_dirty_bits))
+        etna_uniforms_write(ctx->fs, &ctx->constant_buffer[PIPE_SHADER_FRAGMENT],
+              ctx->shader_state.PS_UNIFORMS, &ctx->shader_state.ps_uniforms_size);
+
     /**** Large dynamically-sized state ****/
     if (dirty & (ETNA_DIRTY_SHADER))
     {
-        if (ctx->constant_buffer[PIPE_SHADER_VERTEX].user_buffer)
-            fetch_cb(ctx, PIPE_SHADER_VERTEX, ctx->shader_state.VS_UNIFORMS, ctx->vs->uniforms.const_count);
-
-        if (ctx->constant_buffer[PIPE_SHADER_FRAGMENT].user_buffer)
-            fetch_cb(ctx, PIPE_SHADER_FRAGMENT, ctx->shader_state.PS_UNIFORMS, ctx->fs->uniforms.const_count);
-
         /* Special case: a new shader was loaded; simply re-load all uniforms and shader code at once */
         /*04000 or 0C000*/
         etna_set_state_multi(stream, ctx->specs.vs_offset, ctx->shader_state.vs_inst_mem_size, ctx->shader_state.VS_INST_MEM);
@@ -748,40 +752,27 @@ void etna_emit_state(struct etna_context *ctx)
     }
     else
     {
-        if (dirty & ETNA_DIRTY_CONSTBUF)
+        etna_coalesce_start(stream, &coalesce, ctx->vs->uniforms.const_count); /* worst case */
+        for (int x = 0; x < ctx->vs->uniforms.const_count; ++x)
         {
-            if (ctx->constant_buffer[PIPE_SHADER_VERTEX].user_buffer)
+            if (ctx->gpu3d.VS_UNIFORMS[x] != ctx->shader_state.VS_UNIFORMS[x])
             {
-                unsigned size = fetch_cb(ctx, PIPE_SHADER_VERTEX, ctx->shader_state.VS_UNIFORMS, ctx->vs->uniforms.const_count);
-
-                etna_coalesce_start(stream, &coalesce, size); /* worst case */
-                for (int x = 0; x < size; ++x)
-                {
-                    if (ctx->gpu3d.VS_UNIFORMS[x] != ctx->shader_state.VS_UNIFORMS[x])
-                    {
-                        /*05000*/ EMIT_STATE(VS_UNIFORMS(x), ctx->shader_state.VS_UNIFORMS[x]);
-                        ctx->gpu3d.VS_UNIFORMS[x] = ctx->shader_state.VS_UNIFORMS[x];
-                    }
-                }
-                etna_coalesce_end(stream, &coalesce);
-            }
-
-            if (ctx->constant_buffer[PIPE_SHADER_FRAGMENT].user_buffer)
-            {
-                unsigned size = fetch_cb(ctx, PIPE_SHADER_FRAGMENT, ctx->shader_state.PS_UNIFORMS, ctx->fs->uniforms.const_count);
-
-                etna_coalesce_start(stream, &coalesce, size); /* worst case */
-                for (int x = 0; x < size; ++x)
-                {
-                    if (ctx->gpu3d.PS_UNIFORMS[x] != ctx->shader_state.PS_UNIFORMS[x])
-                    {
-                        /*07000*/ EMIT_STATE(PS_UNIFORMS(x), ctx->shader_state.PS_UNIFORMS[x]);
-                        ctx->gpu3d.PS_UNIFORMS[x] = ctx->shader_state.PS_UNIFORMS[x];
-                    }
-                }
-                etna_coalesce_end(stream, &coalesce);
+                /*05000*/ EMIT_STATE(VS_UNIFORMS(x), ctx->shader_state.VS_UNIFORMS[x]);
+                ctx->gpu3d.VS_UNIFORMS[x] = ctx->shader_state.VS_UNIFORMS[x];
             }
         }
+        etna_coalesce_end(stream, &coalesce);
+
+        etna_coalesce_start(stream, &coalesce, ctx->fs->uniforms.const_count); /* worst case */
+        for (int x = 0; x < ctx->fs->uniforms.const_count; ++x)
+        {
+            if (ctx->gpu3d.PS_UNIFORMS[x] != ctx->shader_state.PS_UNIFORMS[x])
+            {
+                /*07000*/ EMIT_STATE(PS_UNIFORMS(x), ctx->shader_state.PS_UNIFORMS[x]);
+                ctx->gpu3d.PS_UNIFORMS[x] = ctx->shader_state.PS_UNIFORMS[x];
+            }
+        }
+        etna_coalesce_end(stream, &coalesce);
     }
     /**** End of state update ****/
 #undef EMIT_STATE
