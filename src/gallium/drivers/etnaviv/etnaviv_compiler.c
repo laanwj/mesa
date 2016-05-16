@@ -1503,6 +1503,29 @@ static void trans_sampler(const struct instr_translater *t,
         const struct tgsi_full_instruction *inst,
         struct etna_inst_src *src)
 {
+    /* There is no native support for GL texture rectangle coordinates, so
+     * we have to rescale from ([0, width], [0, height]) to ([0, 1], [0, 1]). */
+    if (inst->Texture.Texture == TGSI_TEXTURE_RECT) {
+        uint32_t unit = inst->Src[1].Register.Index;
+        struct etna_inst ins[2] = { };
+        struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+
+        ins[0].opcode = INST_OPCODE_MUL;
+        ins[0].dst = etna_native_to_dst(temp, INST_COMPS_X);
+        ins[0].src[0] = src[0];
+        ins[0].src[1] = alloc_imm(cd, ETNA_IMMEDIATE_TEXRECT_SCALE_X, unit);
+
+        ins[1].opcode = INST_OPCODE_MUL;
+        ins[1].dst = etna_native_to_dst(temp, INST_COMPS_Y);
+        ins[1].src[0] = src[0];
+        ins[1].src[1] = alloc_imm(cd, ETNA_IMMEDIATE_TEXRECT_SCALE_Y, unit);
+
+        emit_inst(cd, &ins[0]);
+        emit_inst(cd, &ins[1]);
+
+        src[0] = etna_native_to_src(temp, INST_SWIZ_IDENTITY); /* temp.xyzw */
+    }
+
     switch (inst->Instruction.Opcode)
     {
     case TGSI_OPCODE_TEX:

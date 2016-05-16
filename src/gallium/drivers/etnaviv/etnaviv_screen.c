@@ -344,7 +344,8 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     if (target != PIPE_BUFFER &&
         target != PIPE_TEXTURE_1D &&
         target != PIPE_TEXTURE_2D &&
-        target != PIPE_TEXTURE_CUBE)
+        target != PIPE_TEXTURE_CUBE &&
+        target != PIPE_TEXTURE_RECT)
        return FALSE;
 
     if (usage & PIPE_BIND_RENDER_TARGET)

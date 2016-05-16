@@ -29,10 +29,11 @@
 
 #include <stdint.h>
 
+struct etna_context;
 struct etna_shader_object;
 struct pipe_constant_buffer;
 
-void etna_uniforms_write(const struct etna_shader_object *sobj,
+void etna_uniforms_write(const struct etna_context *ctx, const struct etna_shader_object *sobj,
         struct pipe_constant_buffer *cb, uint32_t *uniforms, unsigned *size);
 
 void etna_set_shader_uniforms_dirty_flags(struct etna_shader_object *sobj);
