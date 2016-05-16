@@ -179,6 +179,7 @@ static struct pipe_sampler_view *etna_create_sampler_view(struct pipe_context *p
         sv->TE_SAMPLER_CONFIG0_MASK = ~VIVS_TE_SAMPLER_CONFIG0_VWRAP__MASK;
         sv->TE_SAMPLER_CONFIG0 |= VIVS_TE_SAMPLER_CONFIG0_VWRAP(TEXTURE_WRAPMODE_REPEAT);
     case PIPE_TEXTURE_2D:
+    case PIPE_TEXTURE_RECT:
         sv->TE_SAMPLER_CONFIG0 |= VIVS_TE_SAMPLER_CONFIG0_TYPE(TEXTURE_TYPE_2D);
         break;
     case PIPE_TEXTURE_CUBE:

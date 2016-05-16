@@ -86,6 +86,8 @@ enum etna_immediate_contents
 {
     ETNA_IMMEDIATE_UNUSED = 0,
     ETNA_IMMEDIATE_CONSTANT,
+    ETNA_IMMEDIATE_TEXRECT_SCALE_X,
+    ETNA_IMMEDIATE_TEXRECT_SCALE_Y,
 };
 
 struct etna_shader_uniform_info {

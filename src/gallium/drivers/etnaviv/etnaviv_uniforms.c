@@ -27,13 +27,40 @@
 #include "etnaviv_uniforms.h"
 
 #include "etnaviv_compiler.h"
+#include "etnaviv_context.h"
+#include "etnaviv_util.h"
 #include "pipe/p_defines.h"
 #include "util/u_math.h"
 
-void etna_uniforms_write(const struct etna_shader_object *sobj,
+static unsigned get_const_idx(const struct etna_context *ctx,
+        bool frag, unsigned samp_id)
+{
+    if (frag)
+        return samp_id;
+
+    return samp_id + ctx->specs.vertex_sampler_offset;
+}
+
+static uint32_t get_texrect_scale(const struct etna_context *ctx,
+      bool frag, enum etna_immediate_contents contents, uint32_t data)
+{
+    unsigned index = get_const_idx(ctx, frag, data);
+    struct pipe_sampler_view *texture = ctx->sampler_view[index];
+    uint32_t dim;
+
+    if (contents == ETNA_IMMEDIATE_TEXRECT_SCALE_X)
+        dim = texture->texture->width0;
+    else
+        dim = texture->texture->height0;
+
+    return etna_f32_to_u32(1.0f / dim);
+}
+
+void etna_uniforms_write(const struct etna_context *ctx, const struct etna_shader_object *sobj,
         struct pipe_constant_buffer *cb, uint32_t *uniforms, unsigned *size)
 {
     const struct etna_shader_uniform_info *uinfo = &sobj->uniforms;
+    bool frag = false;
 
     if (cb->user_buffer) {
         unsigned size = MIN2(cb->buffer_size, uinfo->const_count * 4);
@@ -41,10 +68,19 @@ void etna_uniforms_write(const struct etna_shader_object *sobj,
         memcpy(uniforms, cb->user_buffer, size);
     }
 
+    if (sobj == ctx->fs)
+        frag = true;
+
     for (uint32_t i = 0; i < uinfo->imm_count; i++) {
         switch (uinfo->imm_contents[i]) {
         case ETNA_IMMEDIATE_CONSTANT:
             uniforms[i + uinfo->const_count] = uinfo->imm_data[i];
+            break;
+
+        case ETNA_IMMEDIATE_TEXRECT_SCALE_X:
+        case ETNA_IMMEDIATE_TEXRECT_SCALE_Y:
+            uniforms[i + uinfo->const_count] =
+                    get_texrect_scale(ctx, frag, uinfo->imm_contents[i], uinfo->imm_data[i]);
             break;
 
         case ETNA_IMMEDIATE_UNUSED:
@@ -64,6 +100,11 @@ void etna_set_shader_uniforms_dirty_flags(struct etna_shader_object *sobj)
         switch (sobj->uniforms.imm_contents[i]) {
         case ETNA_IMMEDIATE_UNUSED:
         case ETNA_IMMEDIATE_CONSTANT:
+            break;
+
+        case ETNA_IMMEDIATE_TEXRECT_SCALE_X:
+        case ETNA_IMMEDIATE_TEXRECT_SCALE_Y:
+            dirty |= ETNA_DIRTY_SAMPLER_VIEWS;
             break;
         }
     }

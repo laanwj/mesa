@@ -723,11 +723,11 @@ void etna_emit_state(struct etna_context *ctx)
     static const uint32_t uniform_dirty_bits = ETNA_DIRTY_SHADER | ETNA_DIRTY_CONSTBUF;
 
     if (dirty & (uniform_dirty_bits | ctx->fs->uniforms_dirty_bits))
-        etna_uniforms_write(ctx->vs, &ctx->constant_buffer[PIPE_SHADER_VERTEX],
+        etna_uniforms_write(ctx, ctx->vs, &ctx->constant_buffer[PIPE_SHADER_VERTEX],
             ctx->shader_state.VS_UNIFORMS, &ctx->shader_state.vs_uniforms_size);
 
     if (dirty & (uniform_dirty_bits | ctx->vs->uniforms_dirty_bits))
-        etna_uniforms_write(ctx->fs, &ctx->constant_buffer[PIPE_SHADER_FRAGMENT],
+        etna_uniforms_write(ctx, ctx->fs, &ctx->constant_buffer[PIPE_SHADER_FRAGMENT],
               ctx->shader_state.PS_UNIFORMS, &ctx->shader_state.ps_uniforms_size);
 
     /**** Large dynamically-sized state ****/
