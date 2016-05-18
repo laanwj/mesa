@@ -1144,7 +1144,7 @@ static void trans_lit(const struct instr_translater *t,
           ins.src[1] = swizzle(src[0], SWIZZLE(Y,Y,Y,Y));
           emit_inst(cd, &ins);
      }
-     else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 1)) < 0)
+     else if (uif(get_imm_u32(cd, &src[0], 1)) < 0)
           src_y = alloc_imm_f32(cd, 0.0);
      else
           src_y = swizzle(src[0], SWIZZLE(Y,Y,Y,Y));
@@ -1168,9 +1168,9 @@ static void trans_lit(const struct instr_translater *t,
           ins.src[1] = src_w;
           emit_inst(cd, &ins);
      }
-     else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 3)) < -128.)
+     else if (uif(get_imm_u32(cd, &src[0], 3)) < -128.)
           src_w = alloc_imm_f32(cd, -128.);
-     else if (etna_u32_to_f32(get_imm_u32(cd, &src[0], 3)) > 128.)
+     else if (uif(get_imm_u32(cd, &src[0], 3)) > 128.)
           src_w = alloc_imm_f32(cd, 128.);
      else
           src_w = swizzle(src[0], SWIZZLE(W,W,W,W));
