@@ -242,7 +242,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
 
         cs->PE_DEPTH_STRIDE = zsbuf->surf.stride;
         cs->PE_HDEPTH_CONTROL = VIVS_PE_HDEPTH_CONTROL_FORMAT_DISABLED;
-        cs->PE_DEPTH_NORMALIZE = etna_f32_to_u32(exp2f(depth_bits) - 1.0f);
+        cs->PE_DEPTH_NORMALIZE = fui(exp2f(depth_bits) - 1.0f);
 
         if (zsbuf->surf.ts_size)
         {
@@ -377,10 +377,10 @@ static void etna_set_viewport_states(struct pipe_context *pctx,
      */
     cs->PA_VIEWPORT_SCALE_X = etna_f32_to_fixp16(vs->scale[0]); /* must be fixp as v4 state deltas assume it is */
     cs->PA_VIEWPORT_SCALE_Y = etna_f32_to_fixp16(vs->scale[1]);
-    cs->PA_VIEWPORT_SCALE_Z = etna_f32_to_u32(vs->scale[2] * 2.0f);
+    cs->PA_VIEWPORT_SCALE_Z = fui(vs->scale[2] * 2.0f);
     cs->PA_VIEWPORT_OFFSET_X = etna_f32_to_fixp16(vs->translate[0]);
     cs->PA_VIEWPORT_OFFSET_Y = etna_f32_to_fixp16(vs->translate[1]);
-    cs->PA_VIEWPORT_OFFSET_Z = etna_f32_to_u32(vs->translate[2] - vs->scale[2]);
+    cs->PA_VIEWPORT_OFFSET_Z = fui(vs->translate[2] - vs->scale[2]);
 
     /* Compute scissor rectangle (fixp) from viewport.
      * Make sure left is always < right and top always < bottom.
@@ -402,8 +402,8 @@ static void etna_set_viewport_states(struct pipe_context *pctx,
         cs->SE_SCISSOR_TOP = tmp;
     }
 
-    cs->PE_DEPTH_NEAR = etna_f32_to_u32(0.0); /* not affected if depth mode is Z (as in GL) */
-    cs->PE_DEPTH_FAR = etna_f32_to_u32(1.0);
+    cs->PE_DEPTH_NEAR = fui(0.0); /* not affected if depth mode is Z (as in GL) */
+    cs->PE_DEPTH_FAR = fui(1.0);
     ctx->dirty |= ETNA_DIRTY_VIEWPORT;
 }
 

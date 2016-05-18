@@ -53,7 +53,7 @@ static uint32_t get_texrect_scale(const struct etna_context *ctx,
     else
         dim = texture->texture->height0;
 
-    return etna_f32_to_u32(1.0f / dim);
+    return fui(1.0f / dim);
 }
 
 void etna_uniforms_write(const struct etna_context *ctx, const struct etna_shader_object *sobj,

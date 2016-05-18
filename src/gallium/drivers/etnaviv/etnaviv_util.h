@@ -51,16 +51,6 @@ static inline uint32_t etna_cfloat_to_uintN(float f, int bits)
     return f * (1<<bits);
 }
 
-/* binary reinterpretation of f32 as u32 */
-static inline uint32_t etna_f32_to_u32(float value)
-{
-    union {
-        uint32_t u32;
-        float f32;
-    } x = { .f32 = value };
-    return x.u32;
-}
-
 static inline float etna_u32_to_f32(uint32_t value)
 {
     union {

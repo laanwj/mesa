@@ -411,14 +411,14 @@ static uint32_t get_imm_u32(struct etna_compile_data *cd, const struct etna_inst
  */
 static struct etna_inst_src alloc_imm_f32(struct etna_compile_data *cd, float value)
 {
-    return alloc_imm_u32(cd, etna_f32_to_u32(value));
+    return alloc_imm_u32(cd, fui(value));
 }
 
 static struct etna_inst_src etna_imm_vec4f(struct etna_compile_data *cd, const float *vec4)
 {
     uint32_t val[4];
     for(int i = 0; i < 4; i++)
-        val[i] = etna_f32_to_u32(vec4[i]);
+        val[i] = fui(vec4[i]);
     return alloc_imm_vec4u(cd, ETNA_IMMEDIATE_CONSTANT, val);
 }
 
