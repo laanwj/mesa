@@ -72,6 +72,11 @@ if HAVE_GALLIUM_ETNAVIV
 SUBDIRS += drivers/etnaviv winsys/etnaviv/drm
 endif
 
+if HAVE_GALLIUM_IMX
+SUBDIRS += drivers/imx
+SUBDIRS += winsys/imx/drm
+endif
+
 ## swrast/softpipe
 if HAVE_GALLIUM_SOFTPIPE
 SUBDIRS += drivers/softpipe

@@ -159,6 +159,11 @@ static const struct drm_driver_descriptor driver_descriptors[] = {
         .create_screen = pipe_etna_create_screen,
         .configuration = configuration_query,
     },
+    {
+        .driver_name = "imx-drm",
+        .create_screen = pipe_imx_drm_create_screen,
+        .configuration = configuration_query,
+    }
 };
 #endif
 

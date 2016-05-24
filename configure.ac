@@ -2444,6 +2444,9 @@ if test -n "$with_gallium_drivers"; then
             PKG_CHECK_MODULES([ETNAVIV], [libdrm_etnaviv >= $LIBDRM_ETNAVIV_REQUIRED])
             require_libdrm "etnaviv"
             ;;
+       ximx)
+            HAVE_GALLIUM_IMX=yes
+            ;;
         xswrast)
             HAVE_GALLIUM_SOFTPIPE=yes
             if test "x$MESA_LLVM" = x1; then
@@ -2494,6 +2497,12 @@ fi
 
 if test "x$HAVE_RADEON_VULKAN" = "xyes"; then
     radeon_llvm_check "radv" "3" "9" "0"
+fi
+
+dnl We need to validate some needed dependencies for renderonly drivers.
+
+if test "x$HAVE_GALLIUM_ETNAVIV" != xyes -a "x$HAVE_GALLIUM_IMX" == xyes  ; then
+    AC_ERROR([Building with imx requires etnaviv])
 fi
 
 dnl Set LLVM_LIBS - This is done after the driver configuration so
@@ -2561,6 +2570,7 @@ AM_CONDITIONAL(HAVE_GALLIUM_RADEON_COMMON, test "x$HAVE_GALLIUM_R600" = xyes -o 
 AM_CONDITIONAL(HAVE_GALLIUM_NOUVEAU, test "x$HAVE_GALLIUM_NOUVEAU" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_FREEDRENO, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_ETNAVIV, test "x$HAVE_GALLIUM_ETNAVIV" = xyes)
+AM_CONDITIONAL(HAVE_GALLIUM_IMX, test "x$HAVE_GALLIUM_IMX" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SOFTPIPE, test "x$HAVE_GALLIUM_SOFTPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_LLVMPIPE, test "x$HAVE_GALLIUM_LLVMPIPE" = xyes)
 AM_CONDITIONAL(HAVE_GALLIUM_SWR, test "x$HAVE_GALLIUM_SWR" = xyes)
@@ -2717,6 +2727,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/drivers/swr/Makefile
 		src/gallium/drivers/trace/Makefile
 		src/gallium/drivers/etnaviv/Makefile
+		src/gallium/drivers/imx/Makefile
 		src/gallium/drivers/vc4/Makefile
 		src/gallium/drivers/virgl/Makefile
 		src/gallium/state_trackers/clover/Makefile
@@ -2747,6 +2758,7 @@ AC_CONFIG_FILES([Makefile
 		src/gallium/tests/trivial/Makefile
 		src/gallium/tests/unit/Makefile
 		src/gallium/winsys/etnaviv/drm/Makefile
+		src/gallium/winsys/imx/drm/Makefile
 		src/gallium/winsys/freedreno/drm/Makefile
 		src/gallium/winsys/i915/drm/Makefile
 		src/gallium/winsys/intel/drm/Makefile
