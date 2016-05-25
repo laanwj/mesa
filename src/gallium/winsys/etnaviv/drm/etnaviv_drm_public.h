@@ -4,6 +4,7 @@
 
 struct pipe_screen;
 
+struct pipe_screen *etna_drm_screen_create_renderer(int fd);
 struct pipe_screen *etna_drm_screen_create(int fd);
 
 #endif
