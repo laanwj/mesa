@@ -37,7 +37,7 @@ etna_drm_screen_create_fd(int fd)
     return etna_screen_create(dev, gpu);
 }
 
-static struct pipe_screen *
+struct pipe_screen *
 etna_drm_screen_create_renderer(int fd)
 {
     struct pipe_screen *screen;
