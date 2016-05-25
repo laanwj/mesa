@@ -222,6 +222,9 @@ static inline uint32_t translate_rt_format(enum pipe_format fmt, bool silent)
 /* return a RS "compatible" format for use when copying */
 static inline enum pipe_format etna_compatible_rs_format(enum pipe_format fmt)
 {
+    /* YUYV and UYVY are blocksize 4, but 2 bytes per pixel */
+    if (fmt == PIPE_FORMAT_YUYV || fmt == PIPE_FORMAT_UYVY)
+        return PIPE_FORMAT_B4G4R4A4_UNORM;
     switch(util_format_get_blocksize(fmt))
     {
     case 2: return PIPE_FORMAT_B4G4R4A4_UNORM;
