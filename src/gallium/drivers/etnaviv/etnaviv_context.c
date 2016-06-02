@@ -33,6 +33,7 @@
 #include "etnaviv_debug.h"
 #include "etnaviv_emit.h"
 #include "etnaviv_fence.h"
+#include "etnaviv_query.h"
 #include "etnaviv_rasterizer.h"
 #include "etnaviv_screen.h"
 #include "etnaviv_shader.h"
@@ -256,6 +257,7 @@ struct pipe_context *etna_context_create(struct pipe_screen *pscreen, void *priv
     pctx->create_depth_stencil_alpha_state = etna_zsa_state_create;
 
     etna_clear_blit_init(pctx);
+    etna_query_context_init(pctx);
     etna_state_init(pctx);
     etna_surface_init(pctx);
     etna_shader_init(pctx);
