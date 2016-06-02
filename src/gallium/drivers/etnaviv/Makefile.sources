@@ -7,6 +7,8 @@ C_SOURCES :=  \
 	etnaviv_disasm.c \
 	etnaviv_emit.c \
 	etnaviv_fence.c \
+	etnaviv_query.c \
+	etnaviv_query_sw.c \
 	etnaviv_rasterizer.c \
 	etnaviv_resource.c \
 	etnaviv_rs.c \

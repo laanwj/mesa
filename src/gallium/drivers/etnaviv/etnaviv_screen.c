@@ -34,6 +34,7 @@
 #include "etnaviv_translate.h"
 #include "etnaviv_debug.h"
 #include "etnaviv_fence.h"
+#include "etnaviv_query.h"
 #include "etnaviv_resource.h"
 
 #include "util/u_string.h"
@@ -684,6 +685,7 @@ etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu)
     pscreen->flush_frontbuffer = etna_screen_flush_frontbuffer;
 
     etna_fence_screen_init(pscreen);
+    etna_query_screen_init(pscreen);
     etna_resource_screen_init(pscreen);
 
     return pscreen;
