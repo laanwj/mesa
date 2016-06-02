@@ -147,6 +147,9 @@ static void etna_draw_vbo(struct pipe_context *pctx,
         if (ctx->sampler_view[i])
                 resource_read(ctx, ctx->sampler_view[i]->texture);
 
+    ctx->stats.prims_emitted += u_reduced_prims_for_vertices(info->mode, info->count);
+    ctx->stats.draw_calls++;
+
     /* First, sync state, then emit DRAW_PRIMITIVES or DRAW_INDEXED_PRIMITIVES */
     etna_emit_state(ctx);
 
