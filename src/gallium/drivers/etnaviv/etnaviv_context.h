@@ -174,6 +174,12 @@ struct etna_context
 
     /* cached state of entire GPU */
     struct etna_3d_state gpu3d;
+
+    /* stats/counters */
+    struct {
+        uint64_t prims_emitted;
+        uint64_t draw_calls;
+    } stats;
 };
 
 static inline struct etna_context *
