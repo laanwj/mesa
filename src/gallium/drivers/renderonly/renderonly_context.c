@@ -31,6 +31,15 @@
 #include "renderonly_screen.h"
 
 static void
+renderonly_set_active_query_state(struct pipe_context *pcontext, boolean enable)
+{
+    struct renderonly_context *context = to_renderonly_context(pcontext);
+
+    return context->gpu->set_active_query_state(context->gpu, enable);
+}
+
+
+static void
 renderonly_destroy(struct pipe_context *pcontext)
 {
 	struct renderonly_context *context = to_renderonly_context(pcontext);
@@ -696,6 +705,60 @@ renderonly_transfer_flush_region(struct pipe_context *pcontext,
 	context->gpu->transfer_flush_region(context->gpu, transfer->gpu, box);
 }
 
+static struct pipe_query *
+renderonly_create_query(struct pipe_context *pcontext,
+		     unsigned query_type, unsigned index)
+{
+	struct renderonly_context *context = to_renderonly_context(pcontext);
+
+	return context->gpu->create_query(context->gpu, query_type, index);
+}
+
+static struct pipe_query *
+renderonly_create_batch_query(struct pipe_context *pcontext,
+		     unsigned num_queries, unsigned *query_types)
+{
+    struct renderonly_context *context = to_renderonly_context(pcontext);
+
+    return context->gpu->create_batch_query(context->gpu, num_queries, query_types);
+}
+
+static void
+renderonly_destroy_query(struct pipe_context *pcontext,
+		     struct pipe_query *q)
+{
+	struct renderonly_context *context = to_renderonly_context(pcontext);
+
+	context->gpu->destroy_query(context->gpu, q);
+}
+
+static boolean
+renderonly_begin_query(struct pipe_context *pcontext, struct pipe_query *q)
+{
+	struct renderonly_context *context = to_renderonly_context(pcontext);
+
+	return context->gpu->begin_query(context->gpu, q);
+}
+
+static bool
+renderonly_end_query(struct pipe_context *pcontext, struct pipe_query *q)
+{
+	struct renderonly_context *context = to_renderonly_context(pcontext);
+
+	return context->gpu->end_query(context->gpu, q);
+}
+
+static boolean
+renderonly_get_query_result(struct pipe_context *pcontext,
+		     struct pipe_query *q,
+		     boolean wait,
+		     union pipe_query_result *result)
+{
+	struct renderonly_context *context = to_renderonly_context(pcontext);
+
+	return context->gpu->get_query_result(context->gpu, q, wait, result);
+}
+
 struct pipe_context *
 renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 {
@@ -787,6 +850,14 @@ renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flag
 	context->base.transfer_unmap = renderonly_transfer_unmap;
 	context->base.transfer_inline_write = renderonly_transfer_inline_write;
 	context->base.transfer_flush_region = renderonly_transfer_flush_region;
+
+	context->base.create_query = renderonly_create_query;
+	context->base.create_batch_query = renderonly_create_batch_query;
+	context->base.destroy_query = renderonly_destroy_query;
+	context->base.begin_query = renderonly_begin_query;
+	context->base.end_query = renderonly_end_query;
+	context->base.get_query_result = renderonly_get_query_result;
+	context->base.set_active_query_state = renderonly_set_active_query_state;
 
 	return &context->base;
 }

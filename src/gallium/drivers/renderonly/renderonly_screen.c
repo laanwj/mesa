@@ -119,6 +119,15 @@ renderonly_fence_finish(struct pipe_screen *pscreen,
 	return screen->gpu->fence_finish(screen->gpu, fence, timeout);
 }
 
+static int
+renderonly_get_driver_query_info(struct pipe_screen *pscreen,
+		   unsigned index, struct pipe_driver_query_info *info)
+{
+	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
+
+	return screen->gpu->get_driver_query_info(screen->gpu, index, info);
+}
+
 /*
 static int renderonly_open_render_node(int fd)
 {
@@ -164,6 +173,9 @@ renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 
 	screen->base.fence_reference = renderonly_fence_reference;
 	screen->base.fence_finish = renderonly_fence_finish;
+
+	if (screen->gpu->get_driver_query_info)
+	    screen->base.get_driver_query_info = renderonly_get_driver_query_info;
 
 	if (ops->intermediate_rendering)
 		screen->base.flush_frontbuffer = NULL; /* TODO */
