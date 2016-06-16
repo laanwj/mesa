@@ -67,7 +67,8 @@ static bool resource_import_scanout(struct renderonly_screen *screen,
 
 	status = screen->gpu->resource_get_handle(screen->gpu,
 							  resource->gpu,
-							  &handle);
+							  &handle,
+							  PIPE_HANDLE_USAGE_READ_WRITE);
 	if (!status)
 		return false;
 
@@ -141,7 +142,11 @@ static bool resource_dumb(struct renderonly_screen *screen,
 	handle.handle = prime_fd;
 	handle.stride = create_dumb.pitch;
 
-	resource->prime = screen->gpu->resource_from_handle(screen->gpu, template, &handle);
+	resource->prime = screen->gpu->resource_from_handle(screen->gpu,
+							  template,
+							  &handle,
+							  PIPE_HANDLE_USAGE_READ_WRITE);
+
 	if (!resource->prime) {
 		fprintf(stderr, "failed to create resource_from_handle: %s\n",
 			strerror(errno));
@@ -230,7 +235,8 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 
 		resource->prime = screen->gpu->resource_from_handle(screen->gpu,
 								    template,
-								    handle);
+								    handle,
+								    PIPE_HANDLE_USAGE_READ_WRITE);
 		if (!resource->prime) {
 			screen->gpu->resource_destroy(screen->gpu, resource->gpu);
 			free(resource);
@@ -241,7 +247,8 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 	} else {
 		resource->gpu = screen->gpu->resource_from_handle(screen->gpu,
 								  template,
-								  handle);
+								  handle,
+								  PIPE_HANDLE_USAGE_READ_WRITE);
 	}
 
 	if (!resource->gpu) {
