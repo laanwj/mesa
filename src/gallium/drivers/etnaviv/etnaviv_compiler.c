@@ -2071,6 +2071,7 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
         .lower_LOG  = true,
         .lower_DP2  = true,
         .lower_DP2A = true,
+        .lower_TRUNC= true,
     };
 
     *out = NULL;
