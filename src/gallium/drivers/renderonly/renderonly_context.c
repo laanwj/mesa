@@ -825,7 +825,9 @@ renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flag
 	context->base.set_viewport_states = renderonly_set_viewport_states;
 	context->base.set_sampler_views = renderonly_set_sampler_views;
 
-	context->base.set_shader_images = renderonly_set_shader_images;
+	if (context->gpu->set_shader_images)
+		context->base.set_shader_images = renderonly_set_shader_images;
+
 	context->base.set_vertex_buffers = renderonly_set_vertex_buffers;
 	context->base.set_index_buffer = renderonly_set_index_buffer;
 
