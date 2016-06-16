@@ -1371,43 +1371,6 @@ static void trans_trig(const struct instr_translater *t,
      }
 }
 
-static void trans_floor(const struct instr_translater *t,
-        struct etna_compile_data *cd,
-        const struct tgsi_full_instruction *inst,
-        struct etna_inst_src *src)
-{
-      if (cd->specs->has_sign_floor_ceil)
-      {
-          emit_inst(cd, &(struct etna_inst) {
-                  .opcode = INST_OPCODE_FLOOR,
-                  .sat = inst->Instruction.Saturate,
-                  .dst = convert_dst(cd, &inst->Dst[0]),
-                  .src[2] = src[0],
-                  });
-      }
-      else
-      {
-          struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
-          emit_inst(cd, &(struct etna_inst) {
-                  .opcode = INST_OPCODE_FRC,
-                  .sat = inst->Instruction.Saturate,
-                  .dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W),
-                  .src[2] = src[0],
-                  });
-          emit_inst(cd, &(struct etna_inst) {
-                  .opcode = INST_OPCODE_ADD,
-                  .sat = inst->Instruction.Saturate,
-                  .dst = convert_dst(cd, &inst->Dst[0]),
-                  .src[0] = src[0],
-                  .src[2].use = 1,
-                  .src[2].swiz = INST_SWIZ_IDENTITY,
-                  .src[2].neg = 1,
-                  .src[2].rgroup = temp.rgroup,
-                  .src[2].reg = temp.id,
-                  });
-      }
-}
-
 static void trans_xpd(const struct instr_translater *t,
         struct etna_compile_data *cd,
         const struct tgsi_full_instruction *inst,
@@ -1575,6 +1538,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(SQRT, trans_instr, .opc = INST_OPCODE_SQRT,  .src = { 2, -1, -1 } ),
     INSTR(FRC,  trans_instr, .opc = INST_OPCODE_FRC,   .src = { 2, -1, -1 } ),
     INSTR(CEIL, trans_instr, .opc = INST_OPCODE_CEIL,  .src = { 2, -1, -1 } ),
+    INSTR(FLR,  trans_instr, .opc = INST_OPCODE_FLOOR, .src = { 2, -1, -1 } ),
     INSTR(CMP,  trans_instr, .opc = INST_OPCODE_SELECT,.src = { 0,  1,  2 }, .cond = INST_CONDITION_LZ ),
 
     INSTR(KILL, trans_instr, .opc = INST_OPCODE_TEXKILL ),
@@ -1597,8 +1561,6 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(DPH, trans_dph),
     INSTR(SUB, trans_sub),
     INSTR(ABS, trans_abs),
-
-    INSTR(FLR, trans_floor),
 
     INSTR(SIN, trans_trig),
     INSTR(COS, trans_trig),
@@ -2045,6 +2007,7 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
 
     struct tgsi_lowering_config lconfig = {
         .lower_SCS  = specs->has_sin_cos_sqrt,
+        .lower_FLR  = !specs->has_sign_floor_ceil,
         .lower_CEIL = !specs->has_sign_floor_ceil,
         .lower_POW  = true,
         .lower_EXP  = true,
