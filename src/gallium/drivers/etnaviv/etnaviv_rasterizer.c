@@ -41,10 +41,7 @@ void *etna_rasterizer_state_create(struct pipe_context *pctx,
     bool flatshade = ctx->screen->model < 880 ? so->flatshade : false;
 
     if (so->fill_front != so->fill_back)
-    {
         DBG("Different front and back fill mode not supported");
-	return NULL;
-    }
 
     cs = CALLOC_STRUCT(etna_rasterizer_state);
     if (!cs)
