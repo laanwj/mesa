@@ -186,8 +186,8 @@ static int etna_screen_get_param( struct pipe_screen *pscreen, enum pipe_cap par
             assert(log2_max_tex_size > 0);
             return log2_max_tex_size;
         }
-    case PIPE_CAP_MAX_TEXTURE_3D_LEVELS: /* 3D textures not supported */
-            return 0;
+    case PIPE_CAP_MAX_TEXTURE_3D_LEVELS: /* 3D textures not supported - fake it */
+            return 1;
     case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
             return 0;
     case PIPE_CAP_CUBE_MAP_ARRAY:
@@ -343,6 +343,7 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     if (target != PIPE_BUFFER &&
         target != PIPE_TEXTURE_1D &&
         target != PIPE_TEXTURE_2D &&
+        target != PIPE_TEXTURE_3D &&
         target != PIPE_TEXTURE_CUBE &&
         target != PIPE_TEXTURE_RECT)
        return FALSE;
