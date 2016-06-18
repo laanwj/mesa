@@ -92,19 +92,16 @@ static void etna_set_constant_buffer(struct pipe_context *pctx, uint shader, uin
         return;
     }
 
-    /* Note that the state tracker can unbind constant buffers by
-     * passing NULL here.
-     */
-    if (unlikely(!cb)) {
-        ctx->constant_buffer[shader].user_buffer = NULL;
-        return;
-    }
-
     /* there is no support for ARB_uniform_buffer_object  */
     assert(cb->buffer == NULL && cb->user_buffer != NULL);
 
-    ctx->constant_buffer[shader].buffer_size = cb->buffer_size;
-    ctx->constant_buffer[shader].user_buffer = cb->user_buffer;
+    util_copy_constant_buffer(&ctx->constant_buffer[shader], cb);
+
+    /* Note that the state tracker can unbind constant buffers by
+     * passing NULL here.
+     */
+    if (unlikely(!cb))
+        return;
 
     ctx->dirty |= ETNA_DIRTY_CONSTBUF;
 }
