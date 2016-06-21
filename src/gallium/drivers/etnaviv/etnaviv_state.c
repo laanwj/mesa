@@ -92,8 +92,6 @@ static void etna_set_constant_buffer(struct pipe_context *pctx, uint shader, uin
         return;
     }
 
-    /* there is no support for ARB_uniform_buffer_object  */
-    assert(cb->buffer == NULL && cb->user_buffer != NULL);
 
     util_copy_constant_buffer(&ctx->constant_buffer[shader], cb);
 
@@ -102,6 +100,9 @@ static void etna_set_constant_buffer(struct pipe_context *pctx, uint shader, uin
      */
     if (unlikely(!cb))
         return;
+
+    /* there is no support for ARB_uniform_buffer_object  */
+    assert(cb->buffer == NULL && cb->user_buffer != NULL);
 
     ctx->dirty |= ETNA_DIRTY_CONSTBUF;
 }
