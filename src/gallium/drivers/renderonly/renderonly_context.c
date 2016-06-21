@@ -595,6 +595,14 @@ renderonly_sampler_view_destroy(struct pipe_context *pcontext,
 }
 
 static void
+renderonly_texture_barrier(struct pipe_context *pcontext)
+{
+	struct renderonly_context *context = to_renderonly_context(pcontext);
+
+	context->gpu->texture_barrier(context->gpu);
+}
+
+static void
 renderonly_flush_resource(struct pipe_context *pcontext,
 		     struct pipe_resource *presource)
 {
@@ -842,6 +850,7 @@ renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flag
 
 	context->base.create_sampler_view = renderonly_create_sampler_view;
 	context->base.sampler_view_destroy = renderonly_sampler_view_destroy;
+	context->base.texture_barrier = renderonly_texture_barrier;
 
 	context->base.flush_resource = renderonly_flush_resource;
 
