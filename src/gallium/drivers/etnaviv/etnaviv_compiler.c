@@ -113,6 +113,7 @@ struct etna_compile_label
 
 enum etna_compile_frame_type {
     ETNA_COMPILE_FRAME_IF, /* IF/ELSE/ENDIF */
+    ETNA_COMPILE_FRAME_LOOP,
 };
 
 /* nesting scope frame (LOOP, IF, ...) during compilation
@@ -122,6 +123,8 @@ struct etna_compile_frame
     enum etna_compile_frame_type type;
     struct etna_compile_label *lbl_else;
     struct etna_compile_label *lbl_endif;
+    struct etna_compile_label *lbl_loop_bgn;
+    struct etna_compile_label *lbl_loop_end;
 };
 
 struct etna_compile_file
@@ -1034,6 +1037,34 @@ static void trans_endif(const struct instr_translater *t,
         label_place(cd, f->lbl_else);
 }
 
+static void trans_loop_bgn(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp++];
+
+    /* push LOOP to stack */
+    f->type = ETNA_COMPILE_FRAME_LOOP;
+    f->lbl_loop_bgn = alloc_new_label(cd);
+    f->lbl_loop_end = alloc_new_label(cd);
+
+    label_place(cd, f->lbl_loop_bgn);
+}
+
+static void trans_loop_end(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    assert(cd->frame_sp>0);
+    struct etna_compile_frame *f = &cd->frame_stack[--cd->frame_sp];
+
+    assert(f->type == ETNA_COMPILE_FRAME_LOOP);
+
+    label_place(cd, f->lbl_loop_end);
+}
+
 static void trans_deriv(const struct instr_translater *t,
         struct etna_compile_data *cd,
         const struct tgsi_full_instruction *inst,
@@ -1570,6 +1601,9 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(IF,   trans_if),
     INSTR(ELSE, trans_else),
     INSTR(ENDIF, trans_endif),
+
+    INSTR(BGNLOOP, trans_loop_bgn),
+    INSTR(ENDLOOP, trans_loop_end),
 
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
