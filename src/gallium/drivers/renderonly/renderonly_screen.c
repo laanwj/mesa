@@ -86,6 +86,14 @@ renderonly_screen_get_shader_param(struct pipe_screen *pscreen,
 	return screen->gpu->get_shader_param(screen->gpu, shader, param);
 }
 
+static uint64_t
+renderonly_screen_get_timestamp(struct pipe_screen *pscreen)
+{
+	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
+
+	return screen->gpu->get_timestamp(screen->gpu);
+}
+
 static boolean
 renderonly_screen_is_format_supported(struct pipe_screen *pscreen,
 				 enum pipe_format format,
@@ -162,6 +170,7 @@ renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 	screen->base.get_param = renderonly_screen_get_param;
 	screen->base.get_paramf = renderonly_screen_get_paramf;
 	screen->base.get_shader_param = renderonly_screen_get_shader_param;
+	screen->base.get_timestamp = renderonly_screen_get_timestamp;
 	screen->base.context_create = renderonly_context_create;
 	screen->base.is_format_supported = renderonly_screen_is_format_supported;
 
