@@ -1490,6 +1490,16 @@ static void trans_sampler(const struct instr_translater *t,
               });
         break;
 
+    case TGSI_OPCODE_TXL:
+        emit_inst(cd, &(struct etna_inst) {
+              .opcode = INST_OPCODE_TEXLDL,
+              .sat = 0,
+              .dst = convert_dst(cd, &inst->Dst[0]),
+              .tex = convert_tex(cd, &inst->Src[1], &inst->Texture),
+              .src[0] = src[0],
+              });
+        break;
+
     case TGSI_OPCODE_TXP: { /* divide src.xyz by src.w */
         struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
         emit_inst(cd, &(struct etna_inst) {
@@ -1585,6 +1595,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 
     INSTR(TEX, trans_sampler),
     INSTR(TXB, trans_sampler),
+    INSTR(TXL, trans_sampler),
     INSTR(TXP, trans_sampler),
 
     INSTR(NOP, trans_dummy),
