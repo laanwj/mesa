@@ -1062,6 +1062,17 @@ static void trans_loop_end(const struct instr_translater *t,
 
     assert(f->type == ETNA_COMPILE_FRAME_LOOP);
 
+    /* mark position in instruction stream of label reference so that it can be filled in in next pass */
+    label_mark_use(cd, f->lbl_loop_bgn);
+
+    /* create branch to loop_bgn label */
+    emit_inst(cd, &(struct etna_inst) {
+            .opcode = INST_OPCODE_BRANCH,
+            .cond = INST_CONDITION_TRUE,
+            .src[0] = src[0],
+            /* imm is filled in later */
+            });
+
     label_place(cd, f->lbl_loop_end);
 }
 
