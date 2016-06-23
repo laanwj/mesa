@@ -1097,6 +1097,28 @@ static void trans_brk(const struct instr_translater *t,
             });
 }
 
+static void trans_cont(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    assert(cd->frame_sp>0);
+    struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp - 2];
+
+    assert(f->type == ETNA_COMPILE_FRAME_LOOP);
+
+    /* mark position in instruction stream of label reference so that it can be filled in in next pass */
+    label_mark_use(cd, f->lbl_loop_bgn);
+
+    /* create branch to loop_end label */
+    emit_inst(cd, &(struct etna_inst) {
+            .opcode = INST_OPCODE_BRANCH,
+            .cond = INST_CONDITION_TRUE,
+            .src[0] = src[0],
+            /* imm is filled in later */
+            });
+}
+
 static void trans_deriv(const struct instr_translater *t,
         struct etna_compile_data *cd,
         const struct tgsi_full_instruction *inst,
@@ -1637,6 +1659,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(BGNLOOP, trans_loop_bgn),
     INSTR(ENDLOOP, trans_loop_end),
     INSTR(BRK, trans_brk),
+    INSTR(CONT, trans_cont),
 
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
