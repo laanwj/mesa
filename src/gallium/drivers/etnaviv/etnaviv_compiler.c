@@ -908,6 +908,16 @@ static void label_mark_use(struct etna_compile_data *cd, struct etna_compile_lab
     cd->lbl_usage[cd->inst_ptr] = label;
 }
 
+/* walk the frame stack and return first frame with matching type */
+static struct etna_compile_frame *find_frame(struct etna_compile_data *cd, enum etna_compile_frame_type type)
+{
+    for (unsigned sp = cd->frame_sp; sp >= 0; sp--)
+        if (cd->frame_stack[sp].type == type)
+            return &cd->frame_stack[sp];
+
+    assert(0);
+}
+
 struct instr_translater {
     void (*fxn)(const struct instr_translater *t,
             struct etna_compile_data *cd,
@@ -1081,9 +1091,7 @@ static void trans_brk(const struct instr_translater *t,
         struct etna_inst_src *src)
 {
     assert(cd->frame_sp>0);
-    struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp - 2];
-
-    assert(f->type == ETNA_COMPILE_FRAME_LOOP);
+    struct etna_compile_frame *f = find_frame(cd, ETNA_COMPILE_FRAME_LOOP);
 
     /* mark position in instruction stream of label reference so that it can be filled in in next pass */
     label_mark_use(cd, f->lbl_loop_end);
@@ -1103,9 +1111,7 @@ static void trans_cont(const struct instr_translater *t,
         struct etna_inst_src *src)
 {
     assert(cd->frame_sp>0);
-    struct etna_compile_frame *f = &cd->frame_stack[cd->frame_sp - 2];
-
-    assert(f->type == ETNA_COMPILE_FRAME_LOOP);
+    struct etna_compile_frame *f = find_frame(cd, ETNA_COMPILE_FRAME_LOOP);
 
     /* mark position in instruction stream of label reference so that it can be filled in in next pass */
     label_mark_use(cd, f->lbl_loop_bgn);
