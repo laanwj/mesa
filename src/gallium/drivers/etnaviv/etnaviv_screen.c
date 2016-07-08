@@ -353,7 +353,7 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     if (usage & PIPE_BIND_RENDER_TARGET)
     {
         /* if render target, must be RS-supported format */
-        if(translate_rt_format(format, true) != ETNA_NO_MATCH)
+        if(translate_rt_format(format) != ETNA_NO_MATCH)
         {
             /* Validate MSAA; number of samples must be allowed, and render target must have
              * MSAA'able format.
@@ -361,7 +361,7 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
             if(sample_count > 1)
             {
                 if(translate_samples_to_xyscale(sample_count, NULL, NULL, NULL) &&
-                   translate_msaa_format(format, true) != ETNA_NO_MATCH)
+                   translate_msaa_format(format) != ETNA_NO_MATCH)
                 {
                     allowed |= PIPE_BIND_RENDER_TARGET;
                 }
@@ -373,7 +373,7 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     if (usage & PIPE_BIND_DEPTH_STENCIL)
     {
         /* must be supported depth format */
-        if(translate_depth_format(format, true) != ETNA_NO_MATCH)
+        if(translate_depth_format(format) != ETNA_NO_MATCH)
         {
             allowed |= PIPE_BIND_DEPTH_STENCIL;
         }
@@ -381,7 +381,7 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     if (usage & PIPE_BIND_SAMPLER_VIEW)
     {
         /* must be supported texture format */
-        if(sample_count < 2 && translate_texture_format(format, true) != ETNA_NO_MATCH)
+        if(sample_count < 2 && translate_texture_format(format) != ETNA_NO_MATCH)
         {
             allowed |= PIPE_BIND_SAMPLER_VIEW;
         }
@@ -389,7 +389,7 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     if (usage & PIPE_BIND_VERTEX_BUFFER)
     {
         /* must be supported vertex format */
-        if(translate_vertex_format_type(format, true) != ETNA_NO_MATCH)
+        if(translate_vertex_format_type(format) != ETNA_NO_MATCH)
         {
             allowed |= PIPE_BIND_VERTEX_BUFFER;
         }
@@ -407,6 +407,12 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     /* Always allowed */
     allowed |= usage & (PIPE_BIND_DISPLAY_TARGET | PIPE_BIND_SCANOUT |
             PIPE_BIND_SHARED | PIPE_BIND_TRANSFER_READ | PIPE_BIND_TRANSFER_WRITE);
+
+	if (usage != allowed) {
+		DBG("not supported: format=%s, target=%d, sample_count=%d, "
+				"usage=%x, allowed=%x", util_format_name(format),
+				target, sample_count, usage, allowed);
+	}
 
     return usage == allowed;
 }

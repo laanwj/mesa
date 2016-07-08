@@ -169,7 +169,7 @@ static struct pipe_sampler_view *etna_create_sampler_view(struct pipe_context *p
     sv->base.context = pctx;
 
     /* merged with sampler state */
-    sv->TE_SAMPLER_CONFIG0 = VIVS_TE_SAMPLER_CONFIG0_FORMAT(translate_texture_format(sv->base.format, false));
+    sv->TE_SAMPLER_CONFIG0 = VIVS_TE_SAMPLER_CONFIG0_FORMAT(translate_texture_format(sv->base.format));
     sv->TE_SAMPLER_CONFIG0_MASK = 0xffffffff;
 
     switch (sv->base.target) {

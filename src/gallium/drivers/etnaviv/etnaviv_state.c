@@ -139,7 +139,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
 
         pipe_surface_reference(&cs->cbuf, &cbuf->base);
         cs->PE_COLOR_FORMAT =
-                VIVS_PE_COLOR_FORMAT_FORMAT(translate_rt_format(cbuf->base.format, false)) |
+                VIVS_PE_COLOR_FORMAT_FORMAT(translate_rt_format(cbuf->base.format)) |
                 VIVS_PE_COLOR_FORMAT_COMPONENTS__MASK |
                 VIVS_PE_COLOR_FORMAT_OVERWRITE |
                 (color_supertiled ? VIVS_PE_COLOR_FORMAT_SUPER_TILED : 0);
@@ -188,7 +188,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
 
         /* MSAA */
         if (cbuf->base.texture->nr_samples > 1)
-            ts_mem_config |= VIVS_TS_MEM_CONFIG_MSAA | translate_msaa_format(cbuf->base.format, false);
+            ts_mem_config |= VIVS_TS_MEM_CONFIG_MSAA | translate_msaa_format(cbuf->base.format);
 
         nr_samples_color = cbuf->base.texture->nr_samples;
     } else {
@@ -213,7 +213,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
 
         pipe_surface_reference(&cs->zsbuf, &zsbuf->base);
         assert(res->layout & ETNA_LAYOUT_BIT_TILE); /* Cannot render to linear surfaces */
-        uint32_t depth_format = translate_depth_format(zsbuf->base.format, false);
+        uint32_t depth_format = translate_depth_format(zsbuf->base.format);
         unsigned depth_bits = depth_format == VIVS_PE_DEPTH_CONFIG_DEPTH_FORMAT_D16 ? 16 : 24;
         bool depth_supertiled = (res->layout & ETNA_LAYOUT_BIT_SUPER)!=0;
 
@@ -568,7 +568,7 @@ static void *etna_vertex_elements_state_create(struct pipe_context *pctx,
                     elements[idx+1].vertex_buffer_index != elements[idx].vertex_buffer_index ||
                     end_offset != elements[idx+1].src_offset;
 
-        format_type = translate_vertex_format_type(elements[idx].src_format, false);
+        format_type = translate_vertex_format_type(elements[idx].src_format);
         normalize = translate_vertex_format_normalize(elements[idx].src_format);
 
         assert(format_type != ETNA_NO_MATCH);
