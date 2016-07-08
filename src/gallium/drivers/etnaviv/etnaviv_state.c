@@ -31,6 +31,7 @@
 
 #include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
+#include "etnaviv_format.h"
 #include "etnaviv_shader.h"
 #include "etnaviv_surface.h"
 #include "etnaviv_translate.h"

@@ -31,6 +31,7 @@
 #include "etnaviv_emit.h"
 #include "etnaviv_context.h"
 #include "etnaviv_emit.h"
+#include "etnaviv_format.h"
 #include "etnaviv_resource.h"
 #include "etnaviv_surface.h"
 #include "etnaviv_translate.h"

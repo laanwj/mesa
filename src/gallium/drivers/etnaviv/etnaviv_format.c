@@ -1,0 +1,190 @@
+/*
+ * Copyright (c) 2016 Etnaviv Project
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sub license,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Authors:
+ *    Christian Gmeiner <christian.gmeiner@gmail.com>
+ */
+
+#include "etnaviv_format.h"
+
+#include "hw/state.xml.h"
+#include "hw/state_3d.xml.h"
+
+#include "pipe/p_defines.h"
+
+uint32_t translate_texture_format(enum pipe_format fmt)
+{
+    switch(fmt) /* XXX with TEXTURE_FORMAT_EXT and swizzle on newer chips we can support much more */
+    {
+    /* Note: Pipe format convention is LSB to MSB, VIVS is MSB to LSB */
+    case PIPE_FORMAT_A8_UNORM: return TEXTURE_FORMAT_A8;
+    case PIPE_FORMAT_L8_UNORM: return TEXTURE_FORMAT_L8;
+    case PIPE_FORMAT_I8_UNORM: return TEXTURE_FORMAT_I8;
+    case PIPE_FORMAT_L8A8_UNORM: return TEXTURE_FORMAT_A8L8;
+    case PIPE_FORMAT_B4G4R4A4_UNORM: return TEXTURE_FORMAT_A4R4G4B4;
+    case PIPE_FORMAT_B4G4R4X4_UNORM: return TEXTURE_FORMAT_X4R4G4B4;
+    case PIPE_FORMAT_B8G8R8A8_UNORM: return TEXTURE_FORMAT_A8R8G8B8;
+    case PIPE_FORMAT_B8G8R8X8_UNORM: return TEXTURE_FORMAT_X8R8G8B8;
+    case PIPE_FORMAT_R8G8B8A8_UNORM: return TEXTURE_FORMAT_A8B8G8R8;
+    case PIPE_FORMAT_R8G8B8X8_UNORM: return TEXTURE_FORMAT_X8B8G8R8;
+    case PIPE_FORMAT_B5G6R5_UNORM: return TEXTURE_FORMAT_R5G6B5;
+    case PIPE_FORMAT_B5G5R5A1_UNORM: return TEXTURE_FORMAT_A1R5G5B5;
+    case PIPE_FORMAT_B5G5R5X1_UNORM: return TEXTURE_FORMAT_X1R5G5B5;
+    case PIPE_FORMAT_YUYV: return TEXTURE_FORMAT_YUY2;
+    case PIPE_FORMAT_UYVY: return TEXTURE_FORMAT_UYVY;
+    case PIPE_FORMAT_Z16_UNORM: return TEXTURE_FORMAT_D16;
+    case PIPE_FORMAT_X8Z24_UNORM: return TEXTURE_FORMAT_D24S8;
+    case PIPE_FORMAT_S8_UINT_Z24_UNORM: return TEXTURE_FORMAT_D24S8;
+    case PIPE_FORMAT_DXT1_RGB:  return TEXTURE_FORMAT_DXT1;
+    case PIPE_FORMAT_DXT1_RGBA: return TEXTURE_FORMAT_DXT1;
+    case PIPE_FORMAT_DXT3_RGBA: return TEXTURE_FORMAT_DXT2_DXT3;
+    case PIPE_FORMAT_DXT5_RGBA: return TEXTURE_FORMAT_DXT4_DXT5;
+    case PIPE_FORMAT_ETC1_RGB8: return TEXTURE_FORMAT_ETC1;
+    default: return ETNA_NO_MATCH;
+    }
+}
+
+/* render target format (non-rb swapped RS-supported formats) */
+uint32_t translate_rt_format(enum pipe_format fmt)
+{
+    switch(fmt)
+    {
+    /* Note: Pipe format convention is LSB to MSB, VIVS is MSB to LSB */
+    case PIPE_FORMAT_B4G4R4X4_UNORM: return RS_FORMAT_X4R4G4B4;
+    case PIPE_FORMAT_B4G4R4A4_UNORM: return RS_FORMAT_A4R4G4B4;
+    case PIPE_FORMAT_B5G5R5X1_UNORM: return RS_FORMAT_X1R5G5B5;
+    case PIPE_FORMAT_B5G5R5A1_UNORM: return RS_FORMAT_A1R5G5B5;
+    case PIPE_FORMAT_B5G6R5_UNORM: return RS_FORMAT_R5G6B5;
+    case PIPE_FORMAT_B8G8R8X8_UNORM: return RS_FORMAT_X8R8G8B8;
+    case PIPE_FORMAT_B8G8R8A8_UNORM: return RS_FORMAT_A8R8G8B8;
+    case PIPE_FORMAT_YUYV: return RS_FORMAT_YUY2;
+    default: return ETNA_NO_MATCH;
+    }
+}
+
+/* Return type flags for vertex element format */
+uint32_t translate_vertex_format_type(enum pipe_format fmt)
+{
+    switch(fmt)
+    {
+    case PIPE_FORMAT_R8_UNORM:
+    case PIPE_FORMAT_R8G8_UNORM:
+    case PIPE_FORMAT_R8G8B8_UNORM:
+    case PIPE_FORMAT_R8G8B8A8_UNORM:
+    case PIPE_FORMAT_R8_USCALED:
+    case PIPE_FORMAT_R8G8_USCALED:
+    case PIPE_FORMAT_R8G8B8_USCALED:
+    case PIPE_FORMAT_R8G8B8A8_USCALED:
+    case PIPE_FORMAT_R8_UINT:
+    case PIPE_FORMAT_R8G8_UINT:
+    case PIPE_FORMAT_R8G8B8_UINT:
+    case PIPE_FORMAT_R8G8B8A8_UINT:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_UNSIGNED_BYTE;
+    case PIPE_FORMAT_R8_SNORM:
+    case PIPE_FORMAT_R8G8_SNORM:
+    case PIPE_FORMAT_R8G8B8_SNORM:
+    case PIPE_FORMAT_R8G8B8A8_SNORM:
+    case PIPE_FORMAT_R8_SSCALED:
+    case PIPE_FORMAT_R8G8_SSCALED:
+    case PIPE_FORMAT_R8G8B8_SSCALED:
+    case PIPE_FORMAT_R8G8B8A8_SSCALED:
+    case PIPE_FORMAT_R8_SINT:
+    case PIPE_FORMAT_R8G8_SINT:
+    case PIPE_FORMAT_R8G8B8_SINT:
+    case PIPE_FORMAT_R8G8B8A8_SINT:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_BYTE;
+    case PIPE_FORMAT_R16_UNORM:
+    case PIPE_FORMAT_R16G16_UNORM:
+    case PIPE_FORMAT_R16G16B16_UNORM:
+    case PIPE_FORMAT_R16G16B16A16_UNORM:
+    case PIPE_FORMAT_R16_USCALED:
+    case PIPE_FORMAT_R16G16_USCALED:
+    case PIPE_FORMAT_R16G16B16_USCALED:
+    case PIPE_FORMAT_R16G16B16A16_USCALED:
+    case PIPE_FORMAT_R16_UINT:
+    case PIPE_FORMAT_R16G16_UINT:
+    case PIPE_FORMAT_R16G16B16_UINT:
+    case PIPE_FORMAT_R16G16B16A16_UINT:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_UNSIGNED_SHORT;
+    case PIPE_FORMAT_R16_SNORM:
+    case PIPE_FORMAT_R16G16_SNORM:
+    case PIPE_FORMAT_R16G16B16_SNORM:
+    case PIPE_FORMAT_R16G16B16A16_SNORM:
+    case PIPE_FORMAT_R16_SSCALED:
+    case PIPE_FORMAT_R16G16_SSCALED:
+    case PIPE_FORMAT_R16G16B16_SSCALED:
+    case PIPE_FORMAT_R16G16B16A16_SSCALED:
+    case PIPE_FORMAT_R16_SINT:
+    case PIPE_FORMAT_R16G16_SINT:
+    case PIPE_FORMAT_R16G16B16_SINT:
+    case PIPE_FORMAT_R16G16B16A16_SINT:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_SHORT;
+    case PIPE_FORMAT_R32_UNORM:
+    case PIPE_FORMAT_R32G32_UNORM:
+    case PIPE_FORMAT_R32G32B32_UNORM:
+    case PIPE_FORMAT_R32G32B32A32_UNORM:
+    case PIPE_FORMAT_R32_USCALED:
+    case PIPE_FORMAT_R32G32_USCALED:
+    case PIPE_FORMAT_R32G32B32_USCALED:
+    case PIPE_FORMAT_R32G32B32A32_USCALED:
+    case PIPE_FORMAT_R32_UINT:
+    case PIPE_FORMAT_R32G32_UINT:
+    case PIPE_FORMAT_R32G32B32_UINT:
+    case PIPE_FORMAT_R32G32B32A32_UINT:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_UNSIGNED_INT;
+    case PIPE_FORMAT_R32_SNORM:
+    case PIPE_FORMAT_R32G32_SNORM:
+    case PIPE_FORMAT_R32G32B32_SNORM:
+    case PIPE_FORMAT_R32G32B32A32_SNORM:
+    case PIPE_FORMAT_R32_SSCALED:
+    case PIPE_FORMAT_R32G32_SSCALED:
+    case PIPE_FORMAT_R32G32B32_SSCALED:
+    case PIPE_FORMAT_R32G32B32A32_SSCALED:
+    case PIPE_FORMAT_R32_SINT:
+    case PIPE_FORMAT_R32G32_SINT:
+    case PIPE_FORMAT_R32G32B32_SINT:
+    case PIPE_FORMAT_R32G32B32A32_SINT:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_INT;
+    case PIPE_FORMAT_R16_FLOAT:
+    case PIPE_FORMAT_R16G16_FLOAT:
+    case PIPE_FORMAT_R16G16B16_FLOAT:
+    case PIPE_FORMAT_R16G16B16A16_FLOAT:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_HALF_FLOAT;
+    case PIPE_FORMAT_R32_FLOAT:
+    case PIPE_FORMAT_R32G32_FLOAT:
+    case PIPE_FORMAT_R32G32B32_FLOAT:
+    case PIPE_FORMAT_R32G32B32A32_FLOAT:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_FLOAT;
+    case PIPE_FORMAT_R32_FIXED:
+    case PIPE_FORMAT_R32G32_FIXED:
+    case PIPE_FORMAT_R32G32B32_FIXED:
+    case PIPE_FORMAT_R32G32B32A32_FIXED:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_FIXED;
+    case PIPE_FORMAT_R10G10B10A2_UNORM:
+    case PIPE_FORMAT_R10G10B10A2_USCALED:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_UNSIGNED_INT_10_10_10_2;
+    case PIPE_FORMAT_R10G10B10A2_SNORM:
+    case PIPE_FORMAT_R10G10B10A2_SSCALED:
+        return VIVS_FE_VERTEX_ELEMENT_CONFIG_TYPE_INT_10_10_10_2;
+    default: return ETNA_NO_MATCH;
+    }
+}

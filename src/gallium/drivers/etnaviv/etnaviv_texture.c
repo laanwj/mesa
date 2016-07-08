@@ -31,6 +31,7 @@
 #include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
 #include "etnaviv_emit.h"
+#include "etnaviv_format.h"
 #include "etnaviv_translate.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
