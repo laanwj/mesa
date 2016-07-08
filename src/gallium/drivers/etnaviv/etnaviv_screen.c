@@ -34,6 +34,7 @@
 #include "etnaviv_translate.h"
 #include "etnaviv_debug.h"
 #include "etnaviv_fence.h"
+#include "etnaviv_format.h"
 #include "etnaviv_query.h"
 #include "etnaviv_resource.h"
 
