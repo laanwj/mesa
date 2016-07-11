@@ -68,16 +68,14 @@ static void etna_blit_save_state(struct etna_context *ctx)
 /* Generate clear command for a surface (non-fast clear case) */
 void etna_rs_gen_clear_surface(struct etna_context *ctx, struct compiled_rs_state *rs_state, struct etna_surface *surf, uint32_t clear_value)
 {
-    uint bs = util_format_get_blocksize(surf->base.format);
-    uint format = 0;
-    switch(bs)
-    {
-    case 2: format = RS_FORMAT_A1R5G5B5; break;
-    case 4: format = RS_FORMAT_A8R8G8B8; break;
-    default: BUG("etna_rs_gen_clear_surface: Unhandled clear blocksize: %i (fmt %i)", bs, surf->base.format);
-             format = RS_FORMAT_A8R8G8B8;
-             assert(0);
+    uint32_t format = translate_rs_format(surf->base.format);
+
+    if (format == ETNA_NO_MATCH) {
+        BUG("etna_rs_gen_clear_surface: Unhandled clear fmt %s", util_format_name(surf->base.format));
+        format = RS_FORMAT_A8R8G8B8;
+        assert(0);
     }
+
     /* use tiled clear if width is multiple of 16 */
     bool tiled_clear = (surf->surf.padded_width & ETNA_RS_WIDTH_MASK) == 0 &&
                        (surf->surf.padded_height & ETNA_RS_HEIGHT_MASK) == 0;
