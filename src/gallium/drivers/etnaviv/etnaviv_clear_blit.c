@@ -383,8 +383,8 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
 
    unsigned src_format = etna_compatible_rs_format(blit_info->src.format);
    unsigned dst_format = etna_compatible_rs_format(blit_info->src.format);
-   if (translate_rt_format(src_format) == ETNA_NO_MATCH ||
-       translate_rt_format(dst_format) == ETNA_NO_MATCH ||
+   if (translate_rs_format(src_format) == ETNA_NO_MATCH ||
+       translate_rs_format(dst_format) == ETNA_NO_MATCH ||
        blit_info->scissor_enable ||
        blit_info->src.box.x != 0 || blit_info->src.box.y != 0 ||
        blit_info->dst.box.x != 0 || blit_info->dst.box.y != 0 ||
@@ -489,13 +489,13 @@ static bool etna_try_rs_blit(struct pipe_context *pctx,
 
    /* Kick off RS here */
    etna_compile_rs_state(ctx, &copy_to_screen, &(struct rs_state){
-      .source_format = translate_rt_format(src_format),
+      .source_format = translate_rs_format(src_format),
       .source_tiling = src->layout,
       .source = src->bo,
       .source_offset = src_offset,
       .source_stride = src_lev->stride,
       .source_padded_height = src_lev->padded_height,
-      .dest_format = translate_rt_format(dst_format),
+      .dest_format = translate_rs_format(dst_format),
       .dest_tiling = dst->layout,
       .dest = dst->bo,
       .dest_offset = dst_offset,

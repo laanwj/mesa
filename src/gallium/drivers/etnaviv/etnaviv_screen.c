@@ -354,7 +354,7 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     if (usage & PIPE_BIND_RENDER_TARGET)
     {
         /* if render target, must be RS-supported format */
-        if(translate_rt_format(format) != ETNA_NO_MATCH)
+        if(translate_rs_format(format) != ETNA_NO_MATCH)
         {
             /* Validate MSAA; number of samples must be allowed, and render target must have
              * MSAA'able format.
