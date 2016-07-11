@@ -219,8 +219,7 @@ uint32_t translate_texture_format(enum pipe_format fmt)
     return formats[fmt].tex;
 }
 
-/* render target format (non-rb swapped RS-supported formats) */
-uint32_t translate_rt_format(enum pipe_format fmt)
+uint32_t translate_rs_format(enum pipe_format fmt)
 {
     if (!formats[fmt].present)
         return ETNA_NO_MATCH;
