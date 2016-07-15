@@ -131,7 +131,7 @@ static struct pipe_surface *etna_create_surface(struct pipe_context *pctx,
                 .clear_bits = 0xffff
             });
     } else {
-        etna_rs_gen_clear_surface(ctx, &surf->clear_command, surf, surf->level->clear_value);
+        etna_rs_gen_clear_surface(ctx, surf, surf->level->clear_value);
     }
 
     return &surf->base;
