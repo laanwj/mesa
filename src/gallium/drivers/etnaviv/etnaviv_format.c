@@ -80,6 +80,10 @@ static struct etna_format formats[PIPE_FORMAT_COUNT] = {
     V_(R8_USCALED, UNSIGNED_BYTE, NONE),
     V_(R8_SSCALED, BYTE,          NONE),
 
+    _T(A8_UNORM,   A8,            NONE),
+    _T(L8_UNORM,   L8,            NONE),
+    _T(I8_UNORM,   I8,            NONE),
+
     /* 16-bit */
     V_(R16_UNORM,   UNSIGNED_SHORT, NONE),
     V_(R16_SNORM,   SHORT,          NONE),
