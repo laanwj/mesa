@@ -591,7 +591,7 @@ void etna_copy_resource(struct pipe_context *pctx, struct pipe_resource *dst,
 
     struct pipe_blit_info blit = { };
     blit.mask = util_format_get_mask(dst->format);
-    blit.filter = PIPE_TEX_FILTER_LINEAR;
+    blit.filter = PIPE_TEX_FILTER_NEAREST;
     blit.src.resource = src;
     blit.src.format = src->format;
     blit.dst.resource = dst;
