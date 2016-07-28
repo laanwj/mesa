@@ -213,6 +213,9 @@ static struct pipe_resource *etna_resource_create(struct pipe_screen *pscreen,
          * directly compatible with the sampler.  Such a buffer can
          * never be rendered to. */
         layout = ETNA_LAYOUT_TILED;
+
+        if (util_format_is_compressed(templat->format))
+            layout = ETNA_LAYOUT_LINEAR;
     }
     else if (templat->target != PIPE_BUFFER)
     {
