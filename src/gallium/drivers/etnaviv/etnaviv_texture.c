@@ -121,6 +121,9 @@ static void etna_update_sampler_source(struct pipe_sampler_view *view)
 
 static bool etna_resource_sampler_compatible(struct etna_resource *res)
 {
+    if (util_format_is_compressed(res->base.format))
+        return true;
+
     /* The sampler (as we currently know it) only accepts tiled layouts */
     if (res->layout != ETNA_LAYOUT_TILED)
         return false;
