@@ -334,6 +334,17 @@ static uint64_t etna_screen_get_timestamp(struct pipe_screen *pscreen)
     return os_time_get_nano();
 }
 
+static bool gpu_supports_texure_format(struct etna_screen *screen, uint32_t fmt)
+{
+    if (fmt == TEXTURE_FORMAT_ETC1)
+        return VIV_FEATURE(screen, chipFeatures, ETC1_TEXTURE_COMPRESSION);
+
+    if (fmt >= TEXTURE_FORMAT_DXT1 &&  fmt <= TEXTURE_FORMAT_DXT4_DXT5)
+        return VIV_FEATURE(screen, chipFeatures, DXT_TEXTURE_COMPRESSION);
+
+    return true;
+}
+
 static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
                                enum pipe_format format,
                                enum pipe_texture_target target,
@@ -381,8 +392,13 @@ static boolean etna_screen_is_format_supported( struct pipe_screen *pscreen,
     }
     if (usage & PIPE_BIND_SAMPLER_VIEW)
     {
+        uint32_t fmt = translate_texture_format(format);
+
         /* must be supported texture format */
-        if(sample_count < 2 && translate_texture_format(format) != ETNA_NO_MATCH)
+        if (!gpu_supports_texure_format(screen, fmt))
+            fmt = ETNA_NO_MATCH;
+
+        if (sample_count < 2 && fmt != ETNA_NO_MATCH)
         {
             allowed |= PIPE_BIND_SAMPLER_VIEW;
         }
