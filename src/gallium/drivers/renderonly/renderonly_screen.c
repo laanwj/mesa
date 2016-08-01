@@ -52,6 +52,14 @@ renderonly_get_vendor(struct pipe_screen *pscreen)
 	return "renderonly";
 }
 
+static const char *
+renderonly_get_device_vendor(struct pipe_screen *pscreen)
+{
+	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
+
+	return screen->gpu->get_device_vendor(screen->gpu);
+}
+
 static void renderonly_screen_destroy(struct pipe_screen *pscreen)
 {
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
@@ -166,6 +174,7 @@ renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 
 	screen->base.get_name = renderonly_get_name;
 	screen->base.get_vendor = renderonly_get_vendor;
+	screen->base.get_device_vendor = renderonly_get_device_vendor;
 	screen->base.destroy = renderonly_screen_destroy;
 	screen->base.get_param = renderonly_screen_get_param;
 	screen->base.get_paramf = renderonly_screen_get_paramf;
