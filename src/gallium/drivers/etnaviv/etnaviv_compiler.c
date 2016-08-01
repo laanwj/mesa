@@ -1139,6 +1139,55 @@ static void trans_deriv(const struct instr_translater *t,
             });
 }
 
+static void trans_arl(const struct instr_translater *t,
+        struct etna_compile_data *cd,
+        const struct tgsi_full_instruction *inst,
+        struct etna_inst_src *src)
+{
+    struct etna_native_reg temp = etna_compile_get_inner_temp(cd);
+    struct etna_inst arl = { };
+    struct etna_inst_dst dst;
+
+    dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z | INST_COMPS_W);
+
+    if (cd->specs->has_sign_floor_ceil) {
+        struct etna_inst floor = { };
+
+        floor.opcode = INST_OPCODE_FLOOR;
+        floor.src[2] = src[0];
+        floor.dst = dst;
+
+        emit_inst(cd, &floor);
+    } else {
+        struct etna_inst floor[2] = { };
+
+        floor[0].opcode = INST_OPCODE_FRC;
+        floor[0].sat = inst->Instruction.Saturate;
+        floor[0].dst = dst;
+        floor[0].src[2] = src[0];
+
+        floor[1].opcode = INST_OPCODE_ADD;
+        floor[1].sat = inst->Instruction.Saturate;
+        floor[1].dst = dst;
+        floor[1].src[0] = src[0];
+        floor[1].src[2].use = 1;
+        floor[1].src[2].swiz = INST_SWIZ_IDENTITY;
+        floor[1].src[2].neg = 1;
+        floor[1].src[2].rgroup = temp.rgroup;
+        floor[1].src[2].reg = temp.id;
+
+        emit_inst(cd, &floor[0]);
+        emit_inst(cd, &floor[1]);
+    }
+
+    arl.opcode =  INST_OPCODE_MOVAR;
+    arl.sat = inst->Instruction.Saturate;
+    arl.dst = convert_dst(cd, &inst->Dst[0]);
+    arl.src[2] = etna_native_to_src(temp, INST_SWIZ_IDENTITY);
+
+    emit_inst(cd, &arl);
+}
+
 static void trans_lrp(const struct instr_translater *t,
         struct etna_compile_data *cd,
         const struct tgsi_full_instruction *inst,
@@ -1634,7 +1683,6 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
 #define INSTR(n, f, ...) \
     [TGSI_OPCODE_ ## n] = { .fxn = (f), .tgsi_opc = TGSI_OPCODE_ ## n, ##__VA_ARGS__ }
 
-    INSTR(ARL,  trans_instr, .opc = INST_OPCODE_MOVAR, .src = { 2, -1, -1 } ),
     INSTR(MOV,  trans_instr, .opc = INST_OPCODE_MOV,   .src = { 2, -1, -1 } ),
     INSTR(RCP,  trans_instr, .opc = INST_OPCODE_RCP,   .src = { 2, -1, -1 } ),
     INSTR(RSQ,  trans_instr, .opc = INST_OPCODE_RSQ,   .src = { 2, -1, -1 } ),
@@ -1670,6 +1718,7 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
     INSTR(MIN,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_GT ),
     INSTR(MAX,  trans_min_max, .opc = INST_OPCODE_SELECT, .cond = INST_CONDITION_LT ),
 
+    INSTR(ARL, trans_arl),
     INSTR(LRP, trans_lrp),
     INSTR(LIT, trans_lit),
     INSTR(SSG, trans_ssg),
