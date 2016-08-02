@@ -137,6 +137,15 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
     if (!rsc)
       return NULL;
 
+    rsc->base = *templat;
+    rsc->base.screen = pscreen;
+    rsc->base.nr_samples = nr_samples;
+    rsc->layout = layout;
+    rsc->halign = halign;
+
+    pipe_reference_init(&rsc->base.reference, 1);
+    list_inithead(&rsc->list);
+
     unsigned level = 0;
     unsigned x = templat->width0, y = templat->height0;
     unsigned offset = 0;
@@ -171,15 +180,8 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
         return NULL;
     }
 
-    rsc->base = *templat;
-    rsc->base.screen = pscreen;
-    rsc->base.nr_samples = nr_samples;
-    rsc->layout = layout;
-    rsc->halign = halign;
     rsc->bo = bo;
     rsc->ts_bo = 0; /* TS is only created when first bound to surface */
-    pipe_reference_init(&rsc->base.reference, 1);
-    list_inithead(&rsc->list);
 
     if (DBG_ENABLED(ETNA_DBG_ZERO))
     {
