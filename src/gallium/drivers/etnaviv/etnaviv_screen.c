@@ -190,7 +190,7 @@ static int etna_screen_get_param( struct pipe_screen *pscreen, enum pipe_cap par
             return log2_max_tex_size;
         }
     case PIPE_CAP_MAX_TEXTURE_3D_LEVELS: /* 3D textures not supported - fake it */
-            return 1;
+            return 5;
     case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
             return 0;
     case PIPE_CAP_CUBE_MAP_ARRAY:
