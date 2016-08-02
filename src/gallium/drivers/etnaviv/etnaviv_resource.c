@@ -254,6 +254,9 @@ static struct pipe_resource *etna_resource_create(struct pipe_screen *pscreen,
             layout |= ETNA_LAYOUT_BIT_SUPER;
     }
 
+    if (templat->target == PIPE_TEXTURE_3D)
+       layout = ETNA_LAYOUT_LINEAR;
+
     return etna_resource_alloc(pscreen, layout, templat);
 }
 
