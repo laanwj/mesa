@@ -90,11 +90,43 @@ static boolean etna_screen_can_create_resource(struct pipe_screen *pscreen,
     return true;
 }
 
+static unsigned setup_miptree(struct etna_resource *rsc,
+                         unsigned paddingX, unsigned paddingY,
+                         unsigned msaa_xscale, unsigned msaa_yscale)
+{
+    struct pipe_resource *prsc = &rsc->base;
+    unsigned level, size = 0;
+    unsigned width = prsc->width0;
+    unsigned height = prsc->height0;
+
+    for (level = 0; level <= prsc->last_level; level++) {
+        struct etna_resource_level *mip = &rsc->levels[level];
+
+        mip->width = width;
+        mip->height = height;
+        mip->padded_width = align(width * msaa_xscale, paddingX);
+        mip->padded_height = align(height * msaa_yscale, paddingY);
+        mip->stride = util_format_get_stride(prsc->format, mip->padded_width);
+        mip->offset = size;
+        mip->layer_stride = mip->stride * util_format_get_nblocksy(prsc->format, mip->padded_height);
+        mip->size = prsc->array_size * mip->layer_stride;
+
+        /* align levels to 64 bytes to be able to render to them */
+        size += align(mip->size, ETNA_PE_ALIGNMENT);
+
+        width = u_minify(width, 1);
+        height = u_minify(height, 1);
+    }
+
+    return size;
+}
+
 /* Allocate 2D texture or render target resource */
 struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
                          unsigned layout, const struct pipe_resource *templat)
 {
     struct etna_screen *screen = etna_screen(pscreen);
+    unsigned size;
 
     /* Determine scaling for antialiasing, allow override using debug flag */
     int nr_samples = templat->nr_samples;
@@ -131,7 +163,6 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
         if (paddingY < min_paddingY) paddingY = min_paddingY;
     }
 
-    /* compute mipmap level sizes and offsets */
     struct etna_resource *rsc = CALLOC_STRUCT(etna_resource);
 
     if (!rsc)
@@ -146,34 +177,15 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
     pipe_reference_init(&rsc->base.reference, 1);
     list_inithead(&rsc->list);
 
-    unsigned level = 0;
-    unsigned x = templat->width0, y = templat->height0;
-    unsigned offset = 0;
-
-    for (level = 0; level <= templat->last_level; level++) {
-        struct etna_resource_level *mip = &rsc->levels[level];
-
-        mip->width = x;
-        mip->height = y;
-        mip->padded_width = align(x * msaa_xscale, paddingX);
-        mip->padded_height = align(y * msaa_yscale, paddingY);
-        mip->stride = util_format_get_stride(templat->format, mip->padded_width);
-        mip->offset = offset;
-        mip->layer_stride = mip->stride * util_format_get_nblocksy(templat->format, mip->padded_height);
-        mip->size = templat->array_size * mip->layer_stride;
-        offset += align(mip->size, ETNA_PE_ALIGNMENT); /* align mipmaps to 64 bytes to be able to render to them */
-
-        x = u_minify(x, 1);
-        y = u_minify(y, 1);
-    }
+    size = setup_miptree(rsc, paddingX, paddingY, msaa_xscale, msaa_yscale);
 
     /* allocate bo */
     DBG_F(ETNA_DBG_RESOURCE_MSGS, "%p: Allocate surface of %ix%i (padded to %ix%i), %i layers, of format %s, size %08x flags %08x",
             rsc,
             templat->width0, templat->height0, rsc->levels[0].padded_width, rsc->levels[0].padded_height, templat->array_size, util_format_name(templat->format),
-            offset, templat->bind);
+            size, templat->bind);
 
-    struct etna_bo *bo = etna_bo_new(screen->dev, offset, DRM_ETNA_GEM_CACHE_WC);
+    struct etna_bo *bo = etna_bo_new(screen->dev, size, DRM_ETNA_GEM_CACHE_WC);
     if (unlikely(bo == NULL))
     {
         BUG("Problem allocating video memory for resource");
@@ -186,7 +198,7 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
     if (DBG_ENABLED(ETNA_DBG_ZERO))
     {
         void *map = etna_bo_map(bo);
-        memset(map, 0, offset);
+        memset(map, 0, size);
     }
 
     return &rsc->base;
