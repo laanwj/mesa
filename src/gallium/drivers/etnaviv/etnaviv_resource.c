@@ -137,10 +137,6 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
     if (!rsc)
       return NULL;
 
-    int max_mip_level = templat->last_level;
-    if (unlikely(max_mip_level >= ETNA_NUM_LOD)) /* max LOD supported by hw */
-        max_mip_level = ETNA_NUM_LOD - 1;
-
     unsigned ix = 0;
     unsigned x = templat->width0, y = templat->height0;
     unsigned offset = 0;
@@ -156,7 +152,7 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
         mip->layer_stride = mip->stride * util_format_get_nblocksy(templat->format, mip->padded_height);
         mip->size = templat->array_size * mip->layer_stride;
         offset += align(mip->size, ETNA_PE_ALIGNMENT); /* align mipmaps to 64 bytes to be able to render to them */
-        if (ix == max_mip_level || (x == 1 && y == 1))
+        if (ix == templat->last_level)
             break; // stop at last level
         x = u_minify(x, 1);
         y = u_minify(y, 1);
