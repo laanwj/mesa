@@ -137,12 +137,13 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
     if (!rsc)
       return NULL;
 
-    unsigned ix = 0;
+    unsigned level = 0;
     unsigned x = templat->width0, y = templat->height0;
     unsigned offset = 0;
-    while(true)
-    {
-        struct etna_resource_level *mip = &rsc->levels[ix];
+
+    for (level = 0; level <= templat->last_level; level++) {
+        struct etna_resource_level *mip = &rsc->levels[level];
+
         mip->width = x;
         mip->height = y;
         mip->padded_width = align(x * msaa_xscale, paddingX);
@@ -152,11 +153,9 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
         mip->layer_stride = mip->stride * util_format_get_nblocksy(templat->format, mip->padded_height);
         mip->size = templat->array_size * mip->layer_stride;
         offset += align(mip->size, ETNA_PE_ALIGNMENT); /* align mipmaps to 64 bytes to be able to render to them */
-        if (ix == templat->last_level)
-            break; // stop at last level
+
         x = u_minify(x, 1);
         y = u_minify(y, 1);
-        ix += 1;
     }
 
     /* allocate bo */
@@ -173,7 +172,6 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
     }
 
     rsc->base = *templat;
-    rsc->base.last_level = ix; /* real last mipmap level */
     rsc->base.screen = pscreen;
     rsc->base.nr_samples = nr_samples;
     rsc->layout = layout;
