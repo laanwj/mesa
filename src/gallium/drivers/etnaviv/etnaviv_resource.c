@@ -98,6 +98,7 @@ static unsigned setup_miptree(struct etna_resource *rsc,
     unsigned level, size = 0;
     unsigned width = prsc->width0;
     unsigned height = prsc->height0;
+    unsigned depth = prsc->depth0;
 
     for (level = 0; level <= prsc->last_level; level++) {
         struct etna_resource_level *mip = &rsc->levels[level];
@@ -112,16 +113,17 @@ static unsigned setup_miptree(struct etna_resource *rsc,
         mip->size = prsc->array_size * mip->layer_stride;
 
         /* align levels to 64 bytes to be able to render to them */
-        size += align(mip->size, ETNA_PE_ALIGNMENT);
+        size += align(mip->size, ETNA_PE_ALIGNMENT) * depth;
 
         width = u_minify(width, 1);
         height = u_minify(height, 1);
+        depth = u_minify(depth, 1);
     }
 
     return size;
 }
 
-/* Allocate 2D texture or render target resource */
+/* Create a new resource object, using the given template info */
 struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
                          unsigned layout, const struct pipe_resource *templat)
 {
