@@ -128,6 +128,13 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
     struct etna_screen *screen = etna_screen(pscreen);
     unsigned size;
 
+    DBG_F(ETNA_DBG_RESOURCE_MSGS, "target=%d, format=%s, %ux%ux%u, array_size=%u, "
+            "last_level=%u, nr_samples=%u, usage=%u, bind=%x, flags=%x",
+            templat->target, util_format_name(templat->format),
+            templat->width0, templat->height0, templat->depth0,
+            templat->array_size, templat->last_level, templat->nr_samples,
+            templat->usage, templat->bind, templat->flags);
+
     /* Determine scaling for antialiasing, allow override using debug flag */
     int nr_samples = templat->nr_samples;
     if ((templat->bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DEPTH_STENCIL)) &&
@@ -178,12 +185,6 @@ struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen,
     list_inithead(&rsc->list);
 
     size = setup_miptree(rsc, paddingX, paddingY, msaa_xscale, msaa_yscale);
-
-    /* allocate bo */
-    DBG_F(ETNA_DBG_RESOURCE_MSGS, "%p: Allocate surface of %ix%i (padded to %ix%i), %i layers, of format %s, size %08x flags %08x",
-            rsc,
-            templat->width0, templat->height0, rsc->levels[0].padded_width, rsc->levels[0].padded_height, templat->array_size, util_format_name(templat->format),
-            size, templat->bind);
 
     struct etna_bo *bo = etna_bo_new(screen->dev, size, DRM_ETNA_GEM_CACHE_WC);
     if (unlikely(bo == NULL))
