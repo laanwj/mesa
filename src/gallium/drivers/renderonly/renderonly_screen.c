@@ -145,13 +145,6 @@ renderonly_get_driver_query_info(struct pipe_screen *pscreen,
 	return screen->gpu->get_driver_query_info(screen->gpu, index, info);
 }
 
-/*
-static int renderonly_open_render_node(int fd)
-{
-	return open("/dev/dri/renderD128", O_RDWR);
-}
-*/
-
 struct pipe_screen *
 renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 {
