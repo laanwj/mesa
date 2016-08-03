@@ -25,6 +25,7 @@
 
 #include "util/u_debug.h"
 #include "util/u_inlines.h"
+#include "util/u_memory.h"
 
 #include "renderonly_context.h"
 #include "renderonly_resource.h"
@@ -45,7 +46,7 @@ renderonly_destroy(struct pipe_context *pcontext)
 	struct renderonly_context *context = to_renderonly_context(pcontext);
 
 	context->gpu->destroy(context->gpu);
-	free(context);
+	FREE(context);
 }
 
 static void
@@ -560,7 +561,7 @@ renderonly_create_sampler_view(struct pipe_context *pcontext,
 	struct renderonly_context *context = to_renderonly_context(pcontext);
 	struct renderonly_sampler_view *view;
 
-	view = calloc(1, sizeof(*view));
+	view = CALLOC_STRUCT(renderonly_sampler_view);
 	if (!view)
 		return NULL;
 
@@ -568,7 +569,7 @@ renderonly_create_sampler_view(struct pipe_context *pcontext,
 						      texture->gpu,
 						      template);
         if (view->gpu == NULL) {
-		free(view);
+		FREE(view);
 		return NULL;
 	}
 
@@ -591,7 +592,7 @@ renderonly_sampler_view_destroy(struct pipe_context *pcontext,
 
 	pipe_resource_reference(&view->base.texture, NULL);
 	pipe_sampler_view_reference(&view->gpu, NULL);
-	free(view);
+	FREE(view);
 }
 
 static void
@@ -648,7 +649,7 @@ renderonly_transfer_map(struct pipe_context *pcontext,
 	struct renderonly_context *context = to_renderonly_context(pcontext);
 	struct renderonly_transfer *transfer;
 
-	transfer = calloc(1, sizeof(*transfer));
+	transfer = CALLOC_STRUCT(renderonly_transfer);
 	if (!transfer)
 		return NULL;
 
@@ -659,7 +660,7 @@ renderonly_transfer_map(struct pipe_context *pcontext,
 						   box,
 						   &transfer->gpu);
 	if (!transfer->map) {
-		free(transfer);
+		FREE(transfer);
 		return NULL;
 	}
 
@@ -681,7 +682,7 @@ renderonly_transfer_unmap(struct pipe_context *pcontext,
 
 	context->gpu->transfer_unmap(context->gpu, transfer->gpu);
 	pipe_resource_reference(&transfer->base.resource, NULL);
-	free(transfer);
+	FREE(transfer);
 }
 
 static void
@@ -773,14 +774,14 @@ renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flag
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
 	struct renderonly_context *context;
 
-	context = calloc(1, sizeof(*context));
+	context = CALLOC_STRUCT(renderonly_context);
 	if (!context)
 		return NULL;
 
 	context->gpu = screen->gpu->context_create(screen->gpu, priv, flags);
 	if (!context->gpu) {
 		debug_error("failed to create GPU context\n");
-		free(context);
+		FREE(context);
 		return NULL;
 	}
 

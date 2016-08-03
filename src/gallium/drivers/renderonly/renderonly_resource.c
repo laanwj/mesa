@@ -34,6 +34,7 @@
 #include "util/u_debug.h"
 #include "util/u_format.h"
 #include "util/u_inlines.h"
+#include "util/u_memory.h"
 
 #include "state_tracker/drm_driver.h"
 
@@ -163,7 +164,7 @@ renderonly_resource_create(struct pipe_screen *pscreen,
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
 	struct renderonly_resource *resource;
 
-	resource = calloc(1, sizeof(*resource));
+	resource = CALLOC_STRUCT(renderonly_resource);
 	if (!resource)
 		return NULL;
 
@@ -203,7 +204,7 @@ renderonly_resource_create(struct pipe_screen *pscreen,
 destroy:
 	if (resource->gpu)
 		screen->gpu->resource_destroy(screen->gpu, resource->gpu);
-	free(resource);
+	FREE(resource);
 	return NULL;
 }
 
@@ -216,7 +217,7 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
 	struct renderonly_resource *resource;
 
-	resource = calloc(1, sizeof(*resource));
+	resource = CALLOC_STRUCT(renderonly_resource);
 	if (!resource)
 		return NULL;
 
@@ -229,7 +230,7 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 		resource->gpu = screen->gpu->resource_create(screen->gpu,
 							     template);
 		if (!resource->gpu) {
-			free(resource);
+			FREE(resource);
 			return false;
 		}
 
@@ -239,7 +240,7 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 								    PIPE_HANDLE_USAGE_READ_WRITE);
 		if (!resource->prime) {
 			screen->gpu->resource_destroy(screen->gpu, resource->gpu);
-			free(resource);
+			FREE(resource);
 			return false;
 		}
 
@@ -252,7 +253,7 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 	}
 
 	if (!resource->gpu) {
-		free(resource);
+		FREE(resource);
 		return NULL;
 	}
 
@@ -294,7 +295,7 @@ renderonly_resource_destroy(struct pipe_screen *pscreen,
 
 	pipe_resource_reference(&resource->gpu, NULL);
 	pipe_resource_reference(&resource->prime, NULL);
-	free(resource);
+	FREE(resource);
 }
 
 struct pipe_surface *
@@ -306,7 +307,7 @@ renderonly_create_surface(struct pipe_context *pcontext,
 	struct renderonly_context *context = to_renderonly_context(pcontext);
 	struct renderonly_surface *surface;
 
-	surface = calloc(1, sizeof(*surface));
+	surface = CALLOC_STRUCT(renderonly_surface);
 	if (!surface)
 		return NULL;
 
@@ -314,7 +315,7 @@ renderonly_create_surface(struct pipe_context *pcontext,
 						    resource->gpu,
 						    template);
 	if (!surface->gpu) {
-		free(surface);
+		FREE(surface);
 		return NULL;
 	}
 
@@ -337,5 +338,5 @@ renderonly_surface_destroy(struct pipe_context *pcontext,
 
 	pipe_resource_reference(&surface->base.texture, NULL);
 	pipe_surface_reference(&surface->gpu, NULL);
-	free(surface);
+	FREE(surface);
 }

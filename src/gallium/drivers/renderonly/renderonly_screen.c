@@ -29,6 +29,7 @@
 
 #include "util/u_string.h"
 #include "util/u_debug.h"
+#include "util/u_memory.h"
 
 #include "renderonly_context.h"
 #include "renderonly_resource.h"
@@ -65,7 +66,7 @@ static void renderonly_screen_destroy(struct pipe_screen *pscreen)
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
 
 	screen->gpu->destroy(screen->gpu);
-	free(pscreen);
+	FREE(pscreen);
 }
 
 static int
@@ -156,7 +157,7 @@ renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 {
 	struct renderonly_screen *screen;
 
-	screen = calloc(1, sizeof(*screen));
+	screen = CALLOC_STRUCT(renderonly_screen);
 	if (!screen)
 		return NULL;
 
@@ -168,7 +169,7 @@ renderonly_screen_create(int fd, const struct renderonly_ops *ops)
 	screen->gpu = screen->ops->open(fd);
 	if (!screen->gpu) {
 		fprintf(stderr, "failed to create GPU screen\n");
-		free(screen);
+		FREE(screen);
 		return NULL;
 	}
 
