@@ -235,6 +235,20 @@ static uint32_t active_samplers_bits(struct etna_context *ctx)
 
 #define ETNA_3D_CONTEXT_SIZE (400) /* keep this number above "Total state updates (fixed)" from gen_weave_state tool */
 
+static unsigned required_stream_size(struct etna_context *ctx)
+{
+    unsigned size = ETNA_3D_CONTEXT_SIZE;
+
+    /*
+     * Includes the flush (two words) and stall (four words)
+     * and we assume a DRAW_INDEXED_PRIMITIVES command which
+     * is six words.
+     */
+    size += 6 + 2 + ctx->vertex_elements->num_elements + 6;
+
+    return size;
+}
+
 /* Weave state before draw operation. This function merges all the compiled state blocks under
  * the context into one device register state. Parts of this state that are changed since
  * last call (dirty) will be uploaded as state changes in the command buffer.
@@ -246,11 +260,9 @@ void etna_emit_state(struct etna_context *ctx)
 
     /* Pre-reserve the command buffer space which we are likely to need.
      * This must cover all the state emitted below, and the following
-     * draw command.  This includes the flush (two words) and stall (four
-     * words) and we assume a DRAW_INDEXED_PRIMITIVES command which
-     * is six words.
+     * draw command.
      */
-    etna_cmd_stream_reserve(stream, ETNA_3D_CONTEXT_SIZE + 6 + 2 + ctx->vertex_elements->num_elements + 6);
+    etna_cmd_stream_reserve(stream, required_stream_size(ctx));
 
     uint32_t dirty = ctx->dirty;
 
