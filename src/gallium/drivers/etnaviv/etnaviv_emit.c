@@ -75,10 +75,8 @@ void etna_stall(struct etna_cmd_stream *stream, uint32_t from, uint32_t to)
     }
 }
 
-static void etna_coalesce_start(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce,
-        uint32_t max)
+static void etna_coalesce_start(struct etna_cmd_stream *stream, struct etna_coalesce *coalesce)
 {
-    etna_cmd_stream_reserve(stream, max);
     coalesce->start = etna_cmd_stream_offset(stream);
     coalesce->last_reg = 0;
     coalesce->last_fixp = 0;
@@ -165,7 +163,8 @@ void etna_submit_rs_state(struct etna_context *ctx, const struct compiled_rs_sta
 
     if (screen->specs.pixel_pipes == 1)
     {
-        etna_coalesce_start(stream, &coalesce, 22);
+        etna_cmd_stream_reserve(stream, 22);
+        etna_coalesce_start(stream, &coalesce);
         /* 0/1 */ EMIT_STATE(RS_CONFIG, cs->RS_CONFIG);
         /* 2   */ EMIT_STATE_RELOC(RS_SOURCE_ADDR, &cs->source[0]);
         /* 3   */ EMIT_STATE(RS_SOURCE_STRIDE, cs->RS_SOURCE_STRIDE);
@@ -186,7 +185,8 @@ void etna_submit_rs_state(struct etna_context *ctx, const struct compiled_rs_sta
     }
     else if (screen->specs.pixel_pipes == 2)
     {
-        etna_coalesce_start(stream, &coalesce, 34); /* worst case - both pipes multi=1 */
+        etna_cmd_stream_reserve(stream, 34); /* worst case - both pipes multi=1 */
+        etna_coalesce_start(stream, &coalesce);
         /* 0/1 */ EMIT_STATE(RS_CONFIG, cs->RS_CONFIG);
         /* 2/3 */ EMIT_STATE(RS_SOURCE_STRIDE, cs->RS_SOURCE_STRIDE);
         /* 4/5 */ EMIT_STATE(RS_DEST_STRIDE, cs->RS_DEST_STRIDE);
@@ -326,7 +326,7 @@ void etna_emit_state(struct etna_context *ctx)
      */
     struct etna_coalesce coalesce;
 
-    etna_coalesce_start(stream, &coalesce, ETNA_3D_CONTEXT_SIZE);
+    etna_coalesce_start(stream, &coalesce);
 
     /* begin only EMIT_STATE -- make sure no new etna_reserve calls are done here directly
      *    or indirectly */
@@ -750,7 +750,8 @@ void etna_emit_state(struct etna_context *ctx)
     }
     else
     {
-        etna_coalesce_start(stream, &coalesce, ctx->vs->uniforms.const_count); /* worst case */
+        etna_cmd_stream_reserve(stream, ctx->vs->uniforms.const_count); /* worst case */
+        etna_coalesce_start(stream, &coalesce);
         for (int x = 0; x < ctx->vs->uniforms.const_count; ++x)
         {
             if (ctx->gpu3d.VS_UNIFORMS[x] != ctx->shader_state.VS_UNIFORMS[x])
@@ -761,7 +762,8 @@ void etna_emit_state(struct etna_context *ctx)
         }
         etna_coalesce_end(stream, &coalesce);
 
-        etna_coalesce_start(stream, &coalesce, ctx->fs->uniforms.const_count); /* worst case */
+        etna_cmd_stream_reserve(stream, ctx->fs->uniforms.const_count); /* worst case */
+        etna_coalesce_start(stream, &coalesce);
         for (int x = 0; x < ctx->fs->uniforms.const_count; ++x)
         {
             if (ctx->gpu3d.PS_UNIFORMS[x] != ctx->shader_state.PS_UNIFORMS[x])
