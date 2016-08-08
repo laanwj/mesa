@@ -256,6 +256,9 @@ static unsigned required_stream_size(struct etna_context *ctx)
     /* DRAW_INDEXED_PRIMITIVES command */
     size += 6;
 
+    /* reserve for alignment etc. */
+    size += 64;
+
     return size;
 }
 
