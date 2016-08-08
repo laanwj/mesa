@@ -250,6 +250,10 @@ static unsigned required_stream_size(struct etna_context *ctx)
     size += ctx->vs->uniforms.const_count * 2;
     size += ctx->fs->uniforms.const_count * 2;
 
+    /* shader */
+    size += ctx->shader_state.vs_inst_mem_size + 1;
+    size += ctx->shader_state.ps_inst_mem_size + 1;
+
     return size;
 }
 
