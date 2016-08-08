@@ -246,6 +246,10 @@ static unsigned required_stream_size(struct etna_context *ctx)
      */
     size += 6 + 2 + ctx->vertex_elements->num_elements + 6;
 
+    /* uniforms - worst case (2 words per uniform load) */
+    size += ctx->vs->uniforms.const_count * 2;
+    size += ctx->fs->uniforms.const_count * 2;
+
     return size;
 }
 
@@ -762,7 +766,6 @@ void etna_emit_state(struct etna_context *ctx)
     }
     else
     {
-        etna_cmd_stream_reserve(stream, ctx->vs->uniforms.const_count); /* worst case */
         etna_coalesce_start(stream, &coalesce);
         for (int x = 0; x < ctx->vs->uniforms.const_count; ++x)
         {
@@ -774,7 +777,6 @@ void etna_emit_state(struct etna_context *ctx)
         }
         etna_coalesce_end(stream, &coalesce);
 
-        etna_cmd_stream_reserve(stream, ctx->fs->uniforms.const_count); /* worst case */
         etna_coalesce_start(stream, &coalesce);
         for (int x = 0; x < ctx->fs->uniforms.const_count; ++x)
         {
