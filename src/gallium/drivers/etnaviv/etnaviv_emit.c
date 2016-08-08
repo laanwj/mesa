@@ -239,12 +239,11 @@ static unsigned required_stream_size(struct etna_context *ctx)
 {
     unsigned size = ETNA_3D_CONTEXT_SIZE;
 
-    /*
-     * Includes the flush (two words) and stall (four words)
-     * and we assume a DRAW_INDEXED_PRIMITIVES command which
-     * is six words.
-     */
-    size += 6 + 2 + ctx->vertex_elements->num_elements + 6;
+    /* stall + flush */
+    size += 2 + 4;
+
+    /* vertex elements */
+    size += ctx->vertex_elements->num_elements + 1;
 
     /* uniforms - worst case (2 words per uniform load) */
     size += ctx->vs->uniforms.const_count * 2;
@@ -253,6 +252,9 @@ static unsigned required_stream_size(struct etna_context *ctx)
     /* shader */
     size += ctx->shader_state.vs_inst_mem_size + 1;
     size += ctx->shader_state.ps_inst_mem_size + 1;
+
+    /* DRAW_INDEXED_PRIMITIVES command */
+    size += 6;
 
     return size;
 }
