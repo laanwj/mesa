@@ -299,7 +299,7 @@ renderonly_resource_destroy(struct pipe_screen *pscreen,
 	FREE(rsc);
 }
 
-struct pipe_surface *
+static struct pipe_surface *
 renderonly_create_surface(struct pipe_context *pctx,
 		     struct pipe_resource *prsc,
 		     const struct pipe_surface *template)
@@ -331,7 +331,7 @@ renderonly_create_surface(struct pipe_context *pctx,
 	return &surface->base;
 }
 
-void
+static void
 renderonly_surface_destroy(struct pipe_context *pctx,
 		      struct pipe_surface *psurf)
 {
@@ -350,4 +350,11 @@ renderonly_resource_screen_init(struct pipe_screen *pscreen)
    pscreen->resource_from_handle = renderonly_resource_from_handle;
    pscreen->resource_get_handle = renderonly_resource_get_handle;
    pscreen->resource_destroy = renderonly_resource_destroy;
+}
+
+void
+renderonly_resource_context_init(struct pipe_context *pctx)
+{
+   pctx->create_surface = renderonly_create_surface;
+   pctx->surface_destroy = renderonly_surface_destroy;
 }

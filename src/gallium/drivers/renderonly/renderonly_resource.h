@@ -75,15 +75,11 @@ renderonly_surface_unwrap(struct pipe_surface *psurf)
 	return to_renderonly_surface(psurf)->gpu;
 }
 
-struct pipe_surface *
-renderonly_create_surface(struct pipe_context *pctx,
-		     struct pipe_resource *prsc,
-		     const struct pipe_surface *template);
-void
-renderonly_surface_destroy(struct pipe_context *pctx,
-		      struct pipe_surface *psurf);
-
 void
 renderonly_resource_screen_init(struct pipe_screen *pscreen);
+
+void
+renderonly_resource_context_init(struct pipe_context *pctx);
+
 
 #endif /* RENDERONLY_RESOURCE_H */

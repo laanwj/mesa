@@ -855,9 +855,6 @@ renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flag
 
 	ctx->base.flush_resource = renderonly_flush_resource;
 
-	ctx->base.create_surface = renderonly_create_surface;
-	ctx->base.surface_destroy = renderonly_surface_destroy;
-
 	ctx->base.transfer_map = renderonly_transfer_map;
 	ctx->base.transfer_unmap = renderonly_transfer_unmap;
 	ctx->base.transfer_inline_write = renderonly_transfer_inline_write;
@@ -870,6 +867,8 @@ renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flag
 	ctx->base.end_query = renderonly_end_query;
 	ctx->base.get_query_result = renderonly_get_query_result;
 	ctx->base.set_active_query_state = renderonly_set_active_query_state;
+
+	renderonly_resource_context_init(&ctx->base);
 
 	return &ctx->base;
 }
