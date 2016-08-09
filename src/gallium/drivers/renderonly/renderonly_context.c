@@ -467,11 +467,11 @@ renderonly_create_stream_output_target(struct pipe_context *pctx,
 				  unsigned buffer_offset,
 				  unsigned buffer_size)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(prsc);
+	struct renderonly_resource *rsc = to_renderonly_resource(prsc);
 	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
 	return ctx->gpu->create_stream_output_target(ctx->gpu,
-							 resource->gpu,
+							 rsc->gpu,
 							 buffer_offset,
 							 buffer_size);
 }
@@ -607,31 +607,31 @@ static void
 renderonly_flush_resource(struct pipe_context *pctx,
 		     struct pipe_resource *prsc)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(prsc);
+	struct renderonly_resource *rsc = to_renderonly_resource(prsc);
 	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_screen *screen = to_renderonly_screen(prsc->screen);
 	struct pipe_blit_info blit;
 
-	ctx->gpu->flush_resource(ctx->gpu, resource->gpu);
+	ctx->gpu->flush_resource(ctx->gpu, rsc->gpu);
 
-	if (!resource->scanout || !screen->ops->intermediate_rendering)
+	if (!rsc->scanout || !screen->ops->intermediate_rendering)
 		return;
 
 	/* we need to blit our gpu render result to dumb buffer */
 	memset(&blit, 0, sizeof(blit));
 	blit.mask = PIPE_MASK_RGBA;
 	blit.filter = PIPE_TEX_FILTER_LINEAR;
-	blit.src.resource = resource->gpu;
-	blit.src.format = resource->gpu->format;
+	blit.src.resource = rsc->gpu;
+	blit.src.format = rsc->gpu->format;
 	blit.src.level = 0;
-	blit.src.box.width = resource->gpu->width0;
-	blit.src.box.height = resource->gpu->height0;
+	blit.src.box.width = rsc->gpu->width0;
+	blit.src.box.height = rsc->gpu->height0;
 	blit.src.box.depth = 1;
-	blit.dst.resource = resource->prime;
-	blit.dst.format = resource->prime->format;
+	blit.dst.resource = rsc->prime;
+	blit.dst.format = rsc->prime->format;
 	blit.dst.level = 0;
-	blit.dst.box.width = resource->prime->width0;
-	blit.dst.box.height = resource->prime->height0;
+	blit.dst.box.width = rsc->prime->width0;
+	blit.dst.box.height = rsc->prime->height0;
 	blit.dst.box.depth = 1;
 
 	ctx->gpu->blit(ctx->gpu, &blit);
@@ -645,7 +645,7 @@ renderonly_transfer_map(struct pipe_context *pctx,
 		   const struct pipe_box *box,
 		   struct pipe_transfer **ptransfer)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(prsc);
+	struct renderonly_resource *rsc = to_renderonly_resource(prsc);
 	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_transfer *transfer;
 
@@ -654,7 +654,7 @@ renderonly_transfer_map(struct pipe_context *pctx,
 		return NULL;
 
 	transfer->map = ctx->gpu->transfer_map(ctx->gpu,
-						   resource->gpu,
+						   rsc->gpu,
 						   level,
 						   usage,
 						   box,
@@ -695,10 +695,10 @@ renderonly_transfer_inline_write(struct pipe_context *pctx,
 			    unsigned stride,
 			    unsigned layer_stride)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(prsc);
+	struct renderonly_resource *rsc = to_renderonly_resource(prsc);
 	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	ctx->gpu->transfer_inline_write(ctx->gpu, resource->gpu,
+	ctx->gpu->transfer_inline_write(ctx->gpu, rsc->gpu,
 					    level, usage, box, data, stride,
 					    layer_stride);
 }

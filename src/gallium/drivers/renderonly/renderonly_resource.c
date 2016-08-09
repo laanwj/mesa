@@ -51,32 +51,32 @@ boolean renderonly_can_create_resource(struct pipe_screen *pscreen,
 }
 
 static bool resource_import_scanout(struct renderonly_screen *screen,
-		     struct renderonly_resource *resource,
+		     struct renderonly_resource *rsc,
 		     const struct pipe_resource *template)
 {
 	struct winsys_handle handle;
 	boolean status;
 	int fd, err;
 
-	resource->gpu = screen->gpu->resource_create(screen->gpu,
+	rsc->gpu = screen->gpu->resource_create(screen->gpu,
 							     template);
-	if (!resource->gpu)
+	if (!rsc->gpu)
 		return false;
 
 	memset(&handle, 0, sizeof(handle));
 	handle.type = DRM_API_HANDLE_TYPE_FD;
 
 	status = screen->gpu->resource_get_handle(screen->gpu,
-							  resource->gpu,
+							  rsc->gpu,
 							  &handle,
 							  PIPE_HANDLE_USAGE_READ_WRITE);
 	if (!status)
 		return false;
 
-	resource->stride = handle.stride;
+	rsc->stride = handle.stride;
 	fd = handle.handle;
 
-	err = drmPrimeFDToHandle(screen->fd, fd, &resource->handle);
+	err = drmPrimeFDToHandle(screen->fd, fd, &rsc->handle);
 	if (err < 0) {
 		fprintf(stderr, "drmPrimeFDToHandle() failed: %s\n",
 			strerror(errno));
@@ -87,7 +87,7 @@ static bool resource_import_scanout(struct renderonly_screen *screen,
 	close(fd);
 
 	if (screen->ops->tiling) {
-		err = screen->ops->tiling(screen->fd, resource->handle);
+		err = screen->ops->tiling(screen->fd, rsc->handle);
 		if (err < 0) {
 			fprintf(stderr, "failed to set tiling parameters: %s\n",
 				strerror(errno));
@@ -99,7 +99,7 @@ static bool resource_import_scanout(struct renderonly_screen *screen,
 }
 
 static bool resource_dumb(struct renderonly_screen *screen,
-		     struct renderonly_resource *resource,
+		     struct renderonly_resource *rsc,
 		     const struct pipe_resource *template)
 {
 	struct drm_mode_create_dumb create_dumb = { 0 };
@@ -122,12 +122,12 @@ static bool resource_dumb(struct renderonly_screen *screen,
 		return false;
 	}
 
-	resource->handle = create_dumb.handle;
-	resource->stride = create_dumb.pitch;
+	rsc->handle = create_dumb.handle;
+	rsc->stride = create_dumb.pitch;
 
 	/* create resource at renderonly GPU */
-	resource->gpu = screen->gpu->resource_create(screen->gpu, template);
-	if (!resource->gpu)
+	rsc->gpu = screen->gpu->resource_create(screen->gpu, template);
+	if (!rsc->gpu)
 		return false;
 
 	/* export dumb buffer */
@@ -143,12 +143,12 @@ static bool resource_dumb(struct renderonly_screen *screen,
 	handle.handle = prime_fd;
 	handle.stride = create_dumb.pitch;
 
-	resource->prime = screen->gpu->resource_from_handle(screen->gpu,
+	rsc->prime = screen->gpu->resource_from_handle(screen->gpu,
 							  template,
 							  &handle,
 							  PIPE_HANDLE_USAGE_READ_WRITE);
 
-	if (!resource->prime) {
+	if (!rsc->prime) {
 		fprintf(stderr, "failed to create resource_from_handle: %s\n",
 			strerror(errno));
 		return false;
@@ -162,10 +162,10 @@ renderonly_resource_create(struct pipe_screen *pscreen,
 		      const struct pipe_resource *template)
 {
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
-	struct renderonly_resource *resource;
+	struct renderonly_resource *rsc;
 
-	resource = CALLOC_STRUCT(renderonly_resource);
-	if (!resource)
+	rsc = CALLOC_STRUCT(renderonly_resource);
+	if (!rsc)
 		return NULL;
 
 	if (template->bind & PIPE_BIND_SCANOUT) {
@@ -176,35 +176,35 @@ renderonly_resource_create(struct pipe_screen *pscreen,
 			/* create scanout resource in renderonly GPU, export it
 			 * and import it into the scanout hardware. If defined
 			 * tiling will be setup for the crated resource. */
-			success = resource_import_scanout(screen, resource, template);
+			success = resource_import_scanout(screen, rsc, template);
 		} else {
 			/* create dump buffer in scanout hardware, export it
 			 * and import it into renderonly GPU. */
-			success = resource_dumb(screen, resource, template);
+			success = resource_dumb(screen, rsc, template);
 		}
 
 		if (!success)
 			goto destroy;
 
-		resource->scanout = true;
+		rsc->scanout = true;
 
 	} else {
-		resource->gpu = screen->gpu->resource_create(screen->gpu,
+		rsc->gpu = screen->gpu->resource_create(screen->gpu,
 							     template);
-		if (!resource->gpu)
+		if (!rsc->gpu)
 			goto destroy;
 	}
 
-	memcpy(&resource->base, resource->gpu, sizeof(*resource->gpu));
-	pipe_reference_init(&resource->base.reference, 1);
-	resource->base.screen = &screen->base;
+	memcpy(&rsc->base, rsc->gpu, sizeof(*rsc->gpu));
+	pipe_reference_init(&rsc->base.reference, 1);
+	rsc->base.screen = &screen->base;
 
-	return &resource->base;
+	return &rsc->base;
 
 destroy:
-	if (resource->gpu)
-		screen->gpu->resource_destroy(screen->gpu, resource->gpu);
-	FREE(resource);
+	if (rsc->gpu)
+		screen->gpu->resource_destroy(screen->gpu, rsc->gpu);
+	FREE(rsc);
 	return NULL;
 }
 
@@ -215,10 +215,10 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 			   unsigned usage)
 {
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
-	struct renderonly_resource *resource;
+	struct renderonly_resource *rsc;
 
-	resource = CALLOC_STRUCT(renderonly_resource);
-	if (!resource)
+	rsc = CALLOC_STRUCT(renderonly_resource);
+	if (!rsc)
 		return NULL;
 
 	if (handle->type == DRM_API_HANDLE_TYPE_SHARED &&
@@ -227,41 +227,41 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 		 * here. It would be nice if dri_drawable_get_format()
 		 * set scanout for these buffers too.
 		 */
-		resource->gpu = screen->gpu->resource_create(screen->gpu,
+		rsc->gpu = screen->gpu->resource_create(screen->gpu,
 							     template);
-		if (!resource->gpu) {
-			FREE(resource);
+		if (!rsc->gpu) {
+			FREE(rsc);
 			return false;
 		}
 
-		resource->prime = screen->gpu->resource_from_handle(screen->gpu,
+		rsc->prime = screen->gpu->resource_from_handle(screen->gpu,
 								    template,
 								    handle,
 								    PIPE_HANDLE_USAGE_READ_WRITE);
-		if (!resource->prime) {
-			screen->gpu->resource_destroy(screen->gpu, resource->gpu);
-			FREE(resource);
+		if (!rsc->prime) {
+			screen->gpu->resource_destroy(screen->gpu, rsc->gpu);
+			FREE(rsc);
 			return false;
 		}
 
-		resource->scanout = true;
+		rsc->scanout = true;
 	} else {
-		resource->gpu = screen->gpu->resource_from_handle(screen->gpu,
+		rsc->gpu = screen->gpu->resource_from_handle(screen->gpu,
 								  template,
 								  handle,
 								  PIPE_HANDLE_USAGE_READ_WRITE);
 	}
 
-	if (!resource->gpu) {
-		FREE(resource);
+	if (!rsc->gpu) {
+		FREE(rsc);
 		return NULL;
 	}
 
-	memcpy(&resource->base, resource->gpu, sizeof(*resource->gpu));
-	pipe_reference_init(&resource->base.reference, 1);
-	resource->base.screen = &screen->base;
+	memcpy(&rsc->base, rsc->gpu, sizeof(*rsc->gpu));
+	pipe_reference_init(&rsc->base.reference, 1);
+	rsc->base.screen = &screen->base;
 
-	return &resource->base;
+	return &rsc->base;
 }
 
 boolean
@@ -270,16 +270,16 @@ renderonly_resource_get_handle(struct pipe_screen *pscreen,
 			  struct winsys_handle *handle,
 			  unsigned usage)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(prsc);
+	struct renderonly_resource *rsc = to_renderonly_resource(prsc);
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
 	boolean ret = TRUE;
 
 	if (prsc->bind & PIPE_BIND_SCANOUT) {
-		handle->handle = resource->handle;
-		handle->stride = resource->stride;
+		handle->handle = rsc->handle;
+		handle->stride = rsc->stride;
 	} else {
 		ret = screen->gpu->resource_get_handle(screen->gpu,
-						       resource->gpu,
+						       rsc->gpu,
 						       handle,
 						       usage);
 	}
@@ -291,11 +291,11 @@ void
 renderonly_resource_destroy(struct pipe_screen *pscreen,
 		       struct pipe_resource *prsc)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(prsc);
+	struct renderonly_resource *rsc = to_renderonly_resource(prsc);
 
-	pipe_resource_reference(&resource->gpu, NULL);
-	pipe_resource_reference(&resource->prime, NULL);
-	FREE(resource);
+	pipe_resource_reference(&rsc->gpu, NULL);
+	pipe_resource_reference(&rsc->prime, NULL);
+	FREE(rsc);
 }
 
 struct pipe_surface *
@@ -303,7 +303,7 @@ renderonly_create_surface(struct pipe_context *pctx,
 		     struct pipe_resource *prsc,
 		     const struct pipe_surface *template)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(prsc);
+	struct renderonly_resource *rsc = to_renderonly_resource(prsc);
 	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_surface *surface;
 
@@ -312,7 +312,7 @@ renderonly_create_surface(struct pipe_context *pctx,
 		return NULL;
 
 	surface->gpu = ctx->gpu->create_surface(ctx->gpu,
-						    resource->gpu,
+						    rsc->gpu,
 						    template);
 	if (!surface->gpu) {
 		FREE(surface);
