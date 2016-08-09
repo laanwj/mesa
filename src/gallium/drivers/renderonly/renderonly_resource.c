@@ -299,12 +299,12 @@ renderonly_resource_destroy(struct pipe_screen *pscreen,
 }
 
 struct pipe_surface *
-renderonly_create_surface(struct pipe_context *pcontext,
+renderonly_create_surface(struct pipe_context *pctx,
 		     struct pipe_resource *presource,
 		     const struct pipe_surface *template)
 {
 	struct renderonly_resource *resource = to_renderonly_resource(presource);
-	struct renderonly_context *context = to_renderonly_context(pcontext);
+	struct renderonly_context *context = to_renderonly_context(pctx);
 	struct renderonly_surface *surface;
 
 	surface = CALLOC_STRUCT(renderonly_surface);
@@ -331,7 +331,7 @@ renderonly_create_surface(struct pipe_context *pcontext,
 }
 
 void
-renderonly_surface_destroy(struct pipe_context *pcontext,
+renderonly_surface_destroy(struct pipe_context *pctx,
 		      struct pipe_surface *psurface)
 {
 	struct renderonly_surface *surface = to_renderonly_surface(psurface);

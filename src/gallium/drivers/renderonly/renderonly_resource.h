@@ -95,11 +95,11 @@ renderonly_surface_unwrap(struct pipe_surface *surface)
 }
 
 struct pipe_surface *
-renderonly_create_surface(struct pipe_context *pcontext,
+renderonly_create_surface(struct pipe_context *pctx,
 		     struct pipe_resource *presource,
 		     const struct pipe_surface *template);
 void
-renderonly_surface_destroy(struct pipe_context *pcontext,
+renderonly_surface_destroy(struct pipe_context *pctx,
 		      struct pipe_surface *psurface);
 
 #endif /* RENDERONLY_RESOURCE_H */
