@@ -80,18 +80,18 @@ struct renderonly_surface {
 };
 
 static inline struct renderonly_surface *
-to_renderonly_surface(struct pipe_surface *surface)
+to_renderonly_surface(struct pipe_surface *psurf)
 {
-	return (struct renderonly_surface *)surface;
+	return (struct renderonly_surface *)psurf;
 }
 
 static inline struct pipe_surface *
-renderonly_surface_unwrap(struct pipe_surface *surface)
+renderonly_surface_unwrap(struct pipe_surface *psurf)
 {
-	if (!surface)
+	if (!psurf)
 		return NULL;
 
-	return to_renderonly_surface(surface)->gpu;
+	return to_renderonly_surface(psurf)->gpu;
 }
 
 struct pipe_surface *
@@ -100,6 +100,6 @@ renderonly_create_surface(struct pipe_context *pctx,
 		     const struct pipe_surface *template);
 void
 renderonly_surface_destroy(struct pipe_context *pctx,
-		      struct pipe_surface *psurface);
+		      struct pipe_surface *psurf);
 
 #endif /* RENDERONLY_RESOURCE_H */

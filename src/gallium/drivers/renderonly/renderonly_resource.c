@@ -332,9 +332,9 @@ renderonly_create_surface(struct pipe_context *pctx,
 
 void
 renderonly_surface_destroy(struct pipe_context *pctx,
-		      struct pipe_surface *psurface)
+		      struct pipe_surface *psurf)
 {
-	struct renderonly_surface *surface = to_renderonly_surface(psurface);
+	struct renderonly_surface *surface = to_renderonly_surface(psurf);
 
 	pipe_resource_reference(&surface->base.texture, NULL);
 	pipe_surface_reference(&surface->gpu, NULL);
