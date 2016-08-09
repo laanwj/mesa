@@ -304,14 +304,14 @@ renderonly_create_surface(struct pipe_context *pctx,
 		     const struct pipe_surface *template)
 {
 	struct renderonly_resource *resource = to_renderonly_resource(prsc);
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_surface *surface;
 
 	surface = CALLOC_STRUCT(renderonly_surface);
 	if (!surface)
 		return NULL;
 
-	surface->gpu = context->gpu->create_surface(context->gpu,
+	surface->gpu = ctx->gpu->create_surface(ctx->gpu,
 						    resource->gpu,
 						    template);
 	if (!surface->gpu) {
@@ -325,7 +325,7 @@ renderonly_create_surface(struct pipe_context *pctx,
 
 	pipe_reference_init(&surface->base.reference, 1);
 	pipe_resource_reference(&surface->base.texture, prsc);
-	surface->base.context = &context->base;
+	surface->base.context = &ctx->base;
 
 	return &surface->base;
 }

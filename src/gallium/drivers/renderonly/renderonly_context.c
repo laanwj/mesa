@@ -34,26 +34,26 @@
 static void
 renderonly_set_active_query_state(struct pipe_context *pctx, boolean enable)
 {
-    struct renderonly_context *context = to_renderonly_context(pctx);
+    struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-    return context->gpu->set_active_query_state(context->gpu, enable);
+    return ctx->gpu->set_active_query_state(ctx->gpu, enable);
 }
 
 
 static void
 renderonly_destroy(struct pipe_context *pctx)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->destroy(context->gpu);
-	FREE(context);
+	ctx->gpu->destroy(ctx->gpu);
+	FREE(ctx);
 }
 
 static void
 renderonly_draw_vbo(struct pipe_context *pctx,
 	       const struct pipe_draw_info *pinfo)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct pipe_draw_info info;
 
 	if (pinfo && pinfo->indirect) {
@@ -62,43 +62,43 @@ renderonly_draw_vbo(struct pipe_context *pctx,
 		pinfo = &info;
 	}
 
-	context->gpu->draw_vbo(context->gpu, pinfo);
+	ctx->gpu->draw_vbo(ctx->gpu, pinfo);
 }
 
 static void *
 renderonly_create_blend_state(struct pipe_context *pctx,
 			 const struct pipe_blend_state *cso)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_blend_state(context->gpu, cso);
+	return ctx->gpu->create_blend_state(ctx->gpu, cso);
 }
 
 static void
 renderonly_bind_blend_state(struct pipe_context *pctx,
 		       void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->bind_blend_state(context->gpu, so);
+	ctx->gpu->bind_blend_state(ctx->gpu, so);
 }
 
 static void
 renderonly_delete_blend_state(struct pipe_context *pctx,
 			 void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->delete_blend_state(context->gpu, so);
+	ctx->gpu->delete_blend_state(ctx->gpu, so);
 }
 
 static void *
 renderonly_create_sampler_state(struct pipe_context *pctx,
 			   const struct pipe_sampler_state *cso)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_sampler_state(context->gpu, cso);
+	return ctx->gpu->create_sampler_state(ctx->gpu, cso);
 }
 
 static void
@@ -108,9 +108,9 @@ renderonly_bind_sampler_states(struct pipe_context *pctx,
 			  unsigned num_samplers,
 			  void **samplers)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->bind_sampler_states(context->gpu, shader, start_slot,
+	ctx->gpu->bind_sampler_states(ctx->gpu, shader, start_slot,
 					  num_samplers, samplers);
 }
 
@@ -118,45 +118,45 @@ static void
 renderonly_delete_sampler_state(struct pipe_context *pctx,
 			   void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->delete_sampler_state(context->gpu, so);
+	ctx->gpu->delete_sampler_state(ctx->gpu, so);
 }
 
 static void *
 renderonly_create_rasterizer_state(struct pipe_context *pctx,
 			      const struct pipe_rasterizer_state *cso)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_rasterizer_state(context->gpu, cso);
+	return ctx->gpu->create_rasterizer_state(ctx->gpu, cso);
 }
 
 static void
 renderonly_bind_rasterizer_state(struct pipe_context *pctx,
 			    void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->bind_rasterizer_state(context->gpu, so);
+	ctx->gpu->bind_rasterizer_state(ctx->gpu, so);
 }
 
 static void
 renderonly_delete_rasterizer_state(struct pipe_context *pctx,
 			      void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->delete_rasterizer_state(context->gpu, so);
+	ctx->gpu->delete_rasterizer_state(ctx->gpu, so);
 }
 
 static void *
 renderonly_create_depth_stencil_alpha_state(struct pipe_context *pctx,
 				       const struct pipe_depth_stencil_alpha_state *cso)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_depth_stencil_alpha_state(context->gpu,
+	return ctx->gpu->create_depth_stencil_alpha_state(ctx->gpu,
 							      cso);
 }
 
@@ -164,99 +164,99 @@ static void
 renderonly_bind_depth_stencil_alpha_state(struct pipe_context *pctx,
 				     void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->bind_depth_stencil_alpha_state(context->gpu, so);
+	ctx->gpu->bind_depth_stencil_alpha_state(ctx->gpu, so);
 }
 
 static void
 renderonly_delete_depth_stencil_alpha_state(struct pipe_context *pctx,
 				       void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->delete_depth_stencil_alpha_state(context->gpu, so);
+	ctx->gpu->delete_depth_stencil_alpha_state(ctx->gpu, so);
 }
 
 static void *
 renderonly_create_fs_state(struct pipe_context *pctx,
 		      const struct pipe_shader_state *cso)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_fs_state(context->gpu, cso);
+	return ctx->gpu->create_fs_state(ctx->gpu, cso);
 }
 
 static void
 renderonly_bind_fs_state(struct pipe_context *pctx,
 		    void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->bind_fs_state(context->gpu, so);
+	ctx->gpu->bind_fs_state(ctx->gpu, so);
 }
 
 static void
 renderonly_delete_fs_state(struct pipe_context *pctx,
 		      void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->delete_fs_state(context->gpu, so);
+	ctx->gpu->delete_fs_state(ctx->gpu, so);
 }
 
 static void *
 renderonly_create_vs_state(struct pipe_context *pctx,
 		      const struct pipe_shader_state *cso)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_vs_state(context->gpu, cso);
+	return ctx->gpu->create_vs_state(ctx->gpu, cso);
 }
 
 static void
 renderonly_bind_vs_state(struct pipe_context *pctx,
 		    void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->bind_vs_state(context->gpu, so);
+	ctx->gpu->bind_vs_state(ctx->gpu, so);
 }
 
 static void
 renderonly_delete_vs_state(struct pipe_context *pctx,
 		      void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->delete_vs_state(context->gpu, so);
+	ctx->gpu->delete_vs_state(ctx->gpu, so);
 }
 
 static void *
 renderonly_create_gs_state(struct pipe_context *pctx,
 		      const struct pipe_shader_state *cso)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_gs_state(context->gpu, cso);
+	return ctx->gpu->create_gs_state(ctx->gpu, cso);
 }
 
 static void
 renderonly_bind_gs_state(struct pipe_context *pctx,
 		    void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->bind_gs_state(context->gpu, so);
+	ctx->gpu->bind_gs_state(ctx->gpu, so);
 }
 
 static void
 renderonly_delete_gs_state(struct pipe_context *pctx,
 		      void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->delete_gs_state(context->gpu, so);
+	ctx->gpu->delete_gs_state(ctx->gpu, so);
 }
 
 static void *
@@ -264,9 +264,9 @@ renderonly_create_vertex_elements_state(struct pipe_context *pctx,
 				   unsigned num_elements,
 				   const struct pipe_vertex_element *elements)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_vertex_elements_state(context->gpu,
+	return ctx->gpu->create_vertex_elements_state(ctx->gpu,
 							  num_elements,
 							  elements);
 }
@@ -275,45 +275,45 @@ static void
 renderonly_bind_vertex_elements_state(struct pipe_context *pctx,
 				 void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->bind_vertex_elements_state(context->gpu, so);
+	ctx->gpu->bind_vertex_elements_state(ctx->gpu, so);
 }
 
 static void
 renderonly_delete_vertex_elements_state(struct pipe_context *pctx,
 				   void *so)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->delete_vertex_elements_state(context->gpu, so);
+	ctx->gpu->delete_vertex_elements_state(ctx->gpu, so);
 }
 
 static void
 renderonly_set_blend_color(struct pipe_context *pctx,
                           const struct pipe_blend_color *bc)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->set_blend_color(context->gpu, bc);
+	ctx->gpu->set_blend_color(ctx->gpu, bc);
 }
 
 static void
 renderonly_set_stencil_ref(struct pipe_context *pctx,
                           const struct pipe_stencil_ref *ref)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->set_stencil_ref(context->gpu, ref);
+	ctx->gpu->set_stencil_ref(ctx->gpu, ref);
 }
 
 static void
 renderonly_set_clip_state(struct pipe_context *pctx,
                           const struct pipe_clip_state *pcs)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->set_clip_state(context->gpu, pcs);
+	ctx->gpu->set_clip_state(ctx->gpu, pcs);
 }
 
 static void
@@ -322,7 +322,7 @@ renderonly_set_constant_buffer(struct pipe_context *pctx,
 			  uint index,
 			  struct pipe_constant_buffer *buf)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct pipe_constant_buffer buffer;
 
 	if (buf && buf->buffer) {
@@ -331,14 +331,14 @@ renderonly_set_constant_buffer(struct pipe_context *pctx,
 		buf = &buffer;
 	}
 
-	context->gpu->set_constant_buffer(context->gpu, shader, index, buf);
+	ctx->gpu->set_constant_buffer(ctx->gpu, shader, index, buf);
 }
 
 static void
 renderonly_set_framebuffer_state(struct pipe_context *pctx,
 			    const struct pipe_framebuffer_state *fb)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct pipe_framebuffer_state state;
 	unsigned i;
 
@@ -356,16 +356,16 @@ renderonly_set_framebuffer_state(struct pipe_context *pctx,
 		fb = &state;
 	}
 
-	context->gpu->set_framebuffer_state(context->gpu, fb);
+	ctx->gpu->set_framebuffer_state(ctx->gpu, fb);
 }
 
 static void
 renderonly_set_polygon_stipple(struct pipe_context *pctx,
 			  const struct pipe_poly_stipple *stipple)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->set_polygon_stipple(context->gpu, stipple);
+	ctx->gpu->set_polygon_stipple(ctx->gpu, stipple);
 }
 
 static void
@@ -374,9 +374,9 @@ renderonly_set_scissor_states(struct pipe_context *pctx,
 			 unsigned num_scissors,
 			 const struct pipe_scissor_state *scissors)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->set_scissor_states(context->gpu, start_slot,
+	ctx->gpu->set_scissor_states(ctx->gpu, start_slot,
 					 num_scissors, scissors);
 }
 
@@ -386,9 +386,9 @@ renderonly_set_viewport_states(struct pipe_context *pctx,
 			  unsigned num_viewports,
 			  const struct pipe_viewport_state *viewports)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->set_viewport_states(context->gpu, start_slot,
+	ctx->gpu->set_viewport_states(ctx->gpu, start_slot,
 					  num_viewports, viewports);
 }
 
@@ -400,13 +400,13 @@ renderonly_set_sampler_views(struct pipe_context *pctx,
 			struct pipe_sampler_view **pviews)
 {
 	struct pipe_sampler_view *views[PIPE_MAX_SHADER_SAMPLER_VIEWS];
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	unsigned i;
 
 	for (i = 0; i < num_views; i++)
 		views[i] = renderonly_sampler_view_unwrap(pviews[i]);
 
-	context->gpu->set_sampler_views(context->gpu, shader, start_slot,
+	ctx->gpu->set_sampler_views(ctx->gpu, shader, start_slot,
 					num_views, views);
 }
 
@@ -416,9 +416,9 @@ renderonly_set_shader_images(struct pipe_context *pctx,
 			   unsigned start_slot, unsigned count,
 			   struct pipe_image_view *images)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->set_shader_images(context->gpu, shader, start_slot,
+	ctx->gpu->set_shader_images(ctx->gpu, shader, start_slot,
 					count, images);
 }
 
@@ -428,7 +428,7 @@ renderonly_set_vertex_buffers(struct pipe_context *pctx,
 			 unsigned num_buffers,
 			 const struct pipe_vertex_buffer *buffers)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct pipe_vertex_buffer buf[PIPE_MAX_SHADER_INPUTS];
 	unsigned i;
 
@@ -441,7 +441,7 @@ renderonly_set_vertex_buffers(struct pipe_context *pctx,
 		buffers = buf;
 	}
 
-	context->gpu->set_vertex_buffers(context->gpu, start_slot,
+	ctx->gpu->set_vertex_buffers(ctx->gpu, start_slot,
 					 num_buffers, buffers);
 }
 
@@ -449,7 +449,7 @@ static void
 renderonly_set_index_buffer(struct pipe_context *pctx,
 		       const struct pipe_index_buffer *buffer)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct pipe_index_buffer buf;
 
 	if (buffer) {
@@ -458,7 +458,7 @@ renderonly_set_index_buffer(struct pipe_context *pctx,
 		buffer = &buf;
 	}
 
-	context->gpu->set_index_buffer(context->gpu, buffer);
+	ctx->gpu->set_index_buffer(ctx->gpu, buffer);
 }
 
 static struct pipe_stream_output_target *
@@ -468,9 +468,9 @@ renderonly_create_stream_output_target(struct pipe_context *pctx,
 				  unsigned buffer_size)
 {
 	struct renderonly_resource *resource = to_renderonly_resource(prsc);
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_stream_output_target(context->gpu,
+	return ctx->gpu->create_stream_output_target(ctx->gpu,
 							 resource->gpu,
 							 buffer_offset,
 							 buffer_size);
@@ -480,9 +480,9 @@ static void
 renderonly_stream_output_target_destroy(struct pipe_context *pctx,
 				   struct pipe_stream_output_target *target)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->stream_output_target_destroy(context->gpu, target);
+	ctx->gpu->stream_output_target_destroy(ctx->gpu, target);
 }
 
 static void
@@ -491,9 +491,9 @@ renderonly_set_stream_output_targets(struct pipe_context *pctx,
 				struct pipe_stream_output_target **targets,
 				const unsigned *offsets)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->set_stream_output_targets(context->gpu, num_targets,
+	ctx->gpu->set_stream_output_targets(ctx->gpu, num_targets,
 						targets, offsets);
 }
 
@@ -504,9 +504,9 @@ renderonly_resource_copy_region(struct pipe_context *pctx,
            struct pipe_resource *src, unsigned src_level,
            const struct pipe_box *src_box)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->resource_copy_region(context->gpu,
+	ctx->gpu->resource_copy_region(ctx->gpu,
 					   renderonly_resource_unwrap(dst),
 					   dst_level, dstx, dsty, dstz,
 					   renderonly_resource_unwrap(src),
@@ -517,7 +517,7 @@ static void
 renderonly_blit(struct pipe_context *pctx,
 	   const struct pipe_blit_info *pinfo)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct pipe_blit_info info;
 
 	if (pinfo) {
@@ -527,7 +527,7 @@ renderonly_blit(struct pipe_context *pctx,
 		pinfo = &info;
 	}
 
-	context->gpu->blit(context->gpu, pinfo);
+	ctx->gpu->blit(ctx->gpu, pinfo);
 }
 
 static void
@@ -537,9 +537,9 @@ renderonly_clear(struct pipe_context *pctx,
 	    double depth,
 	    unsigned stencil)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->clear(context->gpu, buffers, color, depth, stencil);
+	ctx->gpu->clear(ctx->gpu, buffers, color, depth, stencil);
 }
 
 static void
@@ -547,9 +547,9 @@ renderonly_flush(struct pipe_context *pctx,
 	    struct pipe_fence_handle **fence,
 	    unsigned flags)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->flush(context->gpu, fence, flags);
+	ctx->gpu->flush(ctx->gpu, fence, flags);
 }
 
 static struct pipe_sampler_view *
@@ -558,14 +558,14 @@ renderonly_create_sampler_view(struct pipe_context *pctx,
 			  const struct pipe_sampler_view *template)
 {
 	struct renderonly_resource *texture = to_renderonly_resource(ptexture);
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_sampler_view *view;
 
 	view = CALLOC_STRUCT(renderonly_sampler_view);
 	if (!view)
 		return NULL;
 
-	view->gpu = context->gpu->create_sampler_view(context->gpu,
+	view->gpu = ctx->gpu->create_sampler_view(ctx->gpu,
 						      texture->gpu,
 						      template);
         if (view->gpu == NULL) {
@@ -598,9 +598,9 @@ renderonly_sampler_view_destroy(struct pipe_context *pctx,
 static void
 renderonly_texture_barrier(struct pipe_context *pctx)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->texture_barrier(context->gpu);
+	ctx->gpu->texture_barrier(ctx->gpu);
 }
 
 static void
@@ -608,11 +608,11 @@ renderonly_flush_resource(struct pipe_context *pctx,
 		     struct pipe_resource *prsc)
 {
 	struct renderonly_resource *resource = to_renderonly_resource(prsc);
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_screen *screen = to_renderonly_screen(prsc->screen);
 	struct pipe_blit_info blit;
 
-	context->gpu->flush_resource(context->gpu, resource->gpu);
+	ctx->gpu->flush_resource(ctx->gpu, resource->gpu);
 
 	if (!resource->scanout || !screen->ops->intermediate_rendering)
 		return;
@@ -634,7 +634,7 @@ renderonly_flush_resource(struct pipe_context *pctx,
 	blit.dst.box.height = resource->prime->height0;
 	blit.dst.box.depth = 1;
 
-	context->gpu->blit(context->gpu, &blit);
+	ctx->gpu->blit(ctx->gpu, &blit);
 }
 
 static void *
@@ -646,14 +646,14 @@ renderonly_transfer_map(struct pipe_context *pctx,
 		   struct pipe_transfer **ptransfer)
 {
 	struct renderonly_resource *resource = to_renderonly_resource(prsc);
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_transfer *transfer;
 
 	transfer = CALLOC_STRUCT(renderonly_transfer);
 	if (!transfer)
 		return NULL;
 
-	transfer->map = context->gpu->transfer_map(context->gpu,
+	transfer->map = ctx->gpu->transfer_map(ctx->gpu,
 						   resource->gpu,
 						   level,
 						   usage,
@@ -678,9 +678,9 @@ renderonly_transfer_unmap(struct pipe_context *pctx,
 		     struct pipe_transfer *ptransfer)
 {
 	struct renderonly_transfer *transfer = to_renderonly_transfer(ptransfer);
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->transfer_unmap(context->gpu, transfer->gpu);
+	ctx->gpu->transfer_unmap(ctx->gpu, transfer->gpu);
 	pipe_resource_reference(&transfer->base.resource, NULL);
 	FREE(transfer);
 }
@@ -696,9 +696,9 @@ renderonly_transfer_inline_write(struct pipe_context *pctx,
 			    unsigned layer_stride)
 {
 	struct renderonly_resource *resource = to_renderonly_resource(prsc);
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->transfer_inline_write(context->gpu, resource->gpu,
+	ctx->gpu->transfer_inline_write(ctx->gpu, resource->gpu,
 					    level, usage, box, data, stride,
 					    layer_stride);
 }
@@ -708,53 +708,53 @@ renderonly_transfer_flush_region(struct pipe_context *pctx,
 				  struct pipe_transfer *ptransfer,
 				  const struct pipe_box *box)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_transfer *transfer = to_renderonly_transfer(ptransfer);
 
-	context->gpu->transfer_flush_region(context->gpu, transfer->gpu, box);
+	ctx->gpu->transfer_flush_region(ctx->gpu, transfer->gpu, box);
 }
 
 static struct pipe_query *
 renderonly_create_query(struct pipe_context *pctx,
 		     unsigned query_type, unsigned index)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->create_query(context->gpu, query_type, index);
+	return ctx->gpu->create_query(ctx->gpu, query_type, index);
 }
 
 static struct pipe_query *
 renderonly_create_batch_query(struct pipe_context *pctx,
 		     unsigned num_queries, unsigned *query_types)
 {
-    struct renderonly_context *context = to_renderonly_context(pctx);
+    struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-    return context->gpu->create_batch_query(context->gpu, num_queries, query_types);
+    return ctx->gpu->create_batch_query(ctx->gpu, num_queries, query_types);
 }
 
 static void
 renderonly_destroy_query(struct pipe_context *pctx,
 		     struct pipe_query *q)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	context->gpu->destroy_query(context->gpu, q);
+	ctx->gpu->destroy_query(ctx->gpu, q);
 }
 
 static boolean
 renderonly_begin_query(struct pipe_context *pctx, struct pipe_query *q)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->begin_query(context->gpu, q);
+	return ctx->gpu->begin_query(ctx->gpu, q);
 }
 
 static bool
 renderonly_end_query(struct pipe_context *pctx, struct pipe_query *q)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->end_query(context->gpu, q);
+	return ctx->gpu->end_query(ctx->gpu, q);
 }
 
 static boolean
@@ -763,113 +763,113 @@ renderonly_get_query_result(struct pipe_context *pctx,
 		     boolean wait,
 		     union pipe_query_result *result)
 {
-	struct renderonly_context *context = to_renderonly_context(pctx);
+	struct renderonly_context *ctx = to_renderonly_context(pctx);
 
-	return context->gpu->get_query_result(context->gpu, q, wait, result);
+	return ctx->gpu->get_query_result(ctx->gpu, q, wait, result);
 }
 
 struct pipe_context *
 renderonly_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 {
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
-	struct renderonly_context *context;
+	struct renderonly_context *ctx;
 
-	context = CALLOC_STRUCT(renderonly_context);
-	if (!context)
+	ctx = CALLOC_STRUCT(renderonly_context);
+	if (!ctx)
 		return NULL;
 
-	context->gpu = screen->gpu->context_create(screen->gpu, priv, flags);
-	if (!context->gpu) {
+	ctx->gpu = screen->gpu->context_create(screen->gpu, priv, flags);
+	if (!ctx->gpu) {
 		debug_error("failed to create GPU context\n");
-		FREE(context);
+		FREE(ctx);
 		return NULL;
 	}
 
-	context->base.screen = &screen->base;
-	context->base.priv = priv;
+	ctx->base.screen = &screen->base;
+	ctx->base.priv = priv;
 
-	context->base.destroy = renderonly_destroy;
+	ctx->base.destroy = renderonly_destroy;
 
-	context->base.draw_vbo = renderonly_draw_vbo;
+	ctx->base.draw_vbo = renderonly_draw_vbo;
 
-	context->base.create_blend_state = renderonly_create_blend_state;
-	context->base.bind_blend_state = renderonly_bind_blend_state;
-	context->base.delete_blend_state = renderonly_delete_blend_state;
+	ctx->base.create_blend_state = renderonly_create_blend_state;
+	ctx->base.bind_blend_state = renderonly_bind_blend_state;
+	ctx->base.delete_blend_state = renderonly_delete_blend_state;
 
-	context->base.create_sampler_state = renderonly_create_sampler_state;
-	context->base.bind_sampler_states = renderonly_bind_sampler_states;
-	context->base.delete_sampler_state = renderonly_delete_sampler_state;
+	ctx->base.create_sampler_state = renderonly_create_sampler_state;
+	ctx->base.bind_sampler_states = renderonly_bind_sampler_states;
+	ctx->base.delete_sampler_state = renderonly_delete_sampler_state;
 
-	context->base.create_rasterizer_state = renderonly_create_rasterizer_state;
-	context->base.bind_rasterizer_state = renderonly_bind_rasterizer_state;
-	context->base.delete_rasterizer_state = renderonly_delete_rasterizer_state;
+	ctx->base.create_rasterizer_state = renderonly_create_rasterizer_state;
+	ctx->base.bind_rasterizer_state = renderonly_bind_rasterizer_state;
+	ctx->base.delete_rasterizer_state = renderonly_delete_rasterizer_state;
 
-	context->base.create_depth_stencil_alpha_state = renderonly_create_depth_stencil_alpha_state;
-	context->base.bind_depth_stencil_alpha_state = renderonly_bind_depth_stencil_alpha_state;
-	context->base.delete_depth_stencil_alpha_state = renderonly_delete_depth_stencil_alpha_state;
+	ctx->base.create_depth_stencil_alpha_state = renderonly_create_depth_stencil_alpha_state;
+	ctx->base.bind_depth_stencil_alpha_state = renderonly_bind_depth_stencil_alpha_state;
+	ctx->base.delete_depth_stencil_alpha_state = renderonly_delete_depth_stencil_alpha_state;
 
-	context->base.create_fs_state = renderonly_create_fs_state;
-	context->base.bind_fs_state = renderonly_bind_fs_state;
-	context->base.delete_fs_state = renderonly_delete_fs_state;
+	ctx->base.create_fs_state = renderonly_create_fs_state;
+	ctx->base.bind_fs_state = renderonly_bind_fs_state;
+	ctx->base.delete_fs_state = renderonly_delete_fs_state;
 
-	context->base.create_vs_state = renderonly_create_vs_state;
-	context->base.bind_vs_state = renderonly_bind_vs_state;
-	context->base.delete_vs_state = renderonly_delete_vs_state;
+	ctx->base.create_vs_state = renderonly_create_vs_state;
+	ctx->base.bind_vs_state = renderonly_bind_vs_state;
+	ctx->base.delete_vs_state = renderonly_delete_vs_state;
 
-	context->base.create_gs_state = renderonly_create_gs_state;
-	context->base.bind_gs_state = renderonly_bind_gs_state;
-	context->base.delete_gs_state = renderonly_delete_gs_state;
+	ctx->base.create_gs_state = renderonly_create_gs_state;
+	ctx->base.bind_gs_state = renderonly_bind_gs_state;
+	ctx->base.delete_gs_state = renderonly_delete_gs_state;
 
-	context->base.create_vertex_elements_state = renderonly_create_vertex_elements_state;
-	context->base.bind_vertex_elements_state = renderonly_bind_vertex_elements_state;
-	context->base.delete_vertex_elements_state = renderonly_delete_vertex_elements_state;
+	ctx->base.create_vertex_elements_state = renderonly_create_vertex_elements_state;
+	ctx->base.bind_vertex_elements_state = renderonly_bind_vertex_elements_state;
+	ctx->base.delete_vertex_elements_state = renderonly_delete_vertex_elements_state;
 
-	context->base.set_blend_color = renderonly_set_blend_color;
-	context->base.set_stencil_ref = renderonly_set_stencil_ref;
-	context->base.set_clip_state = renderonly_set_clip_state;
-	context->base.set_constant_buffer = renderonly_set_constant_buffer;
-	context->base.set_framebuffer_state = renderonly_set_framebuffer_state;
-	context->base.set_polygon_stipple = renderonly_set_polygon_stipple;
-	context->base.set_scissor_states = renderonly_set_scissor_states;
-	context->base.set_viewport_states = renderonly_set_viewport_states;
-	context->base.set_sampler_views = renderonly_set_sampler_views;
+	ctx->base.set_blend_color = renderonly_set_blend_color;
+	ctx->base.set_stencil_ref = renderonly_set_stencil_ref;
+	ctx->base.set_clip_state = renderonly_set_clip_state;
+	ctx->base.set_constant_buffer = renderonly_set_constant_buffer;
+	ctx->base.set_framebuffer_state = renderonly_set_framebuffer_state;
+	ctx->base.set_polygon_stipple = renderonly_set_polygon_stipple;
+	ctx->base.set_scissor_states = renderonly_set_scissor_states;
+	ctx->base.set_viewport_states = renderonly_set_viewport_states;
+	ctx->base.set_sampler_views = renderonly_set_sampler_views;
 
-	if (context->gpu->set_shader_images)
-		context->base.set_shader_images = renderonly_set_shader_images;
+	if (ctx->gpu->set_shader_images)
+		ctx->base.set_shader_images = renderonly_set_shader_images;
 
-	context->base.set_vertex_buffers = renderonly_set_vertex_buffers;
-	context->base.set_index_buffer = renderonly_set_index_buffer;
+	ctx->base.set_vertex_buffers = renderonly_set_vertex_buffers;
+	ctx->base.set_index_buffer = renderonly_set_index_buffer;
 
-	context->base.create_stream_output_target = renderonly_create_stream_output_target;
-	context->base.stream_output_target_destroy = renderonly_stream_output_target_destroy;
-	context->base.set_stream_output_targets = renderonly_set_stream_output_targets;
+	ctx->base.create_stream_output_target = renderonly_create_stream_output_target;
+	ctx->base.stream_output_target_destroy = renderonly_stream_output_target_destroy;
+	ctx->base.set_stream_output_targets = renderonly_set_stream_output_targets;
 
-	context->base.resource_copy_region = renderonly_resource_copy_region;
-	context->base.blit = renderonly_blit;
-	context->base.clear = renderonly_clear;
-	context->base.flush = renderonly_flush;
+	ctx->base.resource_copy_region = renderonly_resource_copy_region;
+	ctx->base.blit = renderonly_blit;
+	ctx->base.clear = renderonly_clear;
+	ctx->base.flush = renderonly_flush;
 
-	context->base.create_sampler_view = renderonly_create_sampler_view;
-	context->base.sampler_view_destroy = renderonly_sampler_view_destroy;
-	context->base.texture_barrier = renderonly_texture_barrier;
+	ctx->base.create_sampler_view = renderonly_create_sampler_view;
+	ctx->base.sampler_view_destroy = renderonly_sampler_view_destroy;
+	ctx->base.texture_barrier = renderonly_texture_barrier;
 
-	context->base.flush_resource = renderonly_flush_resource;
+	ctx->base.flush_resource = renderonly_flush_resource;
 
-	context->base.create_surface = renderonly_create_surface;
-	context->base.surface_destroy = renderonly_surface_destroy;
+	ctx->base.create_surface = renderonly_create_surface;
+	ctx->base.surface_destroy = renderonly_surface_destroy;
 
-	context->base.transfer_map = renderonly_transfer_map;
-	context->base.transfer_unmap = renderonly_transfer_unmap;
-	context->base.transfer_inline_write = renderonly_transfer_inline_write;
-	context->base.transfer_flush_region = renderonly_transfer_flush_region;
+	ctx->base.transfer_map = renderonly_transfer_map;
+	ctx->base.transfer_unmap = renderonly_transfer_unmap;
+	ctx->base.transfer_inline_write = renderonly_transfer_inline_write;
+	ctx->base.transfer_flush_region = renderonly_transfer_flush_region;
 
-	context->base.create_query = renderonly_create_query;
-	context->base.create_batch_query = renderonly_create_batch_query;
-	context->base.destroy_query = renderonly_destroy_query;
-	context->base.begin_query = renderonly_begin_query;
-	context->base.end_query = renderonly_end_query;
-	context->base.get_query_result = renderonly_get_query_result;
-	context->base.set_active_query_state = renderonly_set_active_query_state;
+	ctx->base.create_query = renderonly_create_query;
+	ctx->base.create_batch_query = renderonly_create_batch_query;
+	ctx->base.destroy_query = renderonly_destroy_query;
+	ctx->base.begin_query = renderonly_begin_query;
+	ctx->base.end_query = renderonly_end_query;
+	ctx->base.get_query_result = renderonly_get_query_result;
+	ctx->base.set_active_query_state = renderonly_set_active_query_state;
 
-	return &context->base;
+	return &ctx->base;
 }
