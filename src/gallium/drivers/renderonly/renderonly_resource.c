@@ -266,15 +266,15 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 
 boolean
 renderonly_resource_get_handle(struct pipe_screen *pscreen,
-			  struct pipe_resource *presource,
+			  struct pipe_resource *prsc,
 			  struct winsys_handle *handle,
 			  unsigned usage)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(presource);
+	struct renderonly_resource *resource = to_renderonly_resource(prsc);
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
 	boolean ret = TRUE;
 
-	if (presource->bind & PIPE_BIND_SCANOUT) {
+	if (prsc->bind & PIPE_BIND_SCANOUT) {
 		handle->handle = resource->handle;
 		handle->stride = resource->stride;
 	} else {
@@ -289,9 +289,9 @@ renderonly_resource_get_handle(struct pipe_screen *pscreen,
 
 void
 renderonly_resource_destroy(struct pipe_screen *pscreen,
-		       struct pipe_resource *presource)
+		       struct pipe_resource *prsc)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(presource);
+	struct renderonly_resource *resource = to_renderonly_resource(prsc);
 
 	pipe_resource_reference(&resource->gpu, NULL);
 	pipe_resource_reference(&resource->prime, NULL);
@@ -300,10 +300,10 @@ renderonly_resource_destroy(struct pipe_screen *pscreen,
 
 struct pipe_surface *
 renderonly_create_surface(struct pipe_context *pctx,
-		     struct pipe_resource *presource,
+		     struct pipe_resource *prsc,
 		     const struct pipe_surface *template)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(presource);
+	struct renderonly_resource *resource = to_renderonly_resource(prsc);
 	struct renderonly_context *context = to_renderonly_context(pctx);
 	struct renderonly_surface *surface;
 
@@ -324,7 +324,7 @@ renderonly_create_surface(struct pipe_context *pctx,
 	surface->base.texture = NULL;
 
 	pipe_reference_init(&surface->base.reference, 1);
-	pipe_resource_reference(&surface->base.texture, presource);
+	pipe_resource_reference(&surface->base.texture, prsc);
 	surface->base.context = &context->base;
 
 	return &surface->base;

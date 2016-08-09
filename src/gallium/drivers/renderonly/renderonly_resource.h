@@ -96,7 +96,7 @@ renderonly_surface_unwrap(struct pipe_surface *surface)
 
 struct pipe_surface *
 renderonly_create_surface(struct pipe_context *pctx,
-		     struct pipe_resource *presource,
+		     struct pipe_resource *prsc,
 		     const struct pipe_surface *template);
 void
 renderonly_surface_destroy(struct pipe_context *pctx,

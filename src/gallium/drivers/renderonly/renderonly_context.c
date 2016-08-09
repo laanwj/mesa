@@ -463,11 +463,11 @@ renderonly_set_index_buffer(struct pipe_context *pctx,
 
 static struct pipe_stream_output_target *
 renderonly_create_stream_output_target(struct pipe_context *pctx,
-				  struct pipe_resource *presource,
+				  struct pipe_resource *prsc,
 				  unsigned buffer_offset,
 				  unsigned buffer_size)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(presource);
+	struct renderonly_resource *resource = to_renderonly_resource(prsc);
 	struct renderonly_context *context = to_renderonly_context(pctx);
 
 	return context->gpu->create_stream_output_target(context->gpu,
@@ -605,11 +605,11 @@ renderonly_texture_barrier(struct pipe_context *pctx)
 
 static void
 renderonly_flush_resource(struct pipe_context *pctx,
-		     struct pipe_resource *presource)
+		     struct pipe_resource *prsc)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(presource);
+	struct renderonly_resource *resource = to_renderonly_resource(prsc);
 	struct renderonly_context *context = to_renderonly_context(pctx);
-	struct renderonly_screen *screen = to_renderonly_screen(presource->screen);
+	struct renderonly_screen *screen = to_renderonly_screen(prsc->screen);
 	struct pipe_blit_info blit;
 
 	context->gpu->flush_resource(context->gpu, resource->gpu);
@@ -639,13 +639,13 @@ renderonly_flush_resource(struct pipe_context *pctx,
 
 static void *
 renderonly_transfer_map(struct pipe_context *pctx,
-		   struct pipe_resource *presource,
+		   struct pipe_resource *prsc,
 		   unsigned level,
 		   unsigned usage,
 		   const struct pipe_box *box,
 		   struct pipe_transfer **ptransfer)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(presource);
+	struct renderonly_resource *resource = to_renderonly_resource(prsc);
 	struct renderonly_context *context = to_renderonly_context(pctx);
 	struct renderonly_transfer *transfer;
 
@@ -666,7 +666,7 @@ renderonly_transfer_map(struct pipe_context *pctx,
 
 	memcpy(&transfer->base, transfer->gpu, sizeof(*transfer->gpu));
 	transfer->base.resource = NULL;
-	pipe_resource_reference(&transfer->base.resource, presource);
+	pipe_resource_reference(&transfer->base.resource, prsc);
 
 	*ptransfer = &transfer->base;
 
@@ -687,7 +687,7 @@ renderonly_transfer_unmap(struct pipe_context *pctx,
 
 static void
 renderonly_transfer_inline_write(struct pipe_context *pctx,
-			    struct pipe_resource *presource,
+			    struct pipe_resource *prsc,
 			    unsigned level,
 			    unsigned usage,
 			    const struct pipe_box *box,
@@ -695,7 +695,7 @@ renderonly_transfer_inline_write(struct pipe_context *pctx,
 			    unsigned stride,
 			    unsigned layer_stride)
 {
-	struct renderonly_resource *resource = to_renderonly_resource(presource);
+	struct renderonly_resource *resource = to_renderonly_resource(prsc);
 	struct renderonly_context *context = to_renderonly_context(pctx);
 
 	context->gpu->transfer_inline_write(context->gpu, resource->gpu,
