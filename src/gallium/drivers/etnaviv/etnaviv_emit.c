@@ -747,8 +747,6 @@ void etna_emit_state(struct etna_context *ctx)
         ctx->gpu3d.ps_uniforms_size = ctx->shader_state.ps_uniforms_size;
         memcpy(ctx->gpu3d.VS_UNIFORMS, ctx->shader_state.VS_UNIFORMS, ctx->shader_state.vs_uniforms_size * 4);
         memcpy(ctx->gpu3d.PS_UNIFORMS, ctx->shader_state.PS_UNIFORMS, ctx->shader_state.ps_uniforms_size * 4);
-        memcpy(ctx->gpu3d.VS_INST_MEM, ctx->shader_state.VS_INST_MEM, ctx->shader_state.vs_inst_mem_size * 4);
-        memcpy(ctx->gpu3d.PS_INST_MEM, ctx->shader_state.PS_INST_MEM, ctx->shader_state.ps_inst_mem_size * 4);
     }
     else
     {
