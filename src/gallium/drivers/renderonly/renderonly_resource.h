@@ -55,25 +55,6 @@ renderonly_resource_unwrap(struct pipe_resource *prsc)
 	return to_renderonly_resource(prsc)->gpu;
 }
 
-boolean renderonly_can_create_resource(struct pipe_screen *pscreen,
-				   const struct pipe_resource *template);
-struct pipe_resource *
-renderonly_resource_create(struct pipe_screen *pscreen,
-		      const struct pipe_resource *template);
-struct pipe_resource *
-renderonly_resource_from_handle(struct pipe_screen *pscreen,
-			   const struct pipe_resource *template,
-			   struct winsys_handle *handle,
-			   unsigned usage);
-boolean
-renderonly_resource_get_handle(struct pipe_screen *pscreen,
-			  struct pipe_resource *prsc,
-			  struct winsys_handle *handle,
-			  unsigned usage);
-void
-renderonly_resource_destroy(struct pipe_screen *pscreen,
-		       struct pipe_resource *prsc);
-
 struct renderonly_surface {
 	struct pipe_surface base;
 	struct pipe_surface *gpu;
@@ -101,5 +82,8 @@ renderonly_create_surface(struct pipe_context *pctx,
 void
 renderonly_surface_destroy(struct pipe_context *pctx,
 		      struct pipe_surface *psurf);
+
+void
+renderonly_resource_screen_init(struct pipe_screen *pscreen);
 
 #endif /* RENDERONLY_RESOURCE_H */

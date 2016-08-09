@@ -42,7 +42,8 @@
 #include "renderonly_resource.h"
 #include "renderonly_screen.h"
 
-boolean renderonly_can_create_resource(struct pipe_screen *pscreen,
+static boolean
+renderonly_can_create_resource(struct pipe_screen *pscreen,
 				   const struct pipe_resource *template)
 {
 	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
@@ -157,7 +158,7 @@ static bool resource_dumb(struct renderonly_screen *screen,
 	return true;
 }
 
-struct pipe_resource *
+static struct pipe_resource *
 renderonly_resource_create(struct pipe_screen *pscreen,
 		      const struct pipe_resource *template)
 {
@@ -208,7 +209,7 @@ destroy:
 	return NULL;
 }
 
-struct pipe_resource *
+static struct pipe_resource *
 renderonly_resource_from_handle(struct pipe_screen *pscreen,
 			   const struct pipe_resource *template,
 			   struct winsys_handle *handle,
@@ -264,7 +265,7 @@ renderonly_resource_from_handle(struct pipe_screen *pscreen,
 	return &rsc->base;
 }
 
-boolean
+static boolean
 renderonly_resource_get_handle(struct pipe_screen *pscreen,
 			  struct pipe_resource *prsc,
 			  struct winsys_handle *handle,
@@ -287,7 +288,7 @@ renderonly_resource_get_handle(struct pipe_screen *pscreen,
 	return ret;
 }
 
-void
+static void
 renderonly_resource_destroy(struct pipe_screen *pscreen,
 		       struct pipe_resource *prsc)
 {
@@ -339,4 +340,14 @@ renderonly_surface_destroy(struct pipe_context *pctx,
 	pipe_resource_reference(&surface->base.texture, NULL);
 	pipe_surface_reference(&surface->gpu, NULL);
 	FREE(surface);
+}
+
+void
+renderonly_resource_screen_init(struct pipe_screen *pscreen)
+{
+   pscreen->can_create_resource = renderonly_can_create_resource;
+   pscreen->resource_create = renderonly_resource_create;
+   pscreen->resource_from_handle = renderonly_resource_from_handle;
+   pscreen->resource_get_handle = renderonly_resource_get_handle;
+   pscreen->resource_destroy = renderonly_resource_destroy;
 }
