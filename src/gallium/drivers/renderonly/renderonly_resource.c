@@ -71,7 +71,7 @@ static bool resource_import_scanout(struct renderonly_screen *screen,
 							  &handle,
 							  PIPE_HANDLE_USAGE_READ_WRITE);
 	if (!status)
-		return false;
+		goto out_free_gpu_resource;
 
 	rsc->stride = handle.stride;
 	fd = handle.handle;
@@ -81,7 +81,7 @@ static bool resource_import_scanout(struct renderonly_screen *screen,
 		fprintf(stderr, "drmPrimeFDToHandle() failed: %s\n",
 			strerror(errno));
 		close(fd);
-		return false;
+		goto out_free_gpu_resource;
 	}
 
 	close(fd);
@@ -91,11 +91,16 @@ static bool resource_import_scanout(struct renderonly_screen *screen,
 		if (err < 0) {
 			fprintf(stderr, "failed to set tiling parameters: %s\n",
 				strerror(errno));
-			return false;
+			goto out_free_gpu_resource;
 		}
 	}
 
 	return true;
+
+out_free_gpu_resource:
+	screen->gpu->resource_destroy(screen->gpu, rsc->gpu);
+
+	return false;
 }
 
 static bool resource_dumb(struct renderonly_screen *screen,
@@ -109,6 +114,7 @@ static bool resource_dumb(struct renderonly_screen *screen,
 	      .height = template->height0,
 	      .bpp = 32,
 	};
+	struct drm_mode_destroy_dumb destroy_dumb = { };
 
 	/* create dumb buffer at scanout GPU */
 	err = ioctl(screen->fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb);
@@ -124,14 +130,14 @@ static bool resource_dumb(struct renderonly_screen *screen,
 	/* create resource at renderonly GPU */
 	rsc->gpu = screen->gpu->resource_create(screen->gpu, template);
 	if (!rsc->gpu)
-		return false;
+		goto out_free_dump;
 
 	/* export dumb buffer */
 	err = drmPrimeHandleToFD(screen->fd, create_dumb.handle, O_CLOEXEC, &prime_fd);
 	if (err < 0) {
 		fprintf(stderr, "failed to export dumb buffer: %s\n",
 			strerror(errno));
-		return false;
+		goto out_free_gpu_resource;
 	}
 
 	/* import dumb buffer */
@@ -147,10 +153,19 @@ static bool resource_dumb(struct renderonly_screen *screen,
 	if (!rsc->prime) {
 		fprintf(stderr, "failed to create resource_from_handle: %s\n",
 			strerror(errno));
-		return false;
+		goto out_free_gpu_resource;
 	}
 
 	return true;
+
+out_free_gpu_resource:
+	screen->gpu->resource_destroy(screen->gpu, rsc->gpu);
+
+out_free_dump:
+	destroy_dumb.handle = rsc->handle;
+	ioctl(screen->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
+
+	return false;
 }
 
 static struct pipe_resource *
