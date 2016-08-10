@@ -30,51 +30,51 @@
 struct renderonly_screen;
 
 struct renderonly_context {
-	struct pipe_context base;
-	struct pipe_context *gpu;
+   struct pipe_context base;
+   struct pipe_context *gpu;
 };
 
 static inline struct renderonly_context *
 to_renderonly_context(struct pipe_context *context)
 {
-	return (struct renderonly_context *)context;
+   return (struct renderonly_context *)context;
 }
 
 struct pipe_context *renderonly_context_create(struct pipe_screen *pscreen,
-					  void *priv, unsigned flags);
+      void *priv, unsigned flags);
 
 struct renderonly_sampler_view {
-	struct pipe_sampler_view base;
-	struct pipe_sampler_view *gpu;
+   struct pipe_sampler_view base;
+   struct pipe_sampler_view *gpu;
 };
 
 static inline struct renderonly_sampler_view *
 to_renderonly_sampler_view(struct pipe_sampler_view *view)
 {
-	return (struct renderonly_sampler_view *)view;
+   return (struct renderonly_sampler_view *)view;
 }
 
 static inline struct pipe_sampler_view *
 renderonly_sampler_view_unwrap(struct pipe_sampler_view *view)
 {
-	if (!view)
-		return NULL;
+   if (!view)
+      return NULL;
 
-	return to_renderonly_sampler_view(view)->gpu;
+   return to_renderonly_sampler_view(view)->gpu;
 }
 
 struct renderonly_transfer {
-	struct pipe_transfer base;
-	struct pipe_transfer *gpu;
+   struct pipe_transfer base;
+   struct pipe_transfer *gpu;
 
-	unsigned int count;
-	void *map;
+   unsigned int count;
+   void *map;
 };
 
 static inline struct renderonly_transfer *
 to_renderonly_transfer(struct pipe_transfer *transfer)
 {
-	return (struct renderonly_transfer *)transfer;
+   return (struct renderonly_transfer *) transfer;
 }
 
 #endif /* RENDERONLY_CONTEXT_H */

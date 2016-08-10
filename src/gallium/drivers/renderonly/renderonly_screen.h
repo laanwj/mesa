@@ -28,12 +28,11 @@
 #include "renderonly_public.h"
 
 struct renderonly_screen {
-	struct pipe_screen base;
-	int fd;
+   struct pipe_screen base;
+   int fd;
 
-	struct pipe_screen *gpu;
-
-	const struct renderonly_ops *ops;
+   struct pipe_screen *gpu;
+   const struct renderonly_ops *ops;
 };
 
 static inline struct renderonly_screen *

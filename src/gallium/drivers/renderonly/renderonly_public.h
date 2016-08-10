@@ -25,13 +25,13 @@
 #define RENDERONLY_PUBLIC_H
 
 struct renderonly_ops {
-	struct pipe_screen *(*open)(int fd);
-	int (*tiling)(int fd, uint32_t handle);
+   struct pipe_screen *(*open)(int fd);
+   int (*tiling)(int fd, uint32_t handle);
 
-	bool intermediate_rendering;
+   bool intermediate_rendering;
 };
 
 struct pipe_screen *renderonly_screen_create(int fd,
-	const struct renderonly_ops *ops);
+      const struct renderonly_ops *ops);
 
 #endif /* RENDERONLY_PUBLIC_H */

@@ -29,50 +29,50 @@
 struct winsys_handle;
 
 struct renderonly_resource {
-	struct pipe_resource base;
-	struct pipe_resource *gpu;
+   struct pipe_resource base;
+   struct pipe_resource *gpu;
 
-	bool scanout;
-	struct pipe_resource *prime;
+   bool scanout;
+   struct pipe_resource *prime;
 
-	uint32_t stride;
-	uint32_t handle;
-	size_t size;
+   uint32_t stride;
+   uint32_t handle;
+   size_t size;
 };
 
 static inline struct renderonly_resource *
 to_renderonly_resource(struct pipe_resource *prsc)
 {
-	return (struct renderonly_resource *)prsc;
+   return (struct renderonly_resource *) prsc;
 }
 
 static inline struct pipe_resource *
 renderonly_resource_unwrap(struct pipe_resource *prsc)
 {
-	if (!prsc)
-		return NULL;
+   if (!prsc)
+      return NULL;
 
-	return to_renderonly_resource(prsc)->gpu;
+   return to_renderonly_resource(prsc)->gpu;
 }
 
 struct renderonly_surface {
-	struct pipe_surface base;
-	struct pipe_surface *gpu;
+   struct pipe_surface base;
+   struct pipe_surface *gpu;
 };
 
 static inline struct renderonly_surface *
 to_renderonly_surface(struct pipe_surface *psurf)
 {
-	return (struct renderonly_surface *)psurf;
+   return (struct renderonly_surface *) psurf;
 }
 
 static inline struct pipe_surface *
 renderonly_surface_unwrap(struct pipe_surface *psurf)
 {
-	if (!psurf)
-		return NULL;
+   if (!psurf)
+      return NULL;
 
-	return to_renderonly_surface(psurf)->gpu;
+   return to_renderonly_surface(psurf)->gpu;
 }
 
 void
@@ -80,6 +80,5 @@ renderonly_resource_screen_init(struct pipe_screen *pscreen);
 
 void
 renderonly_resource_context_init(struct pipe_context *pctx);
-
 
 #endif /* RENDERONLY_RESOURCE_H */
