@@ -56,7 +56,7 @@ renderonly_draw_vbo(struct pipe_context *pctx,
 	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct pipe_draw_info info;
 
-	if (pinfo && pinfo->indirect) {
+	if (pinfo->indirect) {
 		memcpy(&info, pinfo, sizeof(info));
 		info.indirect = renderonly_resource_unwrap(info.indirect);
 		pinfo = &info;
