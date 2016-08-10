@@ -517,12 +517,10 @@ renderonly_blit(struct pipe_context *pctx,
 	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct pipe_blit_info info;
 
-	if (pinfo) {
-		memcpy(&info, pinfo, sizeof(info));
-		info.dst.resource = renderonly_resource_unwrap(info.dst.resource);
-		info.src.resource = renderonly_resource_unwrap(info.src.resource);
-		pinfo = &info;
-	}
+	memcpy(&info, pinfo, sizeof(info));
+	info.dst.resource = renderonly_resource_unwrap(info.dst.resource);
+	info.src.resource = renderonly_resource_unwrap(info.src.resource);
+	pinfo = &info;
 
 	ctx->gpu->blit(ctx->gpu, pinfo);
 }
