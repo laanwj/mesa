@@ -1,4 +1,8 @@
 C_SOURCES := \
 	renderonly_context.c \
+	renderonly_context.h \
+	renderonly_public.h \
 	renderonly_resource.c \
-	renderonly_screen.c
+	renderonly_resource.h \
+	renderonly_screen.c \
+	renderonly_screen.h
