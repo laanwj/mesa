@@ -50,7 +50,9 @@ renderonly_get_name(struct pipe_screen *pscreen)
 static const char *
 renderonly_get_vendor(struct pipe_screen *pscreen)
 {
-	return "renderonly";
+	struct renderonly_screen *screen = to_renderonly_screen(pscreen);
+
+	return screen->gpu->get_vendor(screen->gpu);
 }
 
 static const char *
