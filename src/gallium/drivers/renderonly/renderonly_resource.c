@@ -77,14 +77,13 @@ static bool resource_import_scanout(struct renderonly_screen *screen,
 	fd = handle.handle;
 
 	err = drmPrimeFDToHandle(screen->fd, fd, &rsc->handle);
+	close(fd);
+
 	if (err < 0) {
 		fprintf(stderr, "drmPrimeFDToHandle() failed: %s\n",
 			strerror(errno));
-		close(fd);
 		goto out_free_gpu_resource;
 	}
-
-	close(fd);
 
 	if (screen->ops->tiling) {
 		err = screen->ops->tiling(screen->fd, rsc->handle);
