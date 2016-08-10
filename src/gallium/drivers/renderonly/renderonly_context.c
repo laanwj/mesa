@@ -610,29 +610,29 @@ renderonly_flush_resource(struct pipe_context *pctx,
 	struct renderonly_resource *rsc = to_renderonly_resource(prsc);
 	struct renderonly_context *ctx = to_renderonly_context(pctx);
 	struct renderonly_screen *screen = to_renderonly_screen(prsc->screen);
-	struct pipe_blit_info blit;
+
+	/* we need to blit our gpu render result to dumb buffer */
+	struct pipe_blit_info blit = {
+	      .mask = PIPE_MASK_RGBA,
+	      .filter = PIPE_TEX_FILTER_LINEAR,
+	      .src.resource = rsc->gpu,
+	      .src.format = rsc->gpu->format,
+	      .src.level = 0,
+	      .src.box.width = rsc->gpu->width0,
+	      .src.box.height = rsc->gpu->height0,
+	      .src.box.depth = 1,
+	      .dst.resource = rsc->prime,
+	      .dst.format = rsc->prime->format,
+	      .dst.level = 0,
+	      .dst.box.width = rsc->prime->width0,
+	      .dst.box.height = rsc->prime->height0,
+	      .dst.box.depth = 1
+	};
 
 	ctx->gpu->flush_resource(ctx->gpu, rsc->gpu);
 
 	if (!rsc->scanout || !screen->ops->intermediate_rendering)
 		return;
-
-	/* we need to blit our gpu render result to dumb buffer */
-	memset(&blit, 0, sizeof(blit));
-	blit.mask = PIPE_MASK_RGBA;
-	blit.filter = PIPE_TEX_FILTER_LINEAR;
-	blit.src.resource = rsc->gpu;
-	blit.src.format = rsc->gpu->format;
-	blit.src.level = 0;
-	blit.src.box.width = rsc->gpu->width0;
-	blit.src.box.height = rsc->gpu->height0;
-	blit.src.box.depth = 1;
-	blit.dst.resource = rsc->prime;
-	blit.dst.format = rsc->prime->format;
-	blit.dst.level = 0;
-	blit.dst.box.width = rsc->prime->width0;
-	blit.dst.box.height = rsc->prime->height0;
-	blit.dst.box.depth = 1;
 
 	ctx->gpu->blit(ctx->gpu, &blit);
 }

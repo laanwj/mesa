@@ -55,17 +55,16 @@ static bool resource_import_scanout(struct renderonly_screen *screen,
 		     struct renderonly_resource *rsc,
 		     const struct pipe_resource *template)
 {
-	struct winsys_handle handle;
 	boolean status;
 	int fd, err;
+	struct winsys_handle handle = {
+	      .handle = DRM_API_HANDLE_TYPE_FD
+	};
 
 	rsc->gpu = screen->gpu->resource_create(screen->gpu,
 							     template);
 	if (!rsc->gpu)
 		return false;
-
-	memset(&handle, 0, sizeof(handle));
-	handle.type = DRM_API_HANDLE_TYPE_FD;
 
 	status = screen->gpu->resource_get_handle(screen->gpu,
 							  rsc->gpu,
@@ -103,19 +102,15 @@ static bool resource_dumb(struct renderonly_screen *screen,
 		     struct renderonly_resource *rsc,
 		     const struct pipe_resource *template)
 {
-	struct drm_mode_create_dumb create_dumb = { 0 };
 	struct winsys_handle handle;
 	int prime_fd, err;
+	struct drm_mode_create_dumb create_dumb = {
+	      .width = template->width0,
+	      .height = template->height0,
+	      .bpp = 32,
+	};
 
 	/* create dumb buffer at scanout GPU */
-	create_dumb.width = template->width0;
-	create_dumb.height = template->height0;
-	create_dumb.bpp = 32;
-	create_dumb.flags = 0;
-	create_dumb.pitch = 0;
-	create_dumb.size = 0;
-	create_dumb.handle = 0;
-
 	err = ioctl(screen->fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_dumb);
 	if (err < 0) {
 		fprintf(stderr, "DRM_IOCTL_MODE_CREATE_DUMB failed: %s\n",
