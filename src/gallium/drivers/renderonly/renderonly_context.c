@@ -342,20 +342,17 @@ renderonly_set_framebuffer_state(struct pipe_context *pctx,
 	struct pipe_framebuffer_state state;
 	unsigned i;
 
-	if (fb) {
-		memcpy(&state, fb, sizeof(state));
+	memcpy(&state, fb, sizeof(state));
 
-		for (i = 0; i < fb->nr_cbufs; i++)
-			state.cbufs[i] = renderonly_surface_unwrap(fb->cbufs[i]);
+	for (i = 0; i < fb->nr_cbufs; i++)
+		state.cbufs[i] = renderonly_surface_unwrap(fb->cbufs[i]);
 
-		while (i < PIPE_MAX_COLOR_BUFS)
-			state.cbufs[i++] = NULL;
+	while (i < PIPE_MAX_COLOR_BUFS)
+		state.cbufs[i++] = NULL;
 
-		state.zsbuf = renderonly_surface_unwrap(fb->zsbuf);
+	state.zsbuf = renderonly_surface_unwrap(fb->zsbuf);
 
-		fb = &state;
-	}
-
+	fb = &state;
 	ctx->gpu->set_framebuffer_state(ctx->gpu, fb);
 }
 
