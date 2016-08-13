@@ -35,7 +35,6 @@
 
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
-#include "util/u_transfer.h" /* u_default_resource_get_handle */
 
 /* A tile is 4x4 pixels, having 'screen->specs.bits_per_tile' of tile status.
  * So, in a buffer of N pixels, there are N / (4 * 4) tiles.
@@ -339,6 +338,17 @@ fail:
     return NULL;
 }
 
+static boolean etna_resource_get_handle(struct pipe_screen *pscreen,
+      struct pipe_resource *prsc,
+      struct winsys_handle *handle,
+      unsigned usage)
+{
+   struct etna_resource *rsc = etna_resource(prsc);
+
+   return etna_screen_bo_get_handle(pscreen, rsc->bo,
+         rsc->levels[0].stride, handle);
+}
+
 void etna_resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
         enum etna_resource_status status)
 {
@@ -379,6 +389,6 @@ void etna_resource_screen_init(struct pipe_screen *pscreen)
     pscreen->can_create_resource = etna_screen_can_create_resource;
     pscreen->resource_create = etna_resource_create;
     pscreen->resource_from_handle = etna_resource_from_handle;
-    pscreen->resource_get_handle = u_default_resource_get_handle;
+    pscreen->resource_get_handle = etna_resource_get_handle;
     pscreen->resource_destroy = etna_resource_destroy;
 }
