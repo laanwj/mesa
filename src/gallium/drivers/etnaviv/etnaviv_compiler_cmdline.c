@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 	const char *filename;
 	struct tgsi_token toks[65536];
 	struct tgsi_parse_context parse;
-	struct etna_shader_object *shader_obj;
+	struct etna_shader *shader_obj;
 	void *ptr;
 	size_t size;
 
@@ -130,13 +130,13 @@ int main(int argc, char **argv)
 
 	tgsi_parse_init(&parse, toks);
 
-	shader_obj = etna_compile_shader_object(&specs_gc2000, toks);
+	shader_obj = etna_compile_shader(&specs_gc2000, toks);
 
 	if (shader_obj == NULL) {
 		fprintf(stderr, "compiler failed!\n");
 		return 1;
 	}
 
-	etna_dump_shader_object(shader_obj);
-	etna_destroy_shader_object(shader_obj);
+	etna_dump_shader(shader_obj);
+	etna_destroy_shader(shader_obj);
 }

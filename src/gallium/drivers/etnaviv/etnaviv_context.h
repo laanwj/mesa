@@ -41,7 +41,7 @@
 #include "util/u_slab.h"
 
 struct pipe_screen;
-struct etna_shader_object;
+struct etna_shader;
 
 struct etna_index_buffer
 {
@@ -163,8 +163,8 @@ struct etna_context
     struct etna_index_buffer index_buffer;
 
     /* pointers to the bound state. these are mainly kept around for the blitter. */
-    struct etna_shader_object *vs;
-    struct etna_shader_object *fs;
+    struct etna_shader *vs;
+    struct etna_shader *fs;
 
     /* saved parameter-like state. these are mainly kept around for the blitter. */
     struct pipe_framebuffer_state framebuffer_s;

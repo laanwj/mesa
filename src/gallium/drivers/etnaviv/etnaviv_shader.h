@@ -30,7 +30,7 @@
 #include "pipe/p_state.h"
 
 struct etna_context;
-struct etna_shader_object;
+struct etna_shader;
 struct compiled_shader_state;
 
 bool etna_shader_link(struct etna_context *ctx);
