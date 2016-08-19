@@ -223,13 +223,13 @@ static void *etna_create_shader_state(struct pipe_context *pctx, const struct pi
 
 static void etna_delete_shader_state(struct pipe_context *pctx, void *ss)
 {
-    etna_destroy_shader((struct etna_shader*)ss);
+    etna_destroy_shader(ss);
 }
 
 static void etna_bind_fs_state(struct pipe_context *pctx, void *fss_)
 {
     struct etna_context *ctx = etna_context(pctx);
-    struct etna_shader *fss = (struct etna_shader *)fss_;
+    struct etna_shader *fss = fss_;
 
     if(ctx->fs == fss) /* skip if already bound */
         return;
@@ -241,7 +241,7 @@ static void etna_bind_fs_state(struct pipe_context *pctx, void *fss_)
 static void etna_bind_vs_state(struct pipe_context *pctx, void *vss_)
 {
     struct etna_context *ctx = etna_context(pctx);
-    struct etna_shader *vss = (struct etna_shader *)vss_;
+    struct etna_shader *vss = vss_;
 
     if(ctx->vs == vss) /* skip if already bound */
         return;
