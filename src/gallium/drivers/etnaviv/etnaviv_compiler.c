@@ -2165,11 +2165,11 @@ static void copy_uniform_state_to_shader(struct etna_compile_data *cd,
     etna_set_shader_uniforms_dirty_flags(sobj);
 }
 
-bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens, struct etna_shader_object** out)
+struct etna_shader_object *etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens)
 {
     /* Create scratch space that may be too large to fit on stack
      */
-    bool ret = true;
+    bool ret;
     struct etna_compile_data *cd = CALLOC_STRUCT(etna_compile_data);
 
     struct tgsi_lowering_config lconfig = {
@@ -2184,9 +2184,8 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
         .lower_TRUNC= true,
     };
 
-    *out = NULL;
     if (!cd)
-        return false;
+        return NULL;
 
     cd->specs = specs;
     cd->tokens = tgsi_transform_lowering(&lconfig, tokens, &cd->info);
@@ -2330,14 +2329,15 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
         fill_in_ps_inputs(sobj, cd);
         fill_in_ps_outputs(sobj, cd);
     }
-    *out = sobj;
+
+    return sobj;
 
 out:
     if (cd->free_tokens)
         FREE((void *)cd->tokens);
 
     FREE(cd);
-    return ret;
+    return NULL;
 }
 
 extern const char *tgsi_swizzle_names[];
