@@ -2391,14 +2391,13 @@ void etna_dump_shader_object(const struct etna_shader_object *sobj)
 
 void etna_destroy_shader_object(struct etna_shader_object *sobj)
 {
-    if(sobj != NULL)
-    {
-        FREE(sobj->code);
-        FREE(sobj->uniforms.imm_data);
-        FREE(sobj->uniforms.imm_contents);
-        FREE(sobj->output_per_semantic_list);
-        FREE(sobj);
-    }
+    assert(sobj);
+
+    FREE(sobj->code);
+    FREE(sobj->uniforms.imm_data);
+    FREE(sobj->uniforms.imm_contents);
+    FREE(sobj->output_per_semantic_list);
+    FREE(sobj);
 }
 
 static const struct etna_shader_inout *etna_shader_vs_lookup(const struct etna_shader_object *sobj, const struct etna_shader_inout *in)
