@@ -56,7 +56,7 @@ static uint32_t get_texrect_scale(const struct etna_context *ctx,
     return fui(1.0f / dim);
 }
 
-void etna_uniforms_write(const struct etna_context *ctx, const struct etna_shader_object *sobj,
+void etna_uniforms_write(const struct etna_context *ctx, const struct etna_shader *sobj,
         struct pipe_constant_buffer *cb, uint32_t *uniforms, unsigned *size)
 {
     const struct etna_shader_uniform_info *uinfo = &sobj->uniforms;
@@ -92,7 +92,7 @@ void etna_uniforms_write(const struct etna_context *ctx, const struct etna_shade
     *size = uinfo->const_count + uinfo->imm_count;
 }
 
-void etna_set_shader_uniforms_dirty_flags(struct etna_shader_object *sobj)
+void etna_set_shader_uniforms_dirty_flags(struct etna_shader *sobj)
 {
     uint32_t dirty = 0;
 

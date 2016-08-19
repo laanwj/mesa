@@ -1980,7 +1980,7 @@ static void permute_ps_inputs(struct etna_compile_data *cd)
 }
 
 /* fill in ps inputs into shader object */
-static void fill_in_ps_inputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
+static void fill_in_ps_inputs(struct etna_shader *sobj, struct etna_compile_data *cd)
 {
     struct etna_shader_io_file *sf = &sobj->infile;
 
@@ -2008,7 +2008,7 @@ static void fill_in_ps_inputs(struct etna_shader_object *sobj, struct etna_compi
 }
 
 /* fill in output mapping for ps into shader object */
-static void fill_in_ps_outputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
+static void fill_in_ps_outputs(struct etna_shader *sobj, struct etna_compile_data *cd)
 {
     sobj->outfile.num_reg = 0;
     for(int idx=0; idx<cd->file[TGSI_FILE_OUTPUT].reg_size; ++idx)
@@ -2029,7 +2029,7 @@ static void fill_in_ps_outputs(struct etna_shader_object *sobj, struct etna_comp
 }
 
 /* fill in inputs for vs into shader object */
-static void fill_in_vs_inputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
+static void fill_in_vs_inputs(struct etna_shader *sobj, struct etna_compile_data *cd)
 {
     struct etna_shader_io_file *sf = &sobj->infile;
 
@@ -2048,7 +2048,7 @@ static void fill_in_vs_inputs(struct etna_shader_object *sobj, struct etna_compi
 }
 
 /* build two-level output index [Semantic][Index] for fast linking */
-static void build_output_index(struct etna_shader_object *sobj)
+static void build_output_index(struct etna_shader *sobj)
 {
     int total = 0;
     int offset = 0;
@@ -2070,7 +2070,7 @@ static void build_output_index(struct etna_shader_object *sobj)
 }
 
 /* fill in outputs for vs into shader object */
-static void fill_in_vs_outputs(struct etna_shader_object *sobj, struct etna_compile_data *cd)
+static void fill_in_vs_outputs(struct etna_shader *sobj, struct etna_compile_data *cd)
 {
     struct etna_shader_io_file *sf = &sobj->outfile;
 
@@ -2152,7 +2152,7 @@ static bool etna_compile_check_limits(struct etna_compile_data *cd)
 }
 
 static void copy_uniform_state_to_shader(struct etna_compile_data *cd,
-        struct etna_shader_object *sobj)
+        struct etna_shader *sobj)
 {
     uint32_t count = cd->imm_size;
     struct etna_shader_uniform_info *uinfo = &sobj->uniforms;
@@ -2165,7 +2165,7 @@ static void copy_uniform_state_to_shader(struct etna_compile_data *cd,
     etna_set_shader_uniforms_dirty_flags(sobj);
 }
 
-struct etna_shader_object *etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens)
+struct etna_shader *etna_compile_shader(const struct etna_specs* specs, const struct tgsi_token* tokens)
 {
     /* Create scratch space that may be too large to fit on stack
      */
@@ -2307,30 +2307,30 @@ struct etna_shader_object *etna_compile_shader_object(const struct etna_specs* s
         goto out;
 
     /* fill in output structure */
-    struct etna_shader_object *sobj = CALLOC_STRUCT(etna_shader_object);
-    if (!sobj)
+    struct etna_shader *shader = CALLOC_STRUCT(etna_shader);
+    if (!shader)
         goto out;
 
-    sobj->processor = cd->info.processor;
-    sobj->code_size = cd->inst_ptr * 4;
-    sobj->code = mem_dup(cd->code, cd->inst_ptr * 16);
-    sobj->num_temps = cd->next_free_native;
-    sobj->vs_pos_out_reg = -1;
-    sobj->vs_pointsize_out_reg = -1;
-    sobj->ps_color_out_reg = -1;
-    sobj->ps_depth_out_reg = -1;
-    copy_uniform_state_to_shader(cd, sobj);
+    shader->processor = cd->info.processor;
+    shader->code_size = cd->inst_ptr * 4;
+    shader->code = mem_dup(cd->code, cd->inst_ptr * 16);
+    shader->num_temps = cd->next_free_native;
+    shader->vs_pos_out_reg = -1;
+    shader->vs_pointsize_out_reg = -1;
+    shader->ps_color_out_reg = -1;
+    shader->ps_depth_out_reg = -1;
+    copy_uniform_state_to_shader(cd, shader);
 
     if(cd->info.processor == PIPE_SHADER_VERTEX)
     {
-        fill_in_vs_inputs(sobj, cd);
-        fill_in_vs_outputs(sobj, cd);
+        fill_in_vs_inputs(shader, cd);
+        fill_in_vs_outputs(shader, cd);
     } else if(cd->info.processor == PIPE_SHADER_FRAGMENT) {
-        fill_in_ps_inputs(sobj, cd);
-        fill_in_ps_outputs(sobj, cd);
+        fill_in_ps_inputs(shader, cd);
+        fill_in_ps_outputs(shader, cd);
     }
 
-    return sobj;
+    return shader;
 
 out:
     if (cd->free_tokens)
@@ -2341,73 +2341,73 @@ out:
 }
 
 extern const char *tgsi_swizzle_names[];
-void etna_dump_shader_object(const struct etna_shader_object *sobj)
+void etna_dump_shader(const struct etna_shader *shader)
 {
-    if(sobj->processor == PIPE_SHADER_VERTEX)
+    if(shader->processor == PIPE_SHADER_VERTEX)
     {
         printf("VERT\n");
     } else {
         printf("FRAG\n");
     }
 
-    etna_disasm(sobj->code, sobj->code_size, PRINT_RAW);
+    etna_disasm(shader->code, shader->code_size, PRINT_RAW);
 
-    printf("num temps: %i\n", sobj->num_temps);
-    printf("num const: %i\n", sobj->uniforms.const_count);
+    printf("num temps: %i\n", shader->num_temps);
+    printf("num const: %i\n", shader->uniforms.const_count);
     printf("immediates:\n");
-    for(int idx=0; idx<sobj->uniforms.imm_count; ++idx)
+    for(int idx=0; idx<shader->uniforms.imm_count; ++idx)
     {
-        printf(" [%i].%s = %f (0x%08x)\n", (idx+sobj->uniforms.const_count)/4, tgsi_swizzle_names[idx%4],
-                *((float*)&sobj->uniforms.imm_data[idx]), sobj->uniforms.imm_data[idx]);
+        printf(" [%i].%s = %f (0x%08x)\n", (idx+shader->uniforms.const_count)/4, tgsi_swizzle_names[idx%4],
+                *((float*)&shader->uniforms.imm_data[idx]), shader->uniforms.imm_data[idx]);
     }
     printf("inputs:\n");
-    for(int idx=0; idx<sobj->infile.num_reg; ++idx)
+    for(int idx=0; idx<shader->infile.num_reg; ++idx)
     {
         printf(" [%i] name=%s index=%i comps=%i\n",
-                sobj->infile.reg[idx].reg,
-                tgsi_semantic_names[sobj->infile.reg[idx].semantic.Name], sobj->infile.reg[idx].semantic.Index,
-                sobj->infile.reg[idx].num_components);
+                shader->infile.reg[idx].reg,
+                tgsi_semantic_names[shader->infile.reg[idx].semantic.Name], shader->infile.reg[idx].semantic.Index,
+                shader->infile.reg[idx].num_components);
     }
     printf("outputs:\n");
-    for(int idx=0; idx<sobj->outfile.num_reg; ++idx)
+    for(int idx=0; idx<shader->outfile.num_reg; ++idx)
     {
         printf(" [%i] name=%s index=%i comps=%i\n",
-                sobj->outfile.reg[idx].reg,
-                tgsi_semantic_names[sobj->outfile.reg[idx].semantic.Name], sobj->outfile.reg[idx].semantic.Index,
-                sobj->outfile.reg[idx].num_components);
+                shader->outfile.reg[idx].reg,
+                tgsi_semantic_names[shader->outfile.reg[idx].semantic.Name], shader->outfile.reg[idx].semantic.Index,
+                shader->outfile.reg[idx].num_components);
     }
     printf("special:\n");
-    if(sobj->processor == PIPE_SHADER_VERTEX)
+    if(shader->processor == PIPE_SHADER_VERTEX)
     {
-        printf("  vs_pos_out_reg=%i\n", sobj->vs_pos_out_reg);
-        printf("  vs_pointsize_out_reg=%i\n", sobj->vs_pointsize_out_reg);
-        printf("  vs_load_balancing=0x%08x\n", sobj->vs_load_balancing);
+        printf("  vs_pos_out_reg=%i\n", shader->vs_pos_out_reg);
+        printf("  vs_pointsize_out_reg=%i\n", shader->vs_pointsize_out_reg);
+        printf("  vs_load_balancing=0x%08x\n", shader->vs_load_balancing);
     } else {
-        printf("  ps_color_out_reg=%i\n", sobj->ps_color_out_reg);
-        printf("  ps_depth_out_reg=%i\n", sobj->ps_depth_out_reg);
+        printf("  ps_color_out_reg=%i\n", shader->ps_color_out_reg);
+        printf("  ps_depth_out_reg=%i\n", shader->ps_depth_out_reg);
     }
-    printf("  input_count_unk8=0x%08x\n", sobj->input_count_unk8);
+    printf("  input_count_unk8=0x%08x\n", shader->input_count_unk8);
 }
 
-void etna_destroy_shader_object(struct etna_shader_object *sobj)
+void etna_destroy_shader(struct etna_shader *shader)
 {
-    assert(sobj);
+    assert(shader);
 
-    FREE(sobj->code);
-    FREE(sobj->uniforms.imm_data);
-    FREE(sobj->uniforms.imm_contents);
-    FREE(sobj->output_per_semantic_list);
-    FREE(sobj);
+    FREE(shader->code);
+    FREE(shader->uniforms.imm_data);
+    FREE(shader->uniforms.imm_contents);
+    FREE(shader->output_per_semantic_list);
+    FREE(shader);
 }
 
-static const struct etna_shader_inout *etna_shader_vs_lookup(const struct etna_shader_object *sobj, const struct etna_shader_inout *in)
+static const struct etna_shader_inout *etna_shader_vs_lookup(const struct etna_shader *sobj, const struct etna_shader_inout *in)
 {
     if(in->semantic.Index < sobj->output_count_per_semantic[in->semantic.Name])
         return sobj->output_per_semantic[in->semantic.Name][in->semantic.Index];
     return NULL;
 }
 
-bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct etna_shader_object *vs, const struct etna_shader_object *fs)
+bool etna_link_shader(struct etna_shader_link_info *info, const struct etna_shader *vs, const struct etna_shader *fs)
 {
     /* For each fragment input we need to find the associated vertex shader
      * output, which can be found by matching on semantic name and index. A

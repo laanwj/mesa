@@ -58,7 +58,7 @@ struct etna_shader_io_file
 };
 
 /* shader object, for linking */
-struct etna_shader_object
+struct etna_shader
 {
     uint processor; /* TGSI_PROCESSOR_... */
     uint32_t code_size; /* code size in uint32 words */
@@ -113,17 +113,17 @@ struct etna_shader_link_info
 
 /* Entry point to compiler.
  */
-struct etna_shader_object *etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens);
+struct etna_shader *etna_compile_shader(const struct etna_specs* specs, const struct tgsi_token* tokens);
 
-/* Debug dump of shader object */
-void etna_dump_shader_object(const struct etna_shader_object *sobj);
+/* Debug dump of shader */
+void etna_dump_shader(const struct etna_shader *shader);
 
-/* Link two shader objects together, annotates each PS input with the VS
+/* Link two shader together, annotates each PS input with the VS
  * output register. Returns non-zero if the linking fails.
  */
-bool etna_link_shader_objects(struct etna_shader_link_info *info, const struct etna_shader_object *vs, const struct etna_shader_object *fs);
+bool etna_link_shader(struct etna_shader_link_info *info, const struct etna_shader *vs, const struct etna_shader *fs);
 
-/* Destroy a previously allocated shader object */
-void etna_destroy_shader_object(struct etna_shader_object *obj);
+/* Destroy a previously allocated shader */
+void etna_destroy_shader(struct etna_shader *shader);
 
 #endif
