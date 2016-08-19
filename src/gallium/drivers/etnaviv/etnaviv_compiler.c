@@ -2309,6 +2309,9 @@ bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgs
 
     /* fill in output structure */
     struct etna_shader_object *sobj = CALLOC_STRUCT(etna_shader_object);
+    if (!sobj)
+        goto out;
+
     sobj->processor = cd->info.processor;
     sobj->code_size = cd->inst_ptr * 4;
     sobj->code = mem_dup(cd->code, cd->inst_ptr * 16);
