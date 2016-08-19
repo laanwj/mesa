@@ -53,7 +53,7 @@ bool etna_screen_resource_alloc_ts(struct pipe_screen *pscreen, struct etna_reso
     if (rt_ts_size == 0)
         return true;
 
-    DBG_F(ETNA_DBG_RESOURCE_MSGS, "%p: Allocating tile status of size %i", rsc, rt_ts_size);
+    DBG_F(ETNA_DBG_RESOURCE_MSGS, "%p: Allocating tile status of size %zu", rsc, rt_ts_size);
     struct etna_bo *rt_ts = 0;
     if (unlikely((rt_ts = etna_bo_new(screen->dev, rt_ts_size, DRM_ETNA_GEM_CACHE_WC)) == NULL))
     {
