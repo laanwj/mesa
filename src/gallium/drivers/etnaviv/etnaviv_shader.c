@@ -183,7 +183,7 @@ static bool etna_shader_update_vs_inputs(struct etna_context *ctx,
     num_vs_inputs = MAX2(ves->num_elements, vs->infile.num_reg);
     if (num_vs_inputs != ves->num_elements)
     {
-        BUG("Number of elements %i does not match the number of VS inputs %i",
+        BUG("Number of elements %u does not match the number of VS inputs %zu",
             ctx->vertex_elements->num_elements, ctx->vs->infile.num_reg);
         return false;
     }
