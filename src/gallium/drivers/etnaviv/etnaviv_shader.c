@@ -217,12 +217,8 @@ bool etna_shader_update_vertex(struct etna_context *ctx)
 static void *etna_create_shader_state(struct pipe_context *pctx, const struct pipe_shader_state *pss)
 {
     struct etna_context *ctx = etna_context(pctx);
-    struct etna_shader_object *out = NULL;
 
-    if (etna_compile_shader_object(&ctx->specs, pss->tokens, &out) == false)
-        return NULL;
-    else
-        return out;
+    return etna_compile_shader_object(&ctx->specs, pss->tokens);
 }
 
 static void etna_delete_shader_state(struct pipe_context *pctx, void *ss)

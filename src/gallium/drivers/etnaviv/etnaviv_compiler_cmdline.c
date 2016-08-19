@@ -91,11 +91,10 @@ static void print_usage(void)
 int main(int argc, char **argv)
 {
 	int ret = 0, n = 1;
-	bool success;
 	const char *filename;
 	struct tgsi_token toks[65536];
 	struct tgsi_parse_context parse;
-	struct etna_shader_object *shader_obj = NULL;
+	struct etna_shader_object *shader_obj;
 	void *ptr;
 	size_t size;
 
@@ -131,9 +130,9 @@ int main(int argc, char **argv)
 
 	tgsi_parse_init(&parse, toks);
 
-	success = etna_compile_shader_object(&specs_gc2000, toks, &shader_obj);
+	shader_obj = etna_compile_shader_object(&specs_gc2000, toks);
 
-	if (success == false) {
+	if (shader_obj == NULL) {
 		fprintf(stderr, "compiler failed!\n");
 		return 1;
 	}

@@ -113,7 +113,7 @@ struct etna_shader_link_info
 
 /* Entry point to compiler.
  */
-bool etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens, struct etna_shader_object** out);
+struct etna_shader_object *etna_compile_shader_object(const struct etna_specs* specs, const struct tgsi_token* tokens);
 
 /* Debug dump of shader object */
 void etna_dump_shader_object(const struct etna_shader_object *sobj);
