@@ -26,7 +26,6 @@
 
 #include "etnaviv/etnaviv_screen.h"
 #include "etnaviv_drm_public.h"
-#include "renderonly/renderonly_screen.h"
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -86,13 +85,8 @@ etna_drm_screen_create_renderer(int fd)
    return screen;
 }
 
-static const struct renderonly_ops etna_native_ro_ops = {
-   .open = etna_drm_screen_create_renderer,
-   .intermediate_rendering = true
-};
-
 struct pipe_screen *
 etna_drm_screen_create(int fd)
 {
-   return renderonly_screen_create(fd, &etna_native_ro_ops);
+   return NULL;
 }

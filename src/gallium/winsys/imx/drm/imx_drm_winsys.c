@@ -22,20 +22,9 @@
  */
 
 #include "../../imx/drm/imx_drm_public.h"
-#include "renderonly/renderonly_screen.h"
 #include "../winsys/etnaviv/drm/etnaviv_drm_public.h"
-
-static struct pipe_screen *imx_open_render_node(int fd)
-{
-    return etna_drm_screen_create_renderer(-1);
-}
-
-static const struct renderonly_ops ro_ops = {
-   .open = imx_open_render_node,
-   .intermediate_rendering = true,
-};
 
 struct pipe_screen *imx_drm_screen_create(int fd)
 {
-   return renderonly_screen_create(fd, &ro_ops);
+   return NULL;
 }

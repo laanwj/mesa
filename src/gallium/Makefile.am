@@ -70,7 +70,6 @@ endif
 
 if HAVE_GALLIUM_ETNAVIV
 SUBDIRS += drivers/etnaviv winsys/etnaviv/drm
-SUBDIRS += drivers/renderonly
 endif
 
 if HAVE_GALLIUM_IMX
