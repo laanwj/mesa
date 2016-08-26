@@ -2170,7 +2170,8 @@ struct etna_shader *etna_compile_shader(const struct etna_specs* specs, const st
     /* Create scratch space that may be too large to fit on stack
      */
     bool ret;
-    struct etna_compile *c = CALLOC_STRUCT(etna_compile);
+    struct etna_compile *c;
+    struct etna_shader *shader;
 
     struct tgsi_lowering_config lconfig = {
         .lower_SCS  = specs->has_sin_cos_sqrt,
@@ -2184,8 +2185,13 @@ struct etna_shader *etna_compile_shader(const struct etna_specs* specs, const st
         .lower_TRUNC= true,
     };
 
+    c = CALLOC_STRUCT(etna_compile);
     if (!c)
         return NULL;
+
+    shader = CALLOC_STRUCT(etna_shader);
+    if (!shader)
+        goto out;
 
     c->specs = specs;
     c->tokens = tgsi_transform_lowering(&lconfig, tokens, &c->info);
@@ -2307,10 +2313,6 @@ struct etna_shader *etna_compile_shader(const struct etna_specs* specs, const st
         goto out;
 
     /* fill in output structure */
-    struct etna_shader *shader = CALLOC_STRUCT(etna_shader);
-    if (!shader)
-        goto out;
-
     shader->processor = c->info.processor;
     shader->code_size = c->inst_ptr * 4;
     shader->code = mem_dup(c->code, c->inst_ptr * 16);
@@ -2330,14 +2332,12 @@ struct etna_shader *etna_compile_shader(const struct etna_specs* specs, const st
         fill_in_ps_outputs(shader, c);
     }
 
-    return shader;
-
 out:
     if (c->free_tokens)
         FREE((void *)c->tokens);
 
     FREE(c);
-    return NULL;
+    return shader;
 }
 
 extern const char *tgsi_swizzle_names[];
