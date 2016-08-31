@@ -1862,7 +1862,7 @@ static void etna_compile_add_nop_if_needed(struct etna_compile *c)
     bool label_at_last_inst = false;
     for(int idx=0; idx<c->num_labels; ++idx)
     {
-        if(c->labels[idx].inst_idx == (c->inst_ptr-1))
+        if(c->labels[idx].inst_idx == c->inst_ptr)
         {
             label_at_last_inst = true;
         }
