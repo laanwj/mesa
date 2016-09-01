@@ -32,7 +32,7 @@
 #include "pipe/p_compiler.h"
 #include "pipe/p_shader_tokens.h"
 
-/* XXX some of these such as ETNA_MAX_LABELS are pretty arbitrary limits, may be better to switch
+/* XXX some of these are pretty arbitrary limits, may be better to switch
  * to dynamic allocation at some point.
  */
 #define ETNA_MAX_TEMPS (64) /* max temp register count of all Vivante hw */
@@ -40,7 +40,6 @@
 #define ETNA_MAX_IMM (1024)  /* max const+imm in 32-bit words */
 #define ETNA_MAX_DECL (2048)  /* max declarations */
 #define ETNA_MAX_DEPTH (32)
-#define ETNA_MAX_LABELS (64)
 #define ETNA_MAX_INSTRUCTIONS (2048)
 
 /* compiler output per input/output */
