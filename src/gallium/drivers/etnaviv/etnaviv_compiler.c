@@ -134,6 +134,15 @@ struct etna_compile_file
     struct etna_reg_desc *reg;
 };
 
+#define array_insert(arr, val) do { \
+        if (arr ## _count == arr ## _sz) { \
+            arr ## _sz = MAX2(2 * arr ## _sz, 16); \
+            arr = realloc(arr, arr ## _sz * sizeof(arr[0])); \
+        } \
+        arr[arr ##_count++] = val; \
+    } while (0)
+
+
 /* scratch area for compiling shader, freed after compilation finishes */
 struct etna_compile
 {
@@ -171,8 +180,9 @@ struct etna_compile
     struct etna_compile_frame frame_stack[ETNA_MAX_DEPTH];
     int frame_sp;
     struct etna_compile_label *lbl_usage[ETNA_MAX_INSTRUCTIONS]; /* label usage reference, per instruction */
-    struct etna_compile_label labels[ETNA_MAX_LABELS]; /* XXX use subheap allocation */
-    int num_labels;
+
+    unsigned labels_count, labels_sz;
+    struct etna_compile_label *labels;
 
     /* Code generation */
     int inst_ptr; /* current instruction pointer */
@@ -886,10 +896,13 @@ static bool etna_src_uniforms_conflict(struct etna_inst_src a, struct etna_inst_
 /* create a new label */
 static struct etna_compile_label *alloc_new_label(struct etna_compile *c)
 {
-    assert(c->num_labels < ETNA_MAX_LABELS);
-    struct etna_compile_label *rv = &c->labels[c->num_labels++];
-    rv->inst_idx = -1; /* start by point to no specific instruction */
-    return rv;
+    struct etna_compile_label label = {
+        .inst_idx = -1, /* start by point to no specific instruction */
+    };
+
+    array_insert(c->labels, label);
+
+    return &c->labels[c->labels_count - 1];
 }
 
 /* place label at current instruction pointer */
@@ -1860,7 +1873,7 @@ static void etna_compile_add_z_div_if_needed(struct etna_compile *c)
 static void etna_compile_add_nop_if_needed(struct etna_compile *c)
 {
     bool label_at_last_inst = false;
-    for(int idx=0; idx<c->num_labels; ++idx)
+    for(int idx=0; idx<c->labels_count; ++idx)
     {
         if(c->labels[idx].inst_idx == c->inst_ptr)
         {
@@ -2336,7 +2349,9 @@ out:
     if (c->free_tokens)
         FREE((void *)c->tokens);
 
+    FREE(c->labels);
     FREE(c);
+
     return shader;
 }
 
