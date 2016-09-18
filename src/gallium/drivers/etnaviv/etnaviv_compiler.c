@@ -2322,8 +2322,11 @@ struct etna_shader *etna_compile_shader(const struct etna_specs* specs, const st
     etna_compile_fill_in_labels(c);
 
     ret = etna_compile_check_limits(c);
-    if (!ret)
+    if (!ret) {
+        FREE(shader);
+        shader = NULL;
         goto out;
+    }
 
     /* fill in output structure */
     shader->processor = c->info.processor;
