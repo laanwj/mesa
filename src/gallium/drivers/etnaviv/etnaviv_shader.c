@@ -177,6 +177,9 @@ static bool etna_shader_update_vs_inputs(struct etna_context *ctx,
 {
     unsigned num_temps, cur_temp, num_vs_inputs;
 
+    if (!vs)
+        return false;
+
     /* Number of vertex elements determines number of VS inputs. Otherwise,
      * the GPU crashes. Allocate any unused vertex elements to VS temporary
      * registers. */
