@@ -8,14 +8,38 @@ http://0x04.net/cgit/index.cgi/rules-ng-ng
 git clone git://0x04.net/rules-ng-ng
 
 The rules-ng-ng source files this header was generated from are:
-- /home/christian/projects/etna_viv/rnndb/state.xml    (  18526 bytes, from 2014-09-06 05:57:57)
-- /home/christian/projects/etna_viv/rnndb/common.xml   (  18379 bytes, from 2014-09-06 05:57:57)
-- /home/christian/projects/etna_viv/rnndb/state_hi.xml (  23176 bytes, from 2014-09-06 06:07:47)
-- /home/christian/projects/etna_viv/rnndb/state_2d.xml (  51191 bytes, from 2014-09-06 05:57:57)
-- /home/christian/projects/etna_viv/rnndb/state_3d.xml (  54570 bytes, from 2014-09-06 05:57:57)
-- /home/christian/projects/etna_viv/rnndb/state_vg.xml (   5942 bytes, from 2014-09-06 05:57:57)
+- state.xml     (  18940 bytes, from 2016-09-14 19:36:57)
+- common.xml    (  20957 bytes, from 2016-09-14 19:40:08)
+- state_hi.xml  (  25653 bytes, from 2016-09-14 19:39:09)
+- copyright.xml (   1597 bytes, from 2016-09-14 19:39:09)
+- state_2d.xml  (  51552 bytes, from 2016-09-14 19:39:09)
+- state_3d.xml  (  54603 bytes, from 2016-09-14 19:39:09)
+- state_vg.xml  (   5975 bytes, from 2016-09-14 19:39:09)
 
-Copyright (C) 2014
+Copyright (C) 2012-2016 by the following authors:
+- Wladimir J. van der Laan <laanwj@gmail.com>
+- Christian Gmeiner <christian.gmeiner@gmail.com>
+- Lucas Stach <l.stach@pengutronix.de>
+- Russell King <rmk@arm.linux.org.uk>
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sub license,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice (including the
+next paragraph) shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 */
 
 
@@ -34,15 +58,19 @@ Copyright (C) 2014
 #define ENDIAN_MODE_NO_SWAP					0x00000000
 #define ENDIAN_MODE_SWAP_16					0x00000001
 #define ENDIAN_MODE_SWAP_32					0x00000002
+#define chipModel_GC200						0x00000200
 #define chipModel_GC300						0x00000300
 #define chipModel_GC320						0x00000320
+#define chipModel_GC328						0x00000328
 #define chipModel_GC350						0x00000350
 #define chipModel_GC355						0x00000355
 #define chipModel_GC400						0x00000400
 #define chipModel_GC410						0x00000410
 #define chipModel_GC420						0x00000420
+#define chipModel_GC428						0x00000428
 #define chipModel_GC450						0x00000450
 #define chipModel_GC500						0x00000500
+#define chipModel_GC520						0x00000520
 #define chipModel_GC530						0x00000530
 #define chipModel_GC600						0x00000600
 #define chipModel_GC700						0x00000700
@@ -50,9 +78,16 @@ Copyright (C) 2014
 #define chipModel_GC860						0x00000860
 #define chipModel_GC880						0x00000880
 #define chipModel_GC1000					0x00001000
+#define chipModel_GC1500					0x00001500
 #define chipModel_GC2000					0x00002000
 #define chipModel_GC2100					0x00002100
+#define chipModel_GC2200					0x00002200
+#define chipModel_GC2500					0x00002500
+#define chipModel_GC3000					0x00003000
 #define chipModel_GC4000					0x00004000
+#define chipModel_GC5000					0x00005000
+#define chipModel_GC5200					0x00005200
+#define chipModel_GC6400					0x00006400
 #define RGBA_BITS_R						0x00000001
 #define RGBA_BITS_G						0x00000002
 #define RGBA_BITS_B						0x00000004
@@ -155,63 +190,63 @@ Copyright (C) 2014
 #define chipMinorFeatures1_FC_FLUSH_STALL			0x80000000
 #define chipMinorFeatures2_LINE_LOOP				0x00000001
 #define chipMinorFeatures2_LOGIC_OP				0x00000002
-#define chipMinorFeatures2_UNK2					0x00000004
+#define chipMinorFeatures2_SEAMLESS_CUBE_MAP			0x00000004
 #define chipMinorFeatures2_SUPERTILED_TEXTURE			0x00000008
-#define chipMinorFeatures2_UNK4					0x00000010
+#define chipMinorFeatures2_LINEAR_PE				0x00000010
 #define chipMinorFeatures2_RECT_PRIMITIVE			0x00000020
 #define chipMinorFeatures2_COMPOSITION				0x00000040
 #define chipMinorFeatures2_CORRECT_AUTO_DISABLE_COUNT		0x00000080
-#define chipMinorFeatures2_UNK8					0x00000100
-#define chipMinorFeatures2_UNK9					0x00000200
-#define chipMinorFeatures2_UNK10				0x00000400
-#define chipMinorFeatures2_SAMPLERBASE_16			0x00000800
-#define chipMinorFeatures2_UNK12				0x00001000
-#define chipMinorFeatures2_UNK13				0x00002000
-#define chipMinorFeatures2_UNK14				0x00004000
+#define chipMinorFeatures2_PE_SWIZZLE				0x00000100
+#define chipMinorFeatures2_END_EVENT				0x00000200
+#define chipMinorFeatures2_S1S8					0x00000400
+#define chipMinorFeatures2_HALTI1				0x00000800
+#define chipMinorFeatures2_RGB888				0x00001000
+#define chipMinorFeatures2_TX__YUV_ASSEMBLER			0x00002000
+#define chipMinorFeatures2_DYNAMIC_FREQUENCY_SCALING		0x00004000
 #define chipMinorFeatures2_EXTRA_TEXTURE_STATE			0x00008000
 #define chipMinorFeatures2_FULL_DIRECTFB			0x00010000
 #define chipMinorFeatures2_2D_TILING				0x00020000
 #define chipMinorFeatures2_THREAD_WALKER_IN_PS			0x00040000
 #define chipMinorFeatures2_TILE_FILLER				0x00080000
-#define chipMinorFeatures2_UNK20				0x00100000
+#define chipMinorFeatures2_YUV_STANDARD				0x00100000
 #define chipMinorFeatures2_2D_MULTI_SOURCE_BLIT			0x00200000
-#define chipMinorFeatures2_UNK22				0x00400000
-#define chipMinorFeatures2_UNK23				0x00800000
-#define chipMinorFeatures2_UNK24				0x01000000
+#define chipMinorFeatures2_YUV_CONVERSION			0x00400000
+#define chipMinorFeatures2_FLUSH_FIXED_2D			0x00800000
+#define chipMinorFeatures2_INTERLEAVER				0x01000000
 #define chipMinorFeatures2_MIXED_STREAMS			0x02000000
 #define chipMinorFeatures2_2D_420_L2CACHE			0x04000000
-#define chipMinorFeatures2_UNK27				0x08000000
+#define chipMinorFeatures2_BUG_FIXES7				0x08000000
 #define chipMinorFeatures2_2D_NO_INDEX8_BRUSH			0x10000000
 #define chipMinorFeatures2_TEXTURE_TILED_READ			0x20000000
-#define chipMinorFeatures2_UNK30				0x40000000
-#define chipMinorFeatures2_UNK31				0x80000000
+#define chipMinorFeatures2_DECOMPRESS_Z16			0x40000000
+#define chipMinorFeatures2_BUG_FIXES8				0x80000000
 #define chipMinorFeatures3_ROTATION_STALL_FIX			0x00000001
-#define chipMinorFeatures3_UNK1					0x00000002
+#define chipMinorFeatures3_OCL_ONLY				0x00000002
 #define chipMinorFeatures3_2D_MULTI_SOURCE_BLT_EX		0x00000004
-#define chipMinorFeatures3_UNK3					0x00000008
-#define chipMinorFeatures3_UNK4					0x00000010
-#define chipMinorFeatures3_UNK5					0x00000020
-#define chipMinorFeatures3_UNK6					0x00000040
-#define chipMinorFeatures3_UNK7					0x00000080
-#define chipMinorFeatures3_UNK8					0x00000100
-#define chipMinorFeatures3_UNK9					0x00000200
+#define chipMinorFeatures3_INSTRUCTION_CACHE			0x00000008
+#define chipMinorFeatures3_GEOMETRY_SHADER			0x00000010
+#define chipMinorFeatures3_TEX_COMPRESSION_SUPERTILED		0x00000020
+#define chipMinorFeatures3_GENERICS				0x00000040
+#define chipMinorFeatures3_BUG_FIXES9				0x00000080
+#define chipMinorFeatures3_FAST_MSAA				0x00000100
+#define chipMinorFeatures3_WCLIP				0x00000200
 #define chipMinorFeatures3_BUG_FIXES10				0x00000400
-#define chipMinorFeatures3_UNK11				0x00000800
+#define chipMinorFeatures3_UNIFIED_SAMPLERS			0x00000800
 #define chipMinorFeatures3_BUG_FIXES11				0x00001000
-#define chipMinorFeatures3_UNK13				0x00002000
-#define chipMinorFeatures3_UNK14				0x00004000
-#define chipMinorFeatures3_UNK15				0x00008000
-#define chipMinorFeatures3_UNK16				0x00010000
-#define chipMinorFeatures3_UNK17				0x00020000
-#define chipMinorFeatures3_UNK18				0x00040000
-#define chipMinorFeatures3_UNK19				0x00080000
-#define chipMinorFeatures3_UNK20				0x00100000
-#define chipMinorFeatures3_UNK21				0x00200000
+#define chipMinorFeatures3_PERFORMANCE_COUNTERS			0x00002000
+#define chipMinorFeatures3_HAS_FAST_TRANSCENDENTALS		0x00004000
+#define chipMinorFeatures3_BUG_FIXES12				0x00008000
+#define chipMinorFeatures3_BUG_FIXES13				0x00010000
+#define chipMinorFeatures3_DE_ENHANCEMENTS1			0x00020000
+#define chipMinorFeatures3_ACE					0x00040000
+#define chipMinorFeatures3_TX_ENHANCEMENTS1			0x00080000
+#define chipMinorFeatures3_SH_ENHANCEMENTS1			0x00100000
+#define chipMinorFeatures3_SH_ENHANCEMENTS2			0x00200000
 #define chipMinorFeatures3_UNK22				0x00400000
 #define chipMinorFeatures3_UNK23				0x00800000
 #define chipMinorFeatures3_UNK24				0x01000000
 #define chipMinorFeatures3_UNK25				0x02000000
-#define chipMinorFeatures3_UNK26				0x04000000
+#define chipMinorFeatures3_NEW_HZ				0x04000000
 #define chipMinorFeatures3_UNK27				0x08000000
 #define chipMinorFeatures3_UNK28				0x10000000
 #define chipMinorFeatures3_UNK29				0x20000000
@@ -233,9 +268,9 @@ Copyright (C) 2014
 #define chipMinorFeatures4_UNK13				0x00002000
 #define chipMinorFeatures4_UNK14				0x00004000
 #define chipMinorFeatures4_UNK15				0x00008000
-#define chipMinorFeatures4_UNK16				0x00010000
+#define chipMinorFeatures4_HALTI2				0x00010000
 #define chipMinorFeatures4_UNK17				0x00020000
-#define chipMinorFeatures4_UNK18				0x00040000
+#define chipMinorFeatures4_SMALL_MSAA				0x00040000
 #define chipMinorFeatures4_UNK19				0x00080000
 #define chipMinorFeatures4_UNK20				0x00100000
 #define chipMinorFeatures4_UNK21				0x00200000
@@ -249,5 +284,37 @@ Copyright (C) 2014
 #define chipMinorFeatures4_UNK29				0x20000000
 #define chipMinorFeatures4_UNK30				0x40000000
 #define chipMinorFeatures4_UNK31				0x80000000
+#define chipMinorFeatures5_UNK0					0x00000001
+#define chipMinorFeatures5_UNK1					0x00000002
+#define chipMinorFeatures5_UNK2					0x00000004
+#define chipMinorFeatures5_UNK3					0x00000008
+#define chipMinorFeatures5_UNK4					0x00000010
+#define chipMinorFeatures5_UNK5					0x00000020
+#define chipMinorFeatures5_UNK6					0x00000040
+#define chipMinorFeatures5_UNK7					0x00000080
+#define chipMinorFeatures5_UNK8					0x00000100
+#define chipMinorFeatures5_HALTI3				0x00000200
+#define chipMinorFeatures5_UNK10				0x00000400
+#define chipMinorFeatures5_UNK11				0x00000800
+#define chipMinorFeatures5_UNK12				0x00001000
+#define chipMinorFeatures5_UNK13				0x00002000
+#define chipMinorFeatures5_UNK14				0x00004000
+#define chipMinorFeatures5_UNK15				0x00008000
+#define chipMinorFeatures5_UNK16				0x00010000
+#define chipMinorFeatures5_UNK17				0x00020000
+#define chipMinorFeatures5_UNK18				0x00040000
+#define chipMinorFeatures5_UNK19				0x00080000
+#define chipMinorFeatures5_UNK20				0x00100000
+#define chipMinorFeatures5_UNK21				0x00200000
+#define chipMinorFeatures5_UNK22				0x00400000
+#define chipMinorFeatures5_UNK23				0x00800000
+#define chipMinorFeatures5_UNK24				0x01000000
+#define chipMinorFeatures5_UNK25				0x02000000
+#define chipMinorFeatures5_UNK26				0x04000000
+#define chipMinorFeatures5_UNK27				0x08000000
+#define chipMinorFeatures5_UNK28				0x10000000
+#define chipMinorFeatures5_UNK29				0x20000000
+#define chipMinorFeatures5_UNK30				0x40000000
+#define chipMinorFeatures5_UNK31				0x80000000
 
 #endif /* COMMON_XML */
