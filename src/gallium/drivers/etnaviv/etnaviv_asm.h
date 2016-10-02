@@ -130,7 +130,4 @@ static inline void etna_assemble_set_imm(uint32_t *out, uint32_t imm)
     out[3] |= VIV_ISA_WORD_3_SRC2_IMM(imm);
 }
 
-/* Return whether the rgroup is one of the uniforms */
-int etna_rgroup_is_uniform(unsigned rgroup);
-
 #endif
