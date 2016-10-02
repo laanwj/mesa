@@ -125,7 +125,10 @@ int etna_assemble(uint32_t *out, const struct etna_inst *inst);
  * Set field imm of already-assembled instruction.
  * This is used for filling in jump destinations in a separate pass.
  */
-int etna_assemble_set_imm(uint32_t *out, uint32_t imm);
+static inline void etna_assemble_set_imm(uint32_t *out, uint32_t imm)
+{
+    out[3] |= VIV_ISA_WORD_3_SRC2_IMM(imm);
+}
 
 /* Return whether the rgroup is one of the uniforms */
 int etna_rgroup_is_uniform(unsigned rgroup);
