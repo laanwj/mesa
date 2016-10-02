@@ -42,6 +42,7 @@
 static const struct etna_specs specs_gc2000 = {
 	.vs_need_z_div = 0,
 	.has_sin_cos_sqrt = 1,
+	.has_sign_floor_ceil = 1,
 	.vertex_sampler_offset = 8,
 	.vertex_output_buffer_size = 512,
 	.vertex_cache_size = 16,
