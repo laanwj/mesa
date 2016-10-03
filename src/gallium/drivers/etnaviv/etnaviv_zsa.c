@@ -93,11 +93,11 @@ void *etna_zsa_state_create(struct pipe_context *pctx,
     /* compare funcs have 1 to 1 mapping */
     cs->PE_DEPTH_CONFIG =
             VIVS_PE_DEPTH_CONFIG_DEPTH_FUNC(so->depth.enabled ? so->depth.func : PIPE_FUNC_ALWAYS) |
-            (so->depth.writemask ? VIVS_PE_DEPTH_CONFIG_WRITE_ENABLE : 0) |
-            (early_z ? VIVS_PE_DEPTH_CONFIG_EARLY_Z : 0) |
-            (disable_zs ? VIVS_PE_DEPTH_CONFIG_DISABLE_ZS : 0);
+            COND(so->depth.writemask, VIVS_PE_DEPTH_CONFIG_WRITE_ENABLE) |
+            COND(early_z, VIVS_PE_DEPTH_CONFIG_EARLY_Z) |
+            COND(disable_zs, VIVS_PE_DEPTH_CONFIG_DISABLE_ZS);
     cs->PE_ALPHA_OP =
-            (so->alpha.enabled ? VIVS_PE_ALPHA_OP_ALPHA_TEST : 0) |
+            COND(so->alpha.enabled, VIVS_PE_ALPHA_OP_ALPHA_TEST) |
             VIVS_PE_ALPHA_OP_ALPHA_FUNC(so->alpha.func) |
             VIVS_PE_ALPHA_OP_ALPHA_REF(etna_cfloat_to_uint8(so->alpha.ref_value));
     cs->PE_STENCIL_OP =

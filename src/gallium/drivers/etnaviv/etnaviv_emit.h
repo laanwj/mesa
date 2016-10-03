@@ -29,6 +29,7 @@
 
 #include "hw/cmdstream.xml.h"
 #include "etnaviv_screen.h"
+#include "etnaviv_util.h"
 
 struct etna_context;
 struct compiled_rs_state;
@@ -38,7 +39,7 @@ static inline void etna_emit_load_state(struct etna_cmd_stream *stream,
 {
 	uint32_t v;
 
-	v = (VIV_FE_LOAD_STATE_HEADER_OP_LOAD_STATE | ((fixp)?VIV_FE_LOAD_STATE_HEADER_FIXP:0) |
+	v = (VIV_FE_LOAD_STATE_HEADER_OP_LOAD_STATE | COND(fixp, VIV_FE_LOAD_STATE_HEADER_FIXP) |
 		VIV_FE_LOAD_STATE_HEADER_OFFSET(offset) |
 		(VIV_FE_LOAD_STATE_HEADER_COUNT(count) & VIV_FE_LOAD_STATE_HEADER_COUNT__MASK));
 

@@ -50,10 +50,10 @@ static void *etna_create_sampler_state(struct pipe_context *pipe,
                 VIVS_TE_SAMPLER_CONFIG0_MIN(translate_texture_filter(ss->min_img_filter))|
                 VIVS_TE_SAMPLER_CONFIG0_MIP(translate_texture_mipfilter(ss->min_mip_filter))|
                 VIVS_TE_SAMPLER_CONFIG0_MAG(translate_texture_filter(ss->mag_img_filter))|
-                (ss->normalized_coords ? VIVS_TE_SAMPLER_CONFIG0_ROUND_UV : 0);
+                COND(ss->normalized_coords, VIVS_TE_SAMPLER_CONFIG0_ROUND_UV);
     cs->TE_SAMPLER_CONFIG1 = 0; /* VIVS_TE_SAMPLER_CONFIG1 (swizzle, extended format) fully determined by sampler view */
     cs->TE_SAMPLER_LOD_CONFIG =
-            (ss->lod_bias != 0.0 ? VIVS_TE_SAMPLER_LOD_CONFIG_BIAS_ENABLE : 0) |
+            COND(ss->lod_bias != 0.0, VIVS_TE_SAMPLER_LOD_CONFIG_BIAS_ENABLE) |
             VIVS_TE_SAMPLER_LOD_CONFIG_BIAS(etna_float_to_fixp55(ss->lod_bias));
     if(ss->min_mip_filter != PIPE_TEX_MIPFILTER_NONE)
     {

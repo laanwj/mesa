@@ -27,6 +27,8 @@
 #include "etnaviv_rs.h"
 #include "etnaviv_screen.h"
 #include "etnaviv_tiling.h"
+#include "etnaviv_util.h"
+
 #include "hw/common.xml.h"
 #include "hw/state.xml.h"
 #include "hw/state_3d.xml.h"
@@ -38,12 +40,12 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
     memset(cs, 0, sizeof(*cs));
 
     /* TILED and SUPERTILED layout have their strides multiplied with 4 in RS */
-    unsigned source_stride_shift = (rs->source_tiling != ETNA_LAYOUT_LINEAR) ? 2 : 0;
-    unsigned dest_stride_shift = (rs->dest_tiling != ETNA_LAYOUT_LINEAR) ? 2 : 0;
+    unsigned source_stride_shift = COND(rs->source_tiling != ETNA_LAYOUT_LINEAR, 2);
+    unsigned dest_stride_shift = COND(rs->dest_tiling != ETNA_LAYOUT_LINEAR, 2);
 
     /* tiling == ETNA_LAYOUT_MULTI_TILED or ETNA_LAYOUT_MULTI_SUPERTILED? */
-    bool source_multi = (rs->source_tiling & ETNA_LAYOUT_BIT_MULTI)?true:false;
-    bool dest_multi = (rs->dest_tiling & ETNA_LAYOUT_BIT_MULTI)?true:false;
+    int source_multi = COND(rs->source_tiling & ETNA_LAYOUT_BIT_MULTI, 1);
+    int dest_multi = COND(rs->dest_tiling & ETNA_LAYOUT_BIT_MULTI, 1);
 
     /* Vivante RS needs widths to be a multiple of 16 or bad things
      * happen, such as scribbing over memory, or the GPU hanging,
@@ -54,17 +56,17 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
 
     /* TODO could just pre-generate command buffer, would simply submit to one memcpy */
     cs->RS_CONFIG = VIVS_RS_CONFIG_SOURCE_FORMAT(rs->source_format) |
-                            (rs->downsample_x?VIVS_RS_CONFIG_DOWNSAMPLE_X:0) |
-                            (rs->downsample_y?VIVS_RS_CONFIG_DOWNSAMPLE_Y:0) |
-                            ((rs->source_tiling&1)?VIVS_RS_CONFIG_SOURCE_TILED:0) |
+                            COND(rs->downsample_x, VIVS_RS_CONFIG_DOWNSAMPLE_X) |
+                            COND(rs->downsample_y, VIVS_RS_CONFIG_DOWNSAMPLE_Y) |
+                            COND(rs->source_tiling & 1, VIVS_RS_CONFIG_SOURCE_TILED) |
                             VIVS_RS_CONFIG_DEST_FORMAT(rs->dest_format) |
-                            ((rs->dest_tiling&1)?VIVS_RS_CONFIG_DEST_TILED:0) |
-                            ((rs->swap_rb)?VIVS_RS_CONFIG_SWAP_RB:0) |
-                            ((rs->flip)?VIVS_RS_CONFIG_FLIP:0);
+                            COND(rs->dest_tiling & 1, VIVS_RS_CONFIG_DEST_TILED) |
+                            COND(rs->swap_rb, VIVS_RS_CONFIG_SWAP_RB) |
+                            COND(rs->flip, VIVS_RS_CONFIG_FLIP);
 
     cs->RS_SOURCE_STRIDE =  (rs->source_stride << source_stride_shift) |
-                            ((rs->source_tiling&2)?VIVS_RS_SOURCE_STRIDE_TILING:0) |
-                            ((source_multi)?VIVS_RS_SOURCE_STRIDE_MULTI:0);
+                            COND(rs->source_tiling & 2, VIVS_RS_SOURCE_STRIDE_TILING) |
+                            COND(source_multi, VIVS_RS_SOURCE_STRIDE_MULTI);
     cs->source[0].bo = rs->source;
     cs->source[0].offset = rs->source_offset;
     cs->source[0].flags = ETNA_RELOC_READ;
@@ -74,8 +76,8 @@ void etna_compile_rs_state(struct etna_context *ctx, struct compiled_rs_state *c
     cs->dest[0].flags = ETNA_RELOC_WRITE;
 
     cs->RS_DEST_STRIDE = (rs->dest_stride << dest_stride_shift) |
-                            ((rs->dest_tiling&2)?VIVS_RS_DEST_STRIDE_TILING:0) |
-                            ((dest_multi)?VIVS_RS_DEST_STRIDE_MULTI:0);
+                            COND(rs->dest_tiling & 2, VIVS_RS_DEST_STRIDE_TILING) |
+                            COND(dest_multi, VIVS_RS_DEST_STRIDE_MULTI);
     if (ctx->specs.pixel_pipes == 1)
     {
         cs->RS_WINDOW_SIZE = VIVS_RS_WINDOW_SIZE_WIDTH(rs->width) | VIVS_RS_WINDOW_SIZE_HEIGHT(rs->height);

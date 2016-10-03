@@ -143,7 +143,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
                 VIVS_PE_COLOR_FORMAT_FORMAT(translate_rs_format(cbuf->base.format)) |
                 VIVS_PE_COLOR_FORMAT_COMPONENTS__MASK |
                 VIVS_PE_COLOR_FORMAT_OVERWRITE |
-                (color_supertiled ? VIVS_PE_COLOR_FORMAT_SUPER_TILED : 0);
+                COND(color_supertiled, VIVS_PE_COLOR_FORMAT_SUPER_TILED);
                 /* VIVS_PE_COLOR_FORMAT_COMPONENTS() and
                  * VIVS_PE_COLOR_FORMAT_OVERWRITE comes from blend_state
                  * but only if we set the bits above. */
@@ -220,7 +220,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
 
         cs->PE_DEPTH_CONFIG =
                 depth_format |
-                (depth_supertiled ? VIVS_PE_DEPTH_CONFIG_SUPER_TILED : 0) |
+                COND(depth_supertiled, VIVS_PE_DEPTH_CONFIG_SUPER_TILED) |
                 VIVS_PE_DEPTH_CONFIG_DEPTH_MODE_Z;
                 /* VIVS_PE_DEPTH_CONFIG_ONLY_DEPTH */
                 /* merged with depth_stencil_alpha */
@@ -255,7 +255,7 @@ static void etna_set_framebuffer_state(struct pipe_context *pctx, const struct p
             cs->TS_DEPTH_SURFACE_BASE.flags = ETNA_RELOC_READ | ETNA_RELOC_WRITE;
         }
 
-        ts_mem_config |= (depth_bits == 16 ? VIVS_TS_MEM_CONFIG_DEPTH_16BPP : 0);
+        ts_mem_config |= COND(depth_bits == 16, VIVS_TS_MEM_CONFIG_DEPTH_16BPP);
 
         /* MSAA */
         if (zsbuf->base.texture->nr_samples > 1)
@@ -576,7 +576,7 @@ static void *etna_vertex_elements_state_create(struct pipe_context *pctx,
         assert(normalize != ETNA_NO_MATCH);
 
         cs->FE_VERTEX_ELEMENT_CONFIG[idx] =
-                (nonconsecutive ? VIVS_FE_VERTEX_ELEMENT_CONFIG_NONCONSECUTIVE : 0) |
+                COND(nonconsecutive, VIVS_FE_VERTEX_ELEMENT_CONFIG_NONCONSECUTIVE) |
                 format_type |
                 VIVS_FE_VERTEX_ELEMENT_CONFIG_NUM(util_format_get_nr_components(elements[idx].src_format)) |
                 normalize |
