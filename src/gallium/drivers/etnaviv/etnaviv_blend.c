@@ -68,7 +68,7 @@ void *etna_blend_state_create(struct pipe_context *pctx,
     {
         co->PE_ALPHA_CONFIG =
                 VIVS_PE_ALPHA_CONFIG_BLEND_ENABLE_COLOR |
-                (separate_alpha ? VIVS_PE_ALPHA_CONFIG_BLEND_SEPARATE_ALPHA : 0) |
+                COND(separate_alpha, VIVS_PE_ALPHA_CONFIG_BLEND_SEPARATE_ALPHA) |
                 VIVS_PE_ALPHA_CONFIG_SRC_FUNC_COLOR(translate_blend_factor(rt0->rgb_src_factor)) |
                 VIVS_PE_ALPHA_CONFIG_SRC_FUNC_ALPHA(translate_blend_factor(rt0->alpha_src_factor)) |
                 VIVS_PE_ALPHA_CONFIG_DST_FUNC_COLOR(translate_blend_factor(rt0->rgb_dst_factor)) |
@@ -81,7 +81,7 @@ void *etna_blend_state_create(struct pipe_context *pctx,
 
     co->PE_COLOR_FORMAT =
             VIVS_PE_COLOR_FORMAT_COMPONENTS(rt0->colormask) |
-            (full_overwrite ? VIVS_PE_COLOR_FORMAT_OVERWRITE : 0);
+            COND(full_overwrite, VIVS_PE_COLOR_FORMAT_OVERWRITE);
     co->PE_LOGIC_OP =
             VIVS_PE_LOGIC_OP_OP(so->logicop_enable ? so->logicop_func : LOGIC_OP_COPY) /* 1-to-1 mapping */ |
             0x000E4000 /* ??? */;

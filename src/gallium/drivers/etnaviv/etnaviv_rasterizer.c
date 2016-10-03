@@ -53,18 +53,18 @@ void *etna_rasterizer_state_create(struct pipe_context *pctx,
             (flatshade ? VIVS_PA_CONFIG_SHADE_MODEL_FLAT : VIVS_PA_CONFIG_SHADE_MODEL_SMOOTH) |
             translate_cull_face(so->cull_face, so->front_ccw) |
             translate_polygon_mode(so->fill_front) |
-            (so->point_quad_rasterization ? VIVS_PA_CONFIG_POINT_SPRITE_ENABLE : 0) |
-            (so->point_size_per_vertex ? VIVS_PA_CONFIG_POINT_SIZE_ENABLE : 0);
+            COND(so->point_quad_rasterization, VIVS_PA_CONFIG_POINT_SPRITE_ENABLE) |
+            COND(so->point_size_per_vertex, VIVS_PA_CONFIG_POINT_SIZE_ENABLE);
     cs->PA_LINE_WIDTH = fui(so->line_width / 2.0f);
     cs->PA_POINT_SIZE = fui(so->point_size / 2.0f);
     cs->SE_DEPTH_SCALE = fui(so->offset_scale);
     cs->SE_DEPTH_BIAS = fui(so->offset_units) / 65535.0f;
     cs->SE_CONFIG =
-            (so->line_last_pixel ? VIVS_SE_CONFIG_LAST_PIXEL_ENABLE : 0);
+            COND(so->line_last_pixel, VIVS_SE_CONFIG_LAST_PIXEL_ENABLE);
             /* XXX anything else? */
     /* XXX bottom_edge_rule */
     cs->PA_SYSTEM_MODE =
-            (so->half_pixel_center ? (VIVS_PA_SYSTEM_MODE_UNK0 | VIVS_PA_SYSTEM_MODE_UNK4) : 0);
+            COND(so->half_pixel_center, VIVS_PA_SYSTEM_MODE_UNK0 | VIVS_PA_SYSTEM_MODE_UNK4);
     /* so->scissor overrides the scissor, defaulting to the whole framebuffer, with the scissor state */
     cs->scissor = so->scissor;
     /* point size per vertex adds a vertex shader output */
