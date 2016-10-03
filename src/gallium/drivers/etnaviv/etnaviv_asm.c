@@ -40,19 +40,19 @@ static bool check_uniforms(const struct etna_inst *inst)
     {
         const struct etna_inst_src *src = &inst->src[i];
 
-        if(etna_rgroup_is_uniform(src->rgroup))
-        {
-            if(uni_reg == -1) /* first uniform used */
-            {
-                uni_rgroup = src->rgroup;
-                uni_reg = src->reg;
-            } else { /* second or later; check that it is a re-use */
-                if(uni_rgroup != src->rgroup || uni_reg != src->reg)
-                {
-                    conflict = true;
-                }
-            }
-        }
+        if (!etna_rgroup_is_uniform(src->rgroup))
+            continue;
+
+         if(uni_reg == -1) /* first uniform used */
+         {
+             uni_rgroup = src->rgroup;
+             uni_reg = src->reg;
+         } else { /* second or later; check that it is a re-use */
+             if(uni_rgroup != src->rgroup || uni_reg != src->reg)
+             {
+                 conflict = true;
+             }
+         }
     }
     return !conflict;
 }
