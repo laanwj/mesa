@@ -36,17 +36,18 @@ static bool check_uniforms(const struct etna_inst *inst)
     unsigned uni_rgroup = -1;
     unsigned uni_reg = -1;
     bool conflict = false;
-    for(int src=0; src<ETNA_NUM_SRC; ++src)
+    for(unsigned i=0; i<ETNA_NUM_SRC; i++)
     {
-        if(etna_rgroup_is_uniform(inst->src[src].rgroup))
+        const struct etna_inst_src *src = &inst->src[i];
+
+        if(etna_rgroup_is_uniform(src->rgroup))
         {
             if(uni_reg == -1) /* first uniform used */
             {
-                uni_rgroup = inst->src[src].rgroup;
-                uni_reg = inst->src[src].reg;
+                uni_rgroup = src->rgroup;
+                uni_reg = src->reg;
             } else { /* second or later; check that it is a re-use */
-                if(uni_rgroup != inst->src[src].rgroup ||
-                   uni_reg != inst->src[src].reg)
+                if(uni_rgroup != src->rgroup || uni_reg != src->reg)
                 {
                     conflict = true;
                 }
