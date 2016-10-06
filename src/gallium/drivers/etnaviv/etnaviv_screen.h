@@ -32,6 +32,7 @@
 
 #include "os/os_thread.h"
 #include "pipe/p_screen.h"
+#include "renderonly/renderonly.h"
 
 struct etna_bo;
 
@@ -58,6 +59,7 @@ struct etna_screen {
    struct etna_device *dev;
    struct etna_gpu *gpu;
    struct etna_pipe *pipe;
+   struct renderonly *ro;
 
    uint32_t model;
    uint32_t revision;
@@ -81,6 +83,6 @@ etna_screen_bo_from_handle(struct pipe_screen *pscreen,
                            struct winsys_handle *whandle, unsigned *out_stride);
 
 struct pipe_screen *
-etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu);
+etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu, struct renderonly *ro);
 
 #endif

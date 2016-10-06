@@ -210,6 +210,9 @@ etna_resource_alloc(struct pipe_screen *pscreen, unsigned layout,
    rsc->bo = bo;
    rsc->ts_bo = 0; /* TS is only created when first bound to surface */
 
+   if (templat->bind & PIPE_BIND_SCANOUT)
+      rsc->scanout = renderonly_scanout_for_resource(&rsc->base, screen->ro);
+
    if (DBG_ENABLED(ETNA_DBG_ZERO)) {
       void *map = etna_bo_map(bo);
       memset(map, 0, size);
@@ -282,6 +285,9 @@ etna_resource_destroy(struct pipe_screen *pscreen, struct pipe_resource *prsc)
    if (rsc->ts_bo)
       etna_bo_del(rsc->ts_bo);
 
+   if (rsc->scanout)
+      renderonly_scanout_destroy(rsc->scanout);
+
    list_delinit(&rsc->list);
 
    pipe_resource_reference(&rsc->texture, NULL);
@@ -298,6 +304,7 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
    struct etna_resource *rsc = CALLOC_STRUCT(etna_resource);
    struct etna_resource_level *level = &rsc->levels[0];
    struct pipe_resource *prsc = &rsc->base;
+   struct pipe_resource *ptiled = NULL;
 
    DBG("target=%d, format=%s, %ux%ux%u, array_size=%u, last_level=%u, "
        "nr_samples=%u, usage=%u, bind=%x, flags=%x",
@@ -341,10 +348,31 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
       goto fail;
    }
 
+   if (handle->type == DRM_API_HANDLE_TYPE_SHARED && tmpl->bind & PIPE_BIND_RENDER_TARGET) {
+      /* Render targets are linear in Xorg but must be tiled
+      * here. It would be nice if dri_drawable_get_format()
+      * set scanout for these buffers too. */
+      struct etna_resource *tiled;
+
+      ptiled = etna_resource_create(pscreen, tmpl);
+      if (!ptiled)
+         goto fail;
+
+      tiled = etna_resource(ptiled);
+      tiled->scanout = renderonly_scanout_for_prime(prsc, screen->ro);
+      if (!tiled->scanout)
+         goto fail;
+
+      return ptiled;
+   }
+
    return prsc;
 
 fail:
    etna_resource_destroy(pscreen, prsc);
+   if (ptiled)
+      etna_resource_destroy(pscreen, ptiled);
+
    return NULL;
 }
 
@@ -354,6 +382,9 @@ etna_resource_get_handle(struct pipe_screen *pscreen,
                          struct winsys_handle *handle, unsigned usage)
 {
    struct etna_resource *rsc = etna_resource(prsc);
+
+   if (renderonly_get_handle(rsc->scanout, handle))
+      return TRUE;
 
    return etna_screen_bo_get_handle(pscreen, rsc->bo, rsc->levels[0].stride,
                                     handle);
