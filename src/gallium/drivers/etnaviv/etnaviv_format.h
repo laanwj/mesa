@@ -27,13 +27,18 @@
 #ifndef ETNAVIV_FORMAT_H_
 #define ETNAVIV_FORMAT_H_
 
-#include <stdint.h>
 #include "util/u_format.h"
+#include <stdint.h>
 
 #define ETNA_NO_MATCH (~0)
 
-uint32_t translate_texture_format(enum pipe_format fmt);
-uint32_t translate_rs_format(enum pipe_format fmt);
-uint32_t translate_vertex_format_type(enum pipe_format fmt);
+uint32_t
+translate_texture_format(enum pipe_format fmt);
+
+uint32_t
+translate_rs_format(enum pipe_format fmt);
+
+uint32_t
+translate_vertex_format_type(enum pipe_format fmt);
 
 #endif /* ETNAVIV_FORMAT_H_ */

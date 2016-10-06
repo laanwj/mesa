@@ -27,31 +27,31 @@
 #ifndef H_ETNAVIV_RASTERIZER
 #define H_ETNAVIV_RASTERIZER
 
-#include "pipe/p_state.h"
 #include "pipe/p_context.h"
+#include "pipe/p_state.h"
 
-struct etna_rasterizer_state
-{
-    struct pipe_rasterizer_state base;
+struct etna_rasterizer_state {
+   struct pipe_rasterizer_state base;
 
-    uint32_t PA_CONFIG;
-    uint32_t PA_LINE_WIDTH;
-    uint32_t PA_POINT_SIZE;
-    uint32_t PA_SYSTEM_MODE;
-    uint32_t SE_DEPTH_SCALE;
-    uint32_t SE_DEPTH_BIAS;
-    uint32_t SE_CONFIG;
-    bool point_size_per_vertex;
-    bool scissor;
+   uint32_t PA_CONFIG;
+   uint32_t PA_LINE_WIDTH;
+   uint32_t PA_POINT_SIZE;
+   uint32_t PA_SYSTEM_MODE;
+   uint32_t SE_DEPTH_SCALE;
+   uint32_t SE_DEPTH_BIAS;
+   uint32_t SE_CONFIG;
+   bool point_size_per_vertex;
+   bool scissor;
 };
 
 static inline struct etna_rasterizer_state *
 etna_rasterizer_state(struct pipe_rasterizer_state *rast)
 {
-    return (struct etna_rasterizer_state *)rast;
+   return (struct etna_rasterizer_state *)rast;
 }
 
-void *etna_rasterizer_state_create(struct pipe_context *pctx,
-                                 const struct pipe_rasterizer_state *so);
+void *
+etna_rasterizer_state_create(struct pipe_context *pctx,
+                             const struct pipe_rasterizer_state *so);
 
 #endif

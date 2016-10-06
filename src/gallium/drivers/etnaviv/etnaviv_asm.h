@@ -53,60 +53,57 @@
 /*** operands ***/
 
 /* destination operand */
-struct etna_inst_dst
-{
-    unsigned use:1; /* 0: not in use, 1: in use */
-    unsigned amode:3; /* INST_AMODE_* */
-    unsigned reg:7; /* register number 0..127 */
-    unsigned comps:4; /* INST_COMPS_* */
+struct etna_inst_dst {
+   unsigned use:1; /* 0: not in use, 1: in use */
+   unsigned amode:3; /* INST_AMODE_* */
+   unsigned reg:7; /* register number 0..127 */
+   unsigned comps:4; /* INST_COMPS_* */
 };
 
 /* texture operand */
-struct etna_inst_tex
-{
-    unsigned id:5; /* sampler id */
-    unsigned amode:3; /* INST_AMODE_* */
-    unsigned swiz:8; /* INST_SWIZ */
+struct etna_inst_tex {
+   unsigned id:5; /* sampler id */
+   unsigned amode:3; /* INST_AMODE_* */
+   unsigned swiz:8; /* INST_SWIZ */
 };
 
 /* source operand */
-struct etna_inst_src
-{
-    unsigned use:1; /* 0: not in use, 1: in use */
-    unsigned reg:9; /* register or uniform number 0..511 */
-    unsigned swiz:8;   /* INST_SWIZ */
-    unsigned neg:1;    /* negate (flip sign) if set */
-    unsigned abs:1;    /* absolute (remove sign) if set */
-    unsigned amode:3;  /* INST_AMODE_* */
-    unsigned rgroup:3; /* INST_RGROUP_* */
+struct etna_inst_src {
+   unsigned use:1; /* 0: not in use, 1: in use */
+   unsigned reg:9; /* register or uniform number 0..511 */
+   unsigned swiz:8;   /* INST_SWIZ */
+   unsigned neg:1;    /* negate (flip sign) if set */
+   unsigned abs:1;    /* absolute (remove sign) if set */
+   unsigned amode:3;  /* INST_AMODE_* */
+   unsigned rgroup:3; /* INST_RGROUP_* */
 };
 
 /*** instruction ***/
-struct etna_inst
-{
-    uint8_t opcode; /* INST_OPCODE_* */
-    unsigned cond:5; /* INST_CONDITION_* */
-    unsigned sat:1; /* saturate result between 0..1 */
-    struct etna_inst_dst dst; /* destination operand */
-    struct etna_inst_tex tex; /* texture operand */
-    struct etna_inst_src src[ETNA_NUM_SRC]; /* source operand */
-    unsigned imm;  /* takes place of src[2] for BRANCH/CALL */
+struct etna_inst {
+   uint8_t opcode; /* INST_OPCODE_* */
+   unsigned cond:5; /* INST_CONDITION_* */
+   unsigned sat:1; /* saturate result between 0..1 */
+   struct etna_inst_dst dst; /* destination operand */
+   struct etna_inst_tex tex; /* texture operand */
+   struct etna_inst_src src[ETNA_NUM_SRC]; /* source operand */
+   unsigned imm;  /* takes place of src[2] for BRANCH/CALL */
 };
 
 /* Compose two swizzles (computes swz1.swz2) */
 static inline uint32_t inst_swiz_compose(uint32_t swz1, uint32_t swz2)
 {
-    return INST_SWIZ_X((swz1 >> (((swz2 >> 0)&3)*2))&3) |
-           INST_SWIZ_Y((swz1 >> (((swz2 >> 2)&3)*2))&3) |
-           INST_SWIZ_Z((swz1 >> (((swz2 >> 4)&3)*2))&3) |
-           INST_SWIZ_W((swz1 >> (((swz2 >> 6)&3)*2))&3);
-}
+   return INST_SWIZ_X((swz1 >> (((swz2 >> 0)&3)*2))&3) |
+          INST_SWIZ_Y((swz1 >> (((swz2 >> 2)&3)*2))&3) |
+          INST_SWIZ_Z((swz1 >> (((swz2 >> 4)&3)*2))&3) |
+          INST_SWIZ_W((swz1 >> (((swz2 >> 6)&3)*2))&3);
+};
 
 /* Return whether the rgroup is one of the uniforms */
-static inline int etna_rgroup_is_uniform(unsigned rgroup)
+static inline int
+etna_rgroup_is_uniform(unsigned rgroup)
 {
-    return rgroup == INST_RGROUP_UNIFORM_0 ||
-           rgroup == INST_RGROUP_UNIFORM_1;
+   return rgroup == INST_RGROUP_UNIFORM_0 ||
+          rgroup == INST_RGROUP_UNIFORM_1;
 }
 
 /**
@@ -116,16 +113,18 @@ static inline int etna_rgroup_is_uniform(unsigned rgroup)
  *  src[0-2]_reg, use, swiz, neg, abs, amode, rgroup,
  *  imm
  *
- * Return 0 if succesful, and a non-zero
+ * Return 0 if successful, and a non-zero
  * value otherwise.
  */
-int etna_assemble(uint32_t *out, const struct etna_inst *inst);
+int
+etna_assemble(uint32_t *out, const struct etna_inst *inst);
 
 /**
  * Set field imm of already-assembled instruction.
  * This is used for filling in jump destinations in a separate pass.
  */
-static inline void etna_assemble_set_imm(uint32_t *out, uint32_t imm)
+static inline void
+etna_assemble_set_imm(uint32_t *out, uint32_t imm)
 {
     out[3] |= VIV_ISA_WORD_3_SRC2_IMM(imm);
 }

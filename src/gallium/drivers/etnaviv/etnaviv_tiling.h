@@ -30,21 +30,27 @@
 #include <stdint.h>
 
 /* texture or surface layout */
-enum etna_surface_layout
-{
-    ETNA_LAYOUT_BIT_TILE = (1 << 0),
-    ETNA_LAYOUT_BIT_SUPER = (1 << 1),
-    ETNA_LAYOUT_BIT_MULTI = (1 << 2),
-    ETNA_LAYOUT_LINEAR = 0,
-    ETNA_LAYOUT_TILED = ETNA_LAYOUT_BIT_TILE,
-    ETNA_LAYOUT_SUPER_TILED = ETNA_LAYOUT_BIT_TILE | ETNA_LAYOUT_BIT_SUPER,
-    ETNA_LAYOUT_MULTI_TILED = ETNA_LAYOUT_BIT_TILE | ETNA_LAYOUT_BIT_MULTI,
-    ETNA_LAYOUT_MULTI_SUPERTILED = ETNA_LAYOUT_BIT_TILE | ETNA_LAYOUT_BIT_SUPER | ETNA_LAYOUT_BIT_MULTI,
+enum etna_surface_layout {
+   ETNA_LAYOUT_BIT_TILE = (1 << 0),
+   ETNA_LAYOUT_BIT_SUPER = (1 << 1),
+   ETNA_LAYOUT_BIT_MULTI = (1 << 2),
+   ETNA_LAYOUT_LINEAR = 0,
+   ETNA_LAYOUT_TILED = ETNA_LAYOUT_BIT_TILE,
+   ETNA_LAYOUT_SUPER_TILED = ETNA_LAYOUT_BIT_TILE | ETNA_LAYOUT_BIT_SUPER,
+   ETNA_LAYOUT_MULTI_TILED = ETNA_LAYOUT_BIT_TILE | ETNA_LAYOUT_BIT_MULTI,
+   ETNA_LAYOUT_MULTI_SUPERTILED = ETNA_LAYOUT_BIT_TILE | ETNA_LAYOUT_BIT_SUPER | ETNA_LAYOUT_BIT_MULTI,
 };
 
-void etna_texture_tile(void *dest, void *src, unsigned basex, unsigned basey, unsigned dst_stride, unsigned width, unsigned height, unsigned src_stride, unsigned elmtsize);
-void etna_texture_untile(void *dest, void *src, unsigned basex, unsigned basey, unsigned src_stride, unsigned width, unsigned height, unsigned dst_stride, unsigned elmtsize);
+void
+etna_texture_tile(void *dest, void *src, unsigned basex, unsigned basey,
+                 unsigned dst_stride, unsigned width, unsigned height,
+                 unsigned src_stride, unsigned elmtsize);
+void
+etna_texture_untile(void *dest, void *src, unsigned basex, unsigned basey,
+                   unsigned src_stride, unsigned width, unsigned height,
+                   unsigned dst_stride, unsigned elmtsize);
 
-/* XXX from/to supertiling (can have different layouts, may be better to leave to RS) */
+/* XXX from/to supertiling (can have different layouts, may be better
+ * to leave to RS) */
 
 #endif

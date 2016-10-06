@@ -31,9 +31,10 @@
 
 /* bitmask of print flags */
 enum debug_t {
-    PRINT_RAW      = 0x1,    /* dump raw hexdump */
+   PRINT_RAW = 0x1, /* dump raw hexdump */
 };
 
-void etna_disasm(uint32_t *dwords, int sizedwords, enum debug_t debug);
+void
+etna_disasm(uint32_t *dwords, int sizedwords, enum debug_t debug);
 
 #endif

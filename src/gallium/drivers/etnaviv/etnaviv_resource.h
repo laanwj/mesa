@@ -27,15 +27,14 @@
 #ifndef H_ETNAVIV_RESOURCE
 #define H_ETNAVIV_RESOURCE
 
-#include "util/list.h"
 #include "etnaviv_internal.h"
 #include "etnaviv_tiling.h"
 #include "pipe/p_state.h"
+#include "util/list.h"
 
 struct pipe_screen;
 
-struct etna_resource_level
-{
+struct etna_resource_level {
    unsigned width, padded_width; /* in pixels */
    unsigned height, padded_height; /* in samples */
    unsigned offset; /* offset into memory area */
@@ -51,88 +50,98 @@ struct etna_resource_level
 
 /* status of queued up but not flushed reads and write operations.
  * In _transfer_map() we need to know if queued up rendering needs
- * to be flushed to preserve the order of cpu and gpu access.
- */
+ * to be flushed to preserve the order of cpu and gpu access. */
 enum etna_resource_status {
-    ETNA_PENDING_WRITE = 0x01,
-    ETNA_PENDING_READ  = 0x02,
+   ETNA_PENDING_WRITE = 0x01,
+   ETNA_PENDING_READ = 0x02,
 };
 
-struct etna_resource
-{
-    struct pipe_resource base;
-    uint32_t seqno;
+struct etna_resource {
+   struct pipe_resource base;
+   uint32_t seqno;
 
-    /* only lod 0 used for non-texture buffers */
-    /* Layout for surface (tiled, multitiled, split tiled, ...) */
-    enum etna_surface_layout layout;
-    /* Horizontal alignment for texture unit (TEXTURE_HALIGN_*) */
-    unsigned halign;
-    struct etna_bo *bo; /* Surface video memory */
-    struct etna_bo *ts_bo; /* Tile status video memory */
+   /* only lod 0 used for non-texture buffers */
+   /* Layout for surface (tiled, multitiled, split tiled, ...) */
+   enum etna_surface_layout layout;
+   /* Horizontal alignment for texture unit (TEXTURE_HALIGN_*) */
+   unsigned halign;
+   struct etna_bo *bo; /* Surface video memory */
+   struct etna_bo *ts_bo; /* Tile status video memory */
 
-    struct etna_resource_level levels[ETNA_NUM_LOD];
+   struct etna_resource_level levels[ETNA_NUM_LOD];
 
-    /* When we are rendering to a texture, we need a differently tiled resource */
-    struct pipe_resource *texture;
+   /* When we are rendering to a texture, we need a differently tiled resource */
+   struct pipe_resource *texture;
 
-    enum etna_resource_status status;
+   enum etna_resource_status status;
 
-    /* resources accessed by queued but not flushed draws are tracked
-      * in the used_resources list.
-      */
-    struct list_head list;
-    struct etna_context *pending_ctx;
+   /* resources accessed by queued but not flushed draws are tracked
+    * in the used_resources list. */
+   struct list_head list;
+   struct etna_context *pending_ctx;
 };
 
 /* returns TRUE if a is newer than b */
-static inline bool etna_resource_newer(struct etna_resource *a, struct etna_resource *b)
+static inline bool
+etna_resource_newer(struct etna_resource *a, struct etna_resource *b)
 {
-    return (int)(a->seqno - b->seqno) > 0;
+   return (int)(a->seqno - b->seqno) > 0;
 }
 
 /* returns TRUE if a is older than b */
-static inline bool etna_resource_older(struct etna_resource *a, struct etna_resource *b)
+static inline bool
+etna_resource_older(struct etna_resource *a, struct etna_resource *b)
 {
-    return (int)(a->seqno - b->seqno) < 0;
+   return (int)(a->seqno - b->seqno) < 0;
 }
 
 /* is the resource only used on the sampler? */
-static inline bool etna_resource_sampler_only(const struct pipe_resource *pres)
+static inline bool
+etna_resource_sampler_only(const struct pipe_resource *pres)
 {
-    return (pres->bind & (PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET | PIPE_BIND_DEPTH_STENCIL | PIPE_BIND_BLENDABLE)) == PIPE_BIND_SAMPLER_VIEW;
+   return (pres->bind & (PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET |
+                         PIPE_BIND_DEPTH_STENCIL | PIPE_BIND_BLENDABLE)) ==
+          PIPE_BIND_SAMPLER_VIEW;
 }
 
 static inline struct etna_resource *
 etna_resource(struct pipe_resource *p)
 {
-    return (struct etna_resource *)p;
+   return (struct etna_resource *)p;
 }
 
-void etna_resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
-        enum etna_resource_status status);
-void etna_resource_wait(struct pipe_context *ctx, struct etna_resource *rsc);
+void
+etna_resource_used(struct etna_context *ctx, struct pipe_resource *prsc,
+                   enum etna_resource_status status);
+
+void
+etna_resource_wait(struct pipe_context *ctx, struct etna_resource *rsc);
 
 static inline void
 resource_read(struct etna_context *ctx, struct pipe_resource *prsc)
 {
-    etna_resource_used(ctx, prsc, ETNA_PENDING_READ);
+   etna_resource_used(ctx, prsc, ETNA_PENDING_READ);
 }
 
 static inline void
 resource_written(struct etna_context *ctx, struct pipe_resource *prsc)
 {
-    etna_resource_used(ctx, prsc, ETNA_PENDING_WRITE);
+   etna_resource_used(ctx, prsc, ETNA_PENDING_WRITE);
 }
 
 /* Allocate Tile Status for an etna resource.
- * Tile status is a cache of the clear status per tile. This means a smaller surface
- * has to be cleared which is faster. This is also called "fast clear".
- */
-bool etna_screen_resource_alloc_ts(struct pipe_screen *pscreen, struct etna_resource *prsc);
+ * Tile status is a cache of the clear status per tile. This means a smaller
+ * surface has to be cleared which is faster.
+ * This is also called "fast clear". */
+bool
+etna_screen_resource_alloc_ts(struct pipe_screen *pscreen,
+                              struct etna_resource *prsc);
 
-struct pipe_resource *etna_resource_alloc(struct pipe_screen *pscreen, unsigned layout, const struct pipe_resource *templat);
+struct pipe_resource *
+etna_resource_alloc(struct pipe_screen *pscreen, unsigned layout,
+                    const struct pipe_resource *templat);
 
-void etna_resource_screen_init(struct pipe_screen *pscreen);
+void
+etna_resource_screen_init(struct pipe_screen *pscreen);
 
 #endif
