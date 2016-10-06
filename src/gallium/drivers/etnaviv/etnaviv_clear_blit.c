@@ -587,7 +587,10 @@ etna_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
 static void
 etna_flush_resource(struct pipe_context *pctx, struct pipe_resource *prsc)
 {
-   /* TODO */
+   struct etna_resource *rsc = etna_resource(prsc);
+
+   if (rsc->scanout)
+      etna_copy_resource(pctx, rsc->scanout->prime, prsc, 0, 0);
 }
 
 void

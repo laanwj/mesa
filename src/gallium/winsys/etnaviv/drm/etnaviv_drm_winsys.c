@@ -31,7 +31,7 @@
 #include <stdio.h>
 
 static struct pipe_screen *
-etna_drm_screen_create_fd(int fd)
+etna_drm_screen_create_fd(int fd, struct renderonly *ro)
 {
    struct etna_device *dev;
    struct etna_gpu *gpu;
@@ -59,34 +59,46 @@ etna_drm_screen_create_fd(int fd)
       etna_gpu_del(gpu);
    }
 
-   return etna_screen_create(dev, gpu);
+   return etna_screen_create(dev, gpu, ro);
 }
 
 struct pipe_screen *
-etna_drm_screen_create_renderer(int fd)
+etna_drm_screen_create_native(struct renderonly *ro)
 {
    struct pipe_screen *screen;
-   boolean cleanup_fd = FALSE;
+   int fd = ro->kms_fd;
 
-   if (fd < 0) {
-      fd = open("/dev/dri/renderD128", O_RDWR | O_CLOEXEC);
-      if (fd == -1)
-         return NULL;
-      cleanup_fd = TRUE;
-   }
+   screen = etna_drm_screen_create_fd(fd, ro);
+   if (!screen)
+      return NULL;
 
-   screen = etna_drm_screen_create_fd(fd);
+   return screen;
+}
+
+struct pipe_screen *
+etna_drm_screen_create_rendernode(struct renderonly *ro)
+{
+   struct pipe_screen *screen;
+   int fd = open("/dev/dri/renderD128", O_RDWR | O_CLOEXEC);
+
+   if (fd == -1)
+      return NULL;
+
+   screen = etna_drm_screen_create_fd(fd, ro);
    if (!screen) {
-      if (cleanup_fd)
-         close(fd);
+      close(fd);
       return NULL;
    }
 
    return screen;
 }
 
+static const struct renderonly_ops etna_native_ro_ops = {
+   .create = etna_drm_screen_create_native
+};
+
 struct pipe_screen *
 etna_drm_screen_create(int fd)
 {
-   return etna_drm_screen_create_renderer(fd);
+   return renderonly_screen_create(fd, &etna_native_ro_ops, NULL);
 }

@@ -58,6 +58,7 @@ enum etna_resource_status {
 
 struct etna_resource {
    struct pipe_resource base;
+   struct renderonly_scanout *scanout;
    uint32_t seqno;
 
    /* only lod 0 used for non-texture buffers */
