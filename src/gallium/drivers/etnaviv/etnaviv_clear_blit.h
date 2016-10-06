@@ -31,14 +31,18 @@
 
 struct etna_context;
 struct etna_surface;
-struct compiled_rs_state;
 
 #include "pipe/p_context.h"
 
-void etna_rs_gen_clear_surface(struct etna_context *ctx, struct etna_surface *surf, uint32_t clear_value);
+void
+etna_rs_gen_clear_surface(struct etna_context *ctx, struct etna_surface *surf,
+                          uint32_t clear_value);
 
-void etna_copy_resource(struct pipe_context *pctx, struct pipe_resource *dst, struct pipe_resource *src, int first_level, int last_level);
+void
+etna_copy_resource(struct pipe_context *pctx, struct pipe_resource *dst,
+                   struct pipe_resource *src, int first_level, int last_level);
 
-void etna_clear_blit_init(struct pipe_context *pctx);
+void
+etna_clear_blit_init(struct pipe_context *pctx);
 
 #endif

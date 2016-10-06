@@ -25,28 +25,29 @@
 #ifndef H_ETNA_DEBUG
 #define H_ETNA_DEBUG
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include "util/u_debug.h"
 
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 /* Logging */
-#define ETNA_DBG_MSGS          0x1 /* Warnings and non-fatal errors */
-#define ETNA_DBG_FRAME_MSGS    0x2
-#define ETNA_DBG_RESOURCE_MSGS 0x4
-#define ETNA_DBG_COMPILER_MSGS 0x8
-#define ETNA_DBG_LINKER_MSGS   0x10
-#define ETNA_DBG_DUMP_SHADERS  0x20
+#define ETNA_DBG_MSGS            0x1 /* Warnings and non-fatal errors */
+#define ETNA_DBG_FRAME_MSGS      0x2
+#define ETNA_DBG_RESOURCE_MSGS   0x4
+#define ETNA_DBG_COMPILER_MSGS   0x8
+#define ETNA_DBG_LINKER_MSGS     0x10
+#define ETNA_DBG_DUMP_SHADERS    0x20
 
 /* Bypasses */
-#define ETNA_DBG_NO_TS           0x1000 /* Disable TS */
-#define ETNA_DBG_NO_AUTODISABLE  0x2000 /* Disable autodisable */
-#define ETNA_DBG_NO_SUPERTILE    0x4000 /* Disable supertile */
-#define ETNA_DBG_NO_EARLY_Z      0x8000 /* Disable early z */
-#define ETNA_DBG_CFLUSH_ALL      0x10000 /* Flush before every state update + draw call */
-#define ETNA_DBG_MSAA_2X         0x20000 /* Force 2X MSAA for screen */
-#define ETNA_DBG_MSAA_4X         0x40000 /* Force 4X MSAA for screen */
-#define ETNA_DBG_FINISH_ALL      0x80000 /* Finish on every flush */
+#define ETNA_DBG_NO_TS           0x1000   /* Disable TS */
+#define ETNA_DBG_NO_AUTODISABLE  0x2000   /* Disable autodisable */
+#define ETNA_DBG_NO_SUPERTILE    0x4000   /* Disable supertile */
+#define ETNA_DBG_NO_EARLY_Z      0x8000   /* Disable early z */
+#define ETNA_DBG_CFLUSH_ALL      0x10000  /* Flush before every state update + draw call */
+#define ETNA_DBG_MSAA_2X         0x20000  /* Force 2X MSAA for screen */
+#define ETNA_DBG_MSAA_4X         0x40000  /* Force 4X MSAA for screen */
+#define ETNA_DBG_FINISH_ALL      0x80000  /* Finish on every flush */
 #define ETNA_DBG_FLUSH_ALL       0x100000 /* Flush after every rendered primitive */
 #define ETNA_DBG_ZERO            0x200000 /* Zero all resources after allocation */
 #define ETNA_DBG_DRAW_STALL      0x400000 /* Stall FE/PE after every draw op */
@@ -55,19 +56,24 @@ extern int etna_mesa_debug; /* set in etna_screen.c from ETNA_DEBUG */
 
 #define DBG_ENABLED(flag) unlikely(etna_mesa_debug & (flag))
 
-#define DBG_F(flag, fmt, ...) \
-		do { if (etna_mesa_debug & (flag)) \
-			debug_printf("%s:%d: "fmt "\n", \
-				__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+#define DBG_F(flag, fmt, ...)                                     \
+   do {                                                           \
+      if (etna_mesa_debug & (flag))                               \
+         debug_printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, \
+                      ##__VA_ARGS__);                             \
+   } while (0)
 
-#define DBG(fmt, ...) \
-		do { if (etna_mesa_debug & ETNA_DBG_MSGS) \
-			debug_printf("%s:%d: "fmt "\n", \
-				__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+#define DBG(fmt, ...)                                             \
+   do {                                                           \
+      if (etna_mesa_debug & ETNA_DBG_MSGS)                        \
+         debug_printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, \
+                      ##__VA_ARGS__);                             \
+   } while (0)
 
 /* A serious bug, show this even in non-debug mode */
-#define BUG(fmt, ...) \
-                do { printf("%s:%d: "fmt "\n", \
-                        __FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+#define BUG(fmt, ...)                                                    \
+   do {                                                                  \
+      printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ##__VA_ARGS__); \
+   } while (0)
 
 #endif

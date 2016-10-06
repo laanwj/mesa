@@ -37,92 +37,84 @@
  */
 #define ETNA_MAX_TEMPS (64) /* max temp register count of all Vivante hw */
 #define ETNA_MAX_TOKENS (2048)
-#define ETNA_MAX_IMM (1024)  /* max const+imm in 32-bit words */
-#define ETNA_MAX_DECL (2048)  /* max declarations */
+#define ETNA_MAX_IMM (1024) /* max const+imm in 32-bit words */
+#define ETNA_MAX_DECL (2048) /* max declarations */
 #define ETNA_MAX_DEPTH (32)
 #define ETNA_MAX_INSTRUCTIONS (2048)
 
 /* compiler output per input/output */
-struct etna_shader_inout
-{
-    int reg; /* native register */
-    struct tgsi_declaration_semantic semantic; /* tgsi semantic name and index */
-    int num_components;
+struct etna_shader_inout {
+   int reg; /* native register */
+   struct tgsi_declaration_semantic semantic; /* tgsi semantic name and index */
+   int num_components;
 };
 
-struct etna_shader_io_file
-{
-    size_t num_reg;
-    struct etna_shader_inout reg[ETNA_NUM_INPUTS];
+struct etna_shader_io_file {
+   size_t num_reg;
+   struct etna_shader_inout reg[ETNA_NUM_INPUTS];
 };
 
 /* shader object, for linking */
-struct etna_shader
-{
-    uint processor; /* TGSI_PROCESSOR_... */
-    uint32_t code_size; /* code size in uint32 words */
-    uint32_t *code;
-    unsigned num_temps;
+struct etna_shader {
+   uint processor; /* TGSI_PROCESSOR_... */
+   uint32_t code_size; /* code size in uint32 words */
+   uint32_t *code;
+   unsigned num_temps;
 
-    struct etna_shader_uniform_info uniforms;
+   struct etna_shader_uniform_info uniforms;
 
-    /* ETNA_DIRTY_* flags that, when set in context dirty, mean that the
-     * uniforms have to get (partial) reloaded. */
-    uint32_t uniforms_dirty_bits;
+   /* ETNA_DIRTY_* flags that, when set in context dirty, mean that the
+    * uniforms have to get (partial) reloaded. */
+   uint32_t uniforms_dirty_bits;
 
-    /* inputs (for linking)
-     *   for fs, the inputs must be in register 1..N */
-    struct etna_shader_io_file infile;
+   /* inputs (for linking) for fs, the inputs must be in register 1..N */
+   struct etna_shader_io_file infile;
 
-    /* outputs (for linking) */
-    struct etna_shader_io_file outfile;
+   /* outputs (for linking) */
+   struct etna_shader_io_file outfile;
 
-    /* index into outputs (for linking) */
-    int output_count_per_semantic[TGSI_SEMANTIC_COUNT];
-    struct etna_shader_inout **output_per_semantic_list; /* list of pointers to outputs */
-    struct etna_shader_inout **output_per_semantic[TGSI_SEMANTIC_COUNT];
+   /* index into outputs (for linking) */
+   int output_count_per_semantic[TGSI_SEMANTIC_COUNT];
+   struct etna_shader_inout * *output_per_semantic_list; /* list of pointers to outputs */
+   struct etna_shader_inout **output_per_semantic[TGSI_SEMANTIC_COUNT];
 
-    /* special outputs (vs only) */
-    int vs_pos_out_reg; /* VS position output */
-    int vs_pointsize_out_reg; /* VS point size output */
-    uint32_t vs_load_balancing;
+   /* special outputs (vs only) */
+   int vs_pos_out_reg; /* VS position output */
+   int vs_pointsize_out_reg; /* VS point size output */
+   uint32_t vs_load_balancing;
 
-    /* special outputs (ps only) */
-    int ps_color_out_reg; /* color output register */
-    int ps_depth_out_reg; /* depth output register */
+   /* special outputs (ps only) */
+   int ps_color_out_reg; /* color output register */
+   int ps_depth_out_reg; /* depth output register */
 
-    /* unknown input property (XX_INPUT_COUNT, field UNK8) */
-    uint32_t input_count_unk8;
+   /* unknown input property (XX_INPUT_COUNT, field UNK8) */
+   uint32_t input_count_unk8;
 };
 
-struct etna_varying
-{
-    uint32_t pa_attributes;
-    uint8_t num_components;
-    uint8_t use[4];
-    uint8_t reg;
+struct etna_varying {
+   uint32_t pa_attributes;
+   uint8_t num_components;
+   uint8_t use[4];
+   uint8_t reg;
 };
 
-struct etna_shader_link_info
-{
-    /* each PS input is annotated with the VS output reg */
-    unsigned num_varyings;
-    struct etna_varying varyings[ETNA_NUM_INPUTS];
+struct etna_shader_link_info {
+   /* each PS input is annotated with the VS output reg */
+   unsigned num_varyings;
+   struct etna_varying varyings[ETNA_NUM_INPUTS];
 };
 
-/* Entry point to compiler.
- */
-struct etna_shader *etna_compile_shader(const struct etna_specs* specs, const struct tgsi_token* tokens);
+struct etna_shader *
+etna_compile_shader(const struct etna_specs *specs, const struct tgsi_token *tokens);
 
-/* Debug dump of shader */
-void etna_dump_shader(const struct etna_shader *shader);
+void
+etna_dump_shader(const struct etna_shader *shader);
 
-/* Link two shader together, annotates each PS input with the VS
- * output register. Returns non-zero if the linking fails.
- */
-bool etna_link_shader(struct etna_shader_link_info *info, const struct etna_shader *vs, const struct etna_shader *fs);
+bool
+etna_link_shader(struct etna_shader_link_info *info,
+                 const struct etna_shader *vs, const struct etna_shader *fs);
 
-/* Destroy a previously allocated shader */
-void etna_destroy_shader(struct etna_shader *shader);
+void
+etna_destroy_shader(struct etna_shader *shader);
 
 #endif

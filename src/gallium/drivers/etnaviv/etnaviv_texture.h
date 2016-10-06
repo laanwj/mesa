@@ -34,43 +34,42 @@
 
 #include "hw/state_3d.xml.h"
 
-struct etna_sampler_state
-{
-    struct pipe_sampler_state base;
+struct etna_sampler_state {
+   struct pipe_sampler_state base;
 
-    /* sampler offset +4*sampler, interleave when committing state */
-    uint32_t TE_SAMPLER_CONFIG0;
-    uint32_t TE_SAMPLER_CONFIG1;
-    uint32_t TE_SAMPLER_LOD_CONFIG;
-    unsigned min_lod, max_lod;
+   /* sampler offset +4*sampler, interleave when committing state */
+   uint32_t TE_SAMPLER_CONFIG0;
+   uint32_t TE_SAMPLER_CONFIG1;
+   uint32_t TE_SAMPLER_LOD_CONFIG;
+   unsigned min_lod, max_lod;
 };
 
 static inline struct etna_sampler_state *
 etna_sampler_state(struct pipe_sampler_state *samp)
 {
-    return (struct etna_sampler_state *)samp;
+   return (struct etna_sampler_state *)samp;
 }
 
-struct etna_sampler_view
-{
-    struct pipe_sampler_view base;
+struct etna_sampler_view {
+   struct pipe_sampler_view base;
 
-    /* sampler offset +4*sampler, interleave when committing state */
-    uint32_t TE_SAMPLER_CONFIG0;
-    uint32_t TE_SAMPLER_CONFIG0_MASK;
-    uint32_t TE_SAMPLER_CONFIG1;
-    uint32_t TE_SAMPLER_SIZE;
-    uint32_t TE_SAMPLER_LOG_SIZE;
-    struct etna_reloc TE_SAMPLER_LOD_ADDR[VIVS_TE_SAMPLER_LOD_ADDR__LEN];
-    unsigned min_lod, max_lod; /* 5.5 fixp */
+   /* sampler offset +4*sampler, interleave when committing state */
+   uint32_t TE_SAMPLER_CONFIG0;
+   uint32_t TE_SAMPLER_CONFIG0_MASK;
+   uint32_t TE_SAMPLER_CONFIG1;
+   uint32_t TE_SAMPLER_SIZE;
+   uint32_t TE_SAMPLER_LOG_SIZE;
+   struct etna_reloc TE_SAMPLER_LOD_ADDR[VIVS_TE_SAMPLER_LOD_ADDR__LEN];
+   unsigned min_lod, max_lod; /* 5.5 fixp */
 };
 
 static inline struct etna_sampler_view *
 etna_sampler_view(struct pipe_sampler_view *view)
 {
-    return (struct etna_sampler_view *)view;
+   return (struct etna_sampler_view *)view;
 }
 
-void etna_texture_init(struct pipe_context *pctx);
+void
+etna_texture_init(struct pipe_context *pctx);
 
 #endif

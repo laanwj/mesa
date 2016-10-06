@@ -30,61 +30,58 @@
 
 #include "etnaviv_internal.h"
 
+#include "os/os_thread.h"
 #include "pipe/p_screen.h"
 #include "util/slab.h"
-#include "os/os_thread.h"
 
 struct etna_bo;
 
 /* Enum with indices for each of the feature words */
-enum viv_features_word
-{
-    viv_chipFeatures = 0,
-    viv_chipMinorFeatures0 = 1,
-    viv_chipMinorFeatures1 = 2,
-    viv_chipMinorFeatures2 = 3,
-    viv_chipMinorFeatures3 = 4,
-    VIV_FEATURES_WORD_COUNT /* Must be last */
+enum viv_features_word {
+   viv_chipFeatures = 0,
+   viv_chipMinorFeatures0 = 1,
+   viv_chipMinorFeatures1 = 2,
+   viv_chipMinorFeatures2 = 3,
+   viv_chipMinorFeatures3 = 4,
+   VIV_FEATURES_WORD_COUNT /* Must be last */
 };
 
 /** Convenience macro to probe features from state.xml.h:
  * VIV_FEATURE(chipFeatures, FAST_CLEAR)
  * VIV_FEATURE(chipMinorFeatures1, AUTO_DISABLE)
  */
-#define VIV_FEATURE(screen, word, feature) ((screen->features[viv_ ## word] & (word ## _ ## feature))!=0)
+#define VIV_FEATURE(screen, word, feature) \
+   ((screen->features[viv_ ## word] & (word ## _ ## feature)) != 0)
 
-/* Gallium screen structure for etna driver.
- */
 struct etna_screen {
-    struct pipe_screen base;
+   struct pipe_screen base;
 
-    struct etna_device *dev;
-    struct etna_gpu *gpu;
-    struct etna_pipe *pipe;
+   struct etna_device *dev;
+   struct etna_gpu *gpu;
+   struct etna_pipe *pipe;
 
-    struct slab_parent_pool transfer_pool;
+   struct slab_parent_pool transfer_pool;
 
-    uint32_t model;
-    uint32_t revision;
-    uint32_t features[5];
+   uint32_t model;
+   uint32_t revision;
+   uint32_t features[5];
 
-    struct etna_specs specs;
+   struct etna_specs specs;
 };
 
 static inline struct etna_screen *
 etna_screen(struct pipe_screen *pscreen)
 {
-    return (struct etna_screen *)pscreen;
+   return (struct etna_screen *)pscreen;
 }
 
-boolean etna_screen_bo_get_handle(struct pipe_screen *pscreen,
-      struct etna_bo *bo,
-      unsigned stride,
-      struct winsys_handle *whandle);
+boolean
+etna_screen_bo_get_handle(struct pipe_screen *pscreen, struct etna_bo *bo,
+                          unsigned stride, struct winsys_handle *whandle);
 
-struct etna_bo *etna_screen_bo_from_handle(struct pipe_screen *pscreen,
-                struct winsys_handle *whandle,
-                unsigned *out_stride);
+struct etna_bo *
+etna_screen_bo_from_handle(struct pipe_screen *pscreen,
+                           struct winsys_handle *whandle, unsigned *out_stride);
 
 struct pipe_screen *
 etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu);

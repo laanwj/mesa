@@ -27,26 +27,26 @@
 #ifndef H_ETNAVIV_BLEND
 #define H_ETNAVIV_BLEND
 
-#include "pipe/p_state.h"
 #include "pipe/p_context.h"
+#include "pipe/p_state.h"
 
-struct etna_blend_state
-{
-    struct pipe_blend_state base;
+struct etna_blend_state {
+   struct pipe_blend_state base;
 
-    uint32_t PE_ALPHA_CONFIG;
-    uint32_t PE_COLOR_FORMAT;
-    uint32_t PE_LOGIC_OP;
-    uint32_t PE_DITHER[2];
+   uint32_t PE_ALPHA_CONFIG;
+   uint32_t PE_COLOR_FORMAT;
+   uint32_t PE_LOGIC_OP;
+   uint32_t PE_DITHER[2];
 };
 
 static inline struct etna_blend_state *
 etna_blend_state(struct pipe_blend_state *blend)
 {
-    return (struct etna_blend_state *)blend;
+   return (struct etna_blend_state *)blend;
 }
 
-void *etna_blend_state_create(struct pipe_context *pctx,
-                            const struct pipe_blend_state *so);
+void *
+etna_blend_state_create(struct pipe_context *pctx,
+                        const struct pipe_blend_state *so);
 
 #endif

@@ -31,52 +31,78 @@
 #define COND(bool, val) ((bool) ? (val) : 0)
 
 /* align to a value divisable by granularity >= value, works only for powers of two */
-static inline uint32_t etna_align_up(uint32_t value, uint32_t granularity)
+static inline uint32_t
+etna_align_up(uint32_t value, uint32_t granularity)
 {
-    return (value + (granularity-1)) & (~(granularity-1));
+   return (value + (granularity - 1)) & (~(granularity - 1));
 }
 
-static inline uint32_t etna_bits_ones(unsigned num) { return (1<<num)-1; }
+static inline uint32_t
+etna_bits_ones(unsigned num)
+{
+   return (1 << num) - 1;
+}
 
 /* clamped float [0.0 .. 1.0] -> [0 .. 255] */
-static inline uint8_t etna_cfloat_to_uint8(float f)
+static inline uint8_t
+etna_cfloat_to_uint8(float f)
 {
-    if(f<=0.0f) return 0;
-    if(f>=(1.0f-1.0f/256.0f)) return 255;
-    return f * 256.0f;
+   if (f <= 0.0f)
+      return 0;
+
+   if (f >= (1.0f - 1.0f / 256.0f))
+      return 255;
+
+   return f * 256.0f;
 }
 
 /* clamped float [0.0 .. 1.0] -> [0 .. (1<<bits)-1] */
-static inline uint32_t etna_cfloat_to_uintN(float f, int bits)
+static inline uint32_t
+etna_cfloat_to_uintN(float f, int bits)
 {
-    if(f<=0.0f) return 0;
-    if(f>=(1.0f-1.0f/(1<<bits))) return (1<<bits)-1;
-    return f * (1<<bits);
+   if (f <= 0.0f)
+      return 0;
+
+   if (f >= (1.0f - 1.0f / (1 << bits)))
+      return (1 << bits) - 1;
+
+   return f * (1 << bits);
 }
 
 /* 1/log10(2) */
 #define RCPLOG2 (1.4426950408889634f)
 
 /* float to fixp 5.5 */
-static inline uint32_t etna_float_to_fixp55(float f)
+static inline uint32_t
+etna_float_to_fixp55(float f)
 {
-    if(f >= 15.953125f) return 511;
-    if(f < -16.0f) return 512;
-    return (int32_t) (f * 32.0f + 0.5f);
+   if (f >= 15.953125f)
+      return 511;
+
+   if (f < -16.0f)
+      return 512;
+
+   return (int32_t)(f * 32.0f + 0.5f);
 }
 
 /* texture size to log2 in fixp 5.5 format */
-static inline uint32_t etna_log2_fixp55(unsigned width)
+static inline uint32_t
+etna_log2_fixp55(unsigned width)
 {
-    return etna_float_to_fixp55(logf((float)width) * RCPLOG2);
+   return etna_float_to_fixp55(logf((float)width) * RCPLOG2);
 }
 
 /* float to fixp 16.16 */
-static inline uint32_t etna_f32_to_fixp16(float f)
+static inline uint32_t
+etna_f32_to_fixp16(float f)
 {
-    if(f >= (32768.0f-1.0f/65536.0f)) return 0x7fffffff;
-    if(f < -32768.0f) return 0x80000000;
-    return (int32_t) (f * 65536.0f + 0.5f);
+   if (f >= (32768.0f - 1.0f / 65536.0f))
+      return 0x7fffffff;
+
+   if (f < -32768.0f)
+      return 0x80000000;
+
+   return (int32_t)(f * 65536.0f + 0.5f);
 }
 
 #endif

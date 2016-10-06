@@ -31,17 +31,17 @@
 #include "etnaviv_query.h"
 
 struct etna_sw_query {
-    struct etna_query base;
-    uint64_t begin_value, end_value;
+   struct etna_query base;
+   uint64_t begin_value, end_value;
 };
 
 static inline struct etna_sw_query *
 etna_sw_query(struct etna_query *q)
 {
-    return (struct etna_sw_query *)q;
+   return (struct etna_sw_query *)q;
 }
 
-struct etna_query *etna_sw_create_query(struct etna_context *ctx,
-        unsigned query_type);
+struct etna_query *
+etna_sw_create_query(struct etna_context *ctx, unsigned query_type);
 
 #endif

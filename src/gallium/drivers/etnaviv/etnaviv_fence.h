@@ -30,8 +30,10 @@
 
 #include "pipe/p_context.h"
 
-struct pipe_fence_handle * etna_fence_create(struct pipe_context *pctx);
+struct pipe_fence_handle *
+etna_fence_create(struct pipe_context *pctx);
 
-void etna_fence_screen_init(struct pipe_screen *pscreen);
+void
+etna_fence_screen_init(struct pipe_screen *pscreen);
 
 #endif

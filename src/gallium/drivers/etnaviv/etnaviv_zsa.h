@@ -27,26 +27,26 @@
 #ifndef H_ETNAVIV_ZSA
 #define H_ETNAVIV_ZSA
 
-#include "pipe/p_state.h"
 #include "pipe/p_context.h"
+#include "pipe/p_state.h"
 
-struct etna_zsa_state
-{
-    struct pipe_depth_stencil_alpha_state base;
+struct etna_zsa_state {
+   struct pipe_depth_stencil_alpha_state base;
 
-    uint32_t PE_DEPTH_CONFIG;
-    uint32_t PE_ALPHA_OP;
-    uint32_t PE_STENCIL_OP;
-    uint32_t PE_STENCIL_CONFIG;
+   uint32_t PE_DEPTH_CONFIG;
+   uint32_t PE_ALPHA_OP;
+   uint32_t PE_STENCIL_OP;
+   uint32_t PE_STENCIL_CONFIG;
 };
 
 static inline struct etna_zsa_state *
 etna_zsa_state(struct pipe_depth_stencil_alpha_state *zsa)
 {
-    return (struct etna_zsa_state *)zsa;
+   return (struct etna_zsa_state *)zsa;
 }
 
-void *etna_zsa_state_create(struct pipe_context *pctx,
-                                    const struct pipe_depth_stencil_alpha_state *so);
+void *
+etna_zsa_state_create(struct pipe_context *pctx,
+                      const struct pipe_depth_stencil_alpha_state *so);
 
 #endif

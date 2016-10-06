@@ -34,30 +34,31 @@ struct etna_context;
 struct etna_query;
 
 struct etna_query_funcs {
-    void (*destroy_query)(struct etna_context *ctx,
-            struct etna_query *q);
-    boolean (*begin_query)(struct etna_context *ctx, struct etna_query *q);
-    void (*end_query)(struct etna_context *ctx, struct etna_query *q);
-    boolean (*get_query_result)(struct etna_context *ctx,
-            struct etna_query *q, boolean wait,
-            union pipe_query_result *result);
+   void (*destroy_query)(struct etna_context *ctx, struct etna_query *q);
+   boolean (*begin_query)(struct etna_context *ctx, struct etna_query *q);
+   void (*end_query)(struct etna_context *ctx, struct etna_query *q);
+   boolean (*get_query_result)(struct etna_context *ctx, struct etna_query *q,
+                               boolean wait, union pipe_query_result *result);
 };
 
 struct etna_query {
-    const struct etna_query_funcs *funcs;
-    bool active;
-    int type;
+   const struct etna_query_funcs *funcs;
+   bool active;
+   int type;
 };
 
 static inline struct etna_query *
 etna_query(struct pipe_query *pq)
 {
-    return (struct etna_query *)pq;
+   return (struct etna_query *)pq;
 }
 
-#define ETNA_QUERY_DRAW_CALLS      (PIPE_QUERY_DRIVER_SPECIFIC + 0)
+#define ETNA_QUERY_DRAW_CALLS    (PIPE_QUERY_DRIVER_SPECIFIC + 0)
 
-void etna_query_screen_init(struct pipe_screen *pscreen);
-void etna_query_context_init(struct pipe_context *pctx);
+void
+etna_query_screen_init(struct pipe_screen *pscreen);
+
+void
+etna_query_context_init(struct pipe_context *pctx);
 
 #endif

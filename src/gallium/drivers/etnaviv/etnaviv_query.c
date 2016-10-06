@@ -31,81 +31,90 @@
 #include "etnaviv_query.h"
 #include "etnaviv_query_sw.h"
 
-static struct pipe_query *etna_create_query(struct pipe_context *pctx,
-        unsigned query_type, unsigned index)
+static struct pipe_query *
+etna_create_query(struct pipe_context *pctx, unsigned query_type,
+                  unsigned index)
 {
-    struct etna_context *ctx = etna_context(pctx);
-    struct etna_query *q;
+   struct etna_context *ctx = etna_context(pctx);
+   struct etna_query *q;
 
-    q = etna_sw_create_query(ctx, query_type);
+   q = etna_sw_create_query(ctx, query_type);
 
-    return (struct pipe_query *)q;
+   return (struct pipe_query *)q;
 }
 
-static void etna_destroy_query(struct pipe_context *pctx, struct pipe_query *pq)
+static void
+etna_destroy_query(struct pipe_context *pctx, struct pipe_query *pq)
 {
-    struct etna_query *q = etna_query(pq);
+   struct etna_query *q = etna_query(pq);
 
-    q->funcs->destroy_query(etna_context(pctx), q);
+   q->funcs->destroy_query(etna_context(pctx), q);
 }
 
-static boolean etna_begin_query(struct pipe_context *pctx, struct pipe_query *pq)
+static boolean
+etna_begin_query(struct pipe_context *pctx, struct pipe_query *pq)
 {
-    struct etna_query *q = etna_query(pq);
+   struct etna_query *q = etna_query(pq);
 
-    return q->funcs->begin_query(etna_context(pctx), q);
+   return q->funcs->begin_query(etna_context(pctx), q);
 }
 
-static bool etna_end_query(struct pipe_context *pctx, struct pipe_query *pq)
+static bool
+etna_end_query(struct pipe_context *pctx, struct pipe_query *pq)
 {
-    struct etna_query *q = etna_query(pq);
+   struct etna_query *q = etna_query(pq);
 
-    q->funcs->end_query(etna_context(pctx), q);
-    return true;
+   q->funcs->end_query(etna_context(pctx), q);
+   return true;
 }
 
-static boolean etna_get_query_result(struct pipe_context *pctx, struct pipe_query *pq,
-        boolean wait, union pipe_query_result *result)
+static boolean
+etna_get_query_result(struct pipe_context *pctx, struct pipe_query *pq,
+                      boolean wait, union pipe_query_result *result)
 {
-    struct etna_query *q = etna_query(pq);
+   struct etna_query *q = etna_query(pq);
 
-    return q->funcs->get_query_result(etna_context(pctx), q, wait, result);
+   return q->funcs->get_query_result(etna_context(pctx), q, wait, result);
 }
 
-static int etna_get_driver_query_info(struct pipe_screen *pscreen,
-        unsigned index, struct pipe_driver_query_info *info)
+static int
+etna_get_driver_query_info(struct pipe_screen *pscreen, unsigned index,
+                           struct pipe_driver_query_info *info)
 {
-    struct pipe_driver_query_info list[] = {
-        {"prims-emitted", PIPE_QUERY_PRIMITIVES_EMITTED, {0}},
-        {"draw-calls", ETNA_QUERY_DRAW_CALLS, {0}},
-    };
+   struct pipe_driver_query_info list[] = {
+      {"prims-emitted", PIPE_QUERY_PRIMITIVES_EMITTED, { 0 }},
+      {"draw-calls", ETNA_QUERY_DRAW_CALLS, { 0 }},
+   };
 
-    if (!info)
-        return ARRAY_SIZE(list);
+   if (!info)
+      return ARRAY_SIZE(list);
 
-    if (index >= ARRAY_SIZE(list))
-        return 0;
+   if (index >= ARRAY_SIZE(list))
+      return 0;
 
-    *info = list[index];
+   *info = list[index];
 
-    return 1;
+   return 1;
 }
 
-static void etna_set_active_query_state(struct pipe_context *pipe, boolean enable)
+static void
+etna_set_active_query_state(struct pipe_context *pipe, boolean enable)
 {
 }
 
-void etna_query_screen_init(struct pipe_screen *pscreen)
+void
+etna_query_screen_init(struct pipe_screen *pscreen)
 {
-    pscreen->get_driver_query_info = etna_get_driver_query_info;
+   pscreen->get_driver_query_info = etna_get_driver_query_info;
 }
 
-void etna_query_context_init(struct pipe_context *pctx)
+void
+etna_query_context_init(struct pipe_context *pctx)
 {
-    pctx->create_query = etna_create_query;
-    pctx->destroy_query = etna_destroy_query;
-    pctx->begin_query = etna_begin_query;
-    pctx->end_query = etna_end_query;
-    pctx->get_query_result = etna_get_query_result;
-    pctx->set_active_query_state = etna_set_active_query_state;
+   pctx->create_query = etna_create_query;
+   pctx->destroy_query = etna_destroy_query;
+   pctx->begin_query = etna_begin_query;
+   pctx->end_query = etna_end_query;
+   pctx->get_query_result = etna_get_query_result;
+   pctx->set_active_query_state = etna_set_active_query_state;
 }

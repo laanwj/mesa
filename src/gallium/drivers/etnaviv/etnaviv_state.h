@@ -28,21 +28,25 @@
 #ifndef ETNAVIV_STATE_H_
 #define ETNAVIV_STATE_H_
 
-#include "pipe/p_context.h"
 #include "etnaviv_context.h"
+#include "pipe/p_context.h"
 
-static inline bool etna_depth_enabled(struct etna_context *ctx)
+static inline bool
+etna_depth_enabled(struct etna_context *ctx)
 {
-    return ctx->zsa && ctx->zsa->depth.enabled;
+   return ctx->zsa && ctx->zsa->depth.enabled;
 }
 
-static inline bool etna_stencil_enabled(struct etna_context *ctx)
+static inline bool
+etna_stencil_enabled(struct etna_context *ctx)
 {
-    return ctx->zsa && ctx->zsa->stencil[0].enabled;
+   return ctx->zsa && ctx->zsa->stencil[0].enabled;
 }
 
-bool etna_state_update(struct etna_context *ctx);
+bool
+etna_state_update(struct etna_context *ctx);
 
-void etna_state_init(struct pipe_context *pctx);
+void
+etna_state_init(struct pipe_context *pctx);
 
 #endif /* ETNAVIV_STATE_H_ */

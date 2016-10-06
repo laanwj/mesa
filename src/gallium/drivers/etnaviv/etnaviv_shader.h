@@ -33,10 +33,13 @@ struct etna_context;
 struct etna_shader;
 struct compiled_shader_state;
 
-bool etna_shader_link(struct etna_context *ctx);
+bool
+etna_shader_link(struct etna_context *ctx);
 
-bool etna_shader_update_vertex(struct etna_context *ctx);
+bool
+etna_shader_update_vertex(struct etna_context *ctx);
 
-void etna_shader_init(struct pipe_context* pctx);
+void
+etna_shader_init(struct pipe_context *pctx);
 
 #endif

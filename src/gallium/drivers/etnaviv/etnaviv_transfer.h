@@ -29,6 +29,7 @@
 
 #include "pipe/p_state.h"
 
-void etna_transfer_init(struct pipe_context *pctx);
+void
+etna_transfer_init(struct pipe_context *pctx);
 
 #endif

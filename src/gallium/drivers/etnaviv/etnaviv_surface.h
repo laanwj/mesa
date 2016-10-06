@@ -27,29 +27,29 @@
 #ifndef H_ETNAVIV_SURFACE
 #define H_ETNAVIV_SURFACE
 
-#include "etnaviv_tiling.h"
 #include "etnaviv_resource.h"
 #include "etnaviv_rs.h"
+#include "etnaviv_tiling.h"
 #include "pipe/p_state.h"
 
-struct etna_surface
-{
-    struct pipe_surface base;
+struct etna_surface {
+   struct pipe_surface base;
 
-    struct etna_resource_level surf;
-    struct compiled_rs_state clear_command;
-    /* Keep pointer to resource level, for fast clear */
-    struct etna_resource_level *level;
-    struct etna_reloc reloc[ETNA_MAX_PIXELPIPES];
-    struct etna_reloc ts_reloc;
+   struct etna_resource_level surf;
+   struct compiled_rs_state clear_command;
+   /* Keep pointer to resource level, for fast clear */
+   struct etna_resource_level *level;
+   struct etna_reloc reloc[ETNA_MAX_PIXELPIPES];
+   struct etna_reloc ts_reloc;
 };
 
 static inline struct etna_surface *
 etna_surface(struct pipe_surface *p)
 {
-    return (struct etna_surface *)p;
+   return (struct etna_surface *)p;
 }
 
-void etna_surface_init(struct pipe_context *pctx);
+void
+etna_surface_init(struct pipe_context *pctx);
 
 #endif
