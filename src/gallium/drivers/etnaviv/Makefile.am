@@ -26,7 +26,7 @@ include $(top_srcdir)/src/gallium/Automake.inc
 noinst_LTLIBRARIES = libetnaviv.la
 
 AM_CPPFLAGS = \
-	$(GALLIUM_CFLAGS) \
+	$(GALLIUM_DRIVER_CFLAGS) \
 	$(ETNAVIV_CFLAGS)
 
 libetnaviv_la_SOURCES = $(C_SOURCES) $(CPP_SOURCES)
