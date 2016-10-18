@@ -1,0 +1,21 @@
+C_SOURCES :=  \
+	etnaviv_asm.c \
+	etnaviv_blend.c \
+	etnaviv_clear_blit.c \
+	etnaviv_compiler.c \
+	etnaviv_context.c \
+	etnaviv_emit.c \
+	etnaviv_fence.c \
+	etnaviv_rasterizer.c \
+	etnaviv_resource.c \
+	etnaviv_rs.c \
+	etnaviv_screen.c \
+	etnaviv_shader.c \
+	etnaviv_state.c \
+	etnaviv_surface.c \
+	etnaviv_tiling.c \
+	etnaviv_texture.c \
+	etnaviv_transfer.c \
+	etnaviv_zsa.c
+
+CPP_SOURCES :=
