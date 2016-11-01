@@ -518,43 +518,6 @@ etna_screen_is_format_supported(struct pipe_screen *pscreen,
    return usage == allowed;
 }
 
-static void
-etna_screen_flush_frontbuffer(struct pipe_screen *pscreen,
-                              struct pipe_resource *presource, unsigned level,
-                              unsigned layer, void *winsys_drawable_handle,
-                              struct pipe_box *sub_box)
-{
-   struct etna_resource *drawable = etna_resource(winsys_drawable_handle);
-   struct etna_resource *resource = etna_resource(presource);
-   struct pipe_blit_info blit;
-
-#if 0 /* TODO */
-    assert(level <= resource->last_level && layer < resource->array_size);
-
-    /* release previous fence, make reference to fence if we need one */
-    pscreen->fence_reference(pscreen, &drawable->fence, NULL);
-#endif
-
-   memset(&blit, 0, sizeof(blit));
-   blit.mask = PIPE_MASK_RGBA;
-   blit.filter = PIPE_TEX_FILTER_LINEAR;
-   blit.src.resource = &resource->base;
-   blit.src.format = resource->base.format;
-   blit.src.level = level;
-   blit.src.box.width = resource->levels[level].width;
-   blit.src.box.height = resource->levels[level].height;
-   blit.dst.resource = &drawable->base;
-   blit.dst.format = drawable->base.format;
-   blit.dst.level = 0;
-   blit.dst.box.width = drawable->levels[0].width;
-   blit.dst.box.height = drawable->levels[0].height;
-
-#if 0 /* TODO */
-    ectx->base.blit(&ectx->base, &blit);
-    ectx->base.flush(&ectx->base, &drawable->fence, 0);
-#endif
-}
-
 static boolean
 etna_get_specs(struct etna_screen *screen)
 {
@@ -822,7 +785,6 @@ etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu, struct rendero
    pscreen->get_timestamp = etna_screen_get_timestamp;
    pscreen->context_create = etna_context_create;
    pscreen->is_format_supported = etna_screen_is_format_supported;
-   pscreen->flush_frontbuffer = etna_screen_flush_frontbuffer;
 
    etna_fence_screen_init(pscreen);
    etna_query_screen_init(pscreen);
