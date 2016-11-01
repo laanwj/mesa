@@ -179,6 +179,60 @@ etna_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_USER_VERTEX_BUFFERS:
    case PIPE_CAP_USER_INDEX_BUFFERS:
    case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
+   case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
+   case PIPE_CAP_BUFFER_SAMPLER_VIEW_RGBA_ONLY:
+   case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES: /* TODO: test me out with piglit */
+   case PIPE_CAP_TGSI_VS_LAYER_VIEWPORT:
+   case PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS:
+   case PIPE_CAP_TEXTURE_GATHER_SM5:
+   case PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT:
+   case PIPE_CAP_FAKE_SW_MSAA:
+   case PIPE_CAP_TEXTURE_QUERY_LOD:
+   case PIPE_CAP_SAMPLE_SHADING:
+   case PIPE_CAP_TEXTURE_GATHER_OFFSETS:
+   case PIPE_CAP_TGSI_VS_WINDOW_SPACE_POSITION:
+   case PIPE_CAP_DRAW_INDIRECT:
+   case PIPE_CAP_TGSI_FS_FINE_DERIVATIVE:
+   case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
+   case PIPE_CAP_SAMPLER_VIEW_TARGET:
+   case PIPE_CAP_CLIP_HALFZ:
+   case PIPE_CAP_VERTEXID_NOBASE:
+   case PIPE_CAP_POLYGON_OFFSET_CLAMP:
+   case PIPE_CAP_MULTISAMPLE_Z_RESOLVE:
+   case PIPE_CAP_RESOURCE_FROM_USER_MEMORY:
+   case PIPE_CAP_DEVICE_RESET_STATUS_QUERY:
+   case PIPE_CAP_MAX_SHADER_PATCH_VARYINGS:
+   case PIPE_CAP_TEXTURE_FLOAT_LINEAR:
+   case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
+   case PIPE_CAP_DEPTH_BOUNDS_TEST:
+   case PIPE_CAP_TGSI_TXQS:
+   case PIPE_CAP_FORCE_PERSAMPLE_INTERP:
+   case PIPE_CAP_SHAREABLE_SHADERS:
+   case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
+   case PIPE_CAP_CLEAR_TEXTURE:
+   case PIPE_CAP_DRAW_PARAMETERS:
+   case PIPE_CAP_TGSI_PACK_HALF_FLOAT:
+   case PIPE_CAP_MULTI_DRAW_INDIRECT:
+   case PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS:
+   case PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL:
+   case PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL:
+   case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
+   case PIPE_CAP_INVALIDATE_BUFFER:
+   case PIPE_CAP_GENERATE_MIPMAP:
+   case PIPE_CAP_STRING_MARKER:
+   case PIPE_CAP_SURFACE_REINTERPRET_BLOCKS:
+   case PIPE_CAP_QUERY_BUFFER_OBJECT:
+   case PIPE_CAP_QUERY_MEMORY_INFO:
+   case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
+   case PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR:
+   case PIPE_CAP_CULL_DISTANCE:
+   case PIPE_CAP_PRIMITIVE_RESTART_FOR_PATCHES:
+   case PIPE_CAP_TGSI_VOTE:
+   case PIPE_CAP_MAX_WINDOW_RECTANGLES:
+   case PIPE_CAP_POLYGON_OFFSET_UNITS_UNSCALED:
+   case PIPE_CAP_VIEWPORT_SUBPIXEL_BITS:
+   case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
+   case PIPE_CAP_TGSI_ARRAY_COMPONENTS:
       return 0;
 
    /* Stream output. */
@@ -187,6 +241,15 @@ etna_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_MAX_STREAM_OUTPUT_SEPARATE_COMPONENTS:
    case PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS:
       return 0;
+
+   /* Geometry shader output, unsupported. */
+   case PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES:
+   case PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS:
+   case PIPE_CAP_MAX_VERTEX_STREAMS:
+      return 0;
+
+   case PIPE_CAP_MAX_VERTEX_ATTRIB_STRIDE:
+      return 128;
 
    /* Texturing. */
    case PIPE_CAP_MAX_TEXTURE_2D_LEVELS:
@@ -202,8 +265,10 @@ etna_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 0;
    case PIPE_CAP_CUBE_MAP_ARRAY:
       return 0;
+   case PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET:
    case PIPE_CAP_MIN_TEXEL_OFFSET:
       return -8;
+   case PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET:
    case PIPE_CAP_MAX_TEXEL_OFFSET:
       return 7;
    case PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK:
@@ -232,10 +297,24 @@ etna_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER:
       return 0;
 
-   default:
-      DBG("unknown param %d", param);
+   case PIPE_CAP_PCI_GROUP:
+   case PIPE_CAP_PCI_BUS:
+   case PIPE_CAP_PCI_DEVICE:
+   case PIPE_CAP_PCI_FUNCTION:
       return 0;
+   case PIPE_CAP_VENDOR_ID:
+   case PIPE_CAP_DEVICE_ID:
+      return 0xFFFFFFFF;
+   case PIPE_CAP_ACCELERATED:
+      return 1;
+   case PIPE_CAP_VIDEO_MEMORY:
+      return 0;
+   case PIPE_CAP_UMA:
+      return 1;
    }
+
+   debug_printf("unknown param %d", param);
+   return 0;
 }
 
 static float
@@ -256,10 +335,10 @@ etna_screen_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
    case PIPE_CAPF_GUARD_BAND_RIGHT:
    case PIPE_CAPF_GUARD_BAND_BOTTOM:
       return 0.0f;
-   default:
-      DBG("unknown paramf %d", param);
-      return 0;
    }
+
+   debug_printf("unknown paramf %d", param);
+   return 0;
 }
 
 static int
@@ -319,6 +398,7 @@ etna_screen_get_shader_param(struct pipe_screen *pscreen, unsigned shader,
    case PIPE_SHADER_CAP_INTEGERS:
       return 0;
    case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
+   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
       return shader == PIPE_SHADER_FRAGMENT
                 ? screen->specs.fragment_sampler_count
                 : screen->specs.vertex_sampler_count;
@@ -332,10 +412,16 @@ etna_screen_get_shader_param(struct pipe_screen *pscreen, unsigned shader,
    case PIPE_SHADER_CAP_TGSI_FMA_SUPPORTED:
    case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
       return false;
-   default:
-      DBG("unknown shader param %d", param);
+   case PIPE_SHADER_CAP_SUPPORTED_IRS:
+      return 0;
+   case PIPE_SHADER_CAP_MAX_UNROLL_ITERATIONS_HINT:
+      return 32;
+   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
+   case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
       return 0;
    }
+
+   debug_printf("unknown shader param %d", param);
    return 0;
 }
 
