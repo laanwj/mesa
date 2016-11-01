@@ -1602,50 +1602,6 @@ trans_trig(const struct instr_translater *t, struct etna_compile *c,
 }
 
 static void
-trans_xpd(const struct instr_translater *t, struct etna_compile *c,
-          const struct tgsi_full_instruction *inst, struct etna_inst_src *src)
-{
-   /*
-    * MUL tTEMP.xyzw, src0.zxyw, src1.yzxw, void
-    * MAD tDST.xyz_, src0.yzxw, src1.zxyw, -tTEMP.xyzw
-    * MOV tDST.___w, void, void, 1
-    */
-   struct etna_native_reg temp = etna_compile_get_inner_temp(c);
-   struct etna_inst_dst dst = convert_dst(c, &inst->Dst[0]);
-
-   /* If we have two uniforms, sort it out here so we don't
-    * emit additional unnecessary MOVs */
-   if (etna_src_uniforms_conflict(src[0], src[1])) {
-      src[1] = etna_mov_src(c, src[1]);
-   }
-
-   struct etna_inst ins[3] = { };
-   ins[0].opcode = INST_OPCODE_MUL;
-   ins[0].sat = 0;
-   ins[0].dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y |
-                                         INST_COMPS_Z | INST_COMPS_W);
-   ins[0].src[0] = swizzle(src[0], SWIZZLE(Z, X, Y, W));
-   ins[0].src[1] = swizzle(src[1], SWIZZLE(Y, Z, X, W));
-
-   ins[1].opcode = INST_OPCODE_MAD;
-   ins[1].sat = inst->Instruction.Saturate;
-   ins[1].dst = dst;
-   ins[1].dst.comps = INST_COMPS_X | INST_COMPS_Y | INST_COMPS_Z;
-   ins[1].src[0] = swizzle(src[0], SWIZZLE(Y, Z, X, W));
-   ins[1].src[1] = swizzle(src[1], SWIZZLE(Z, X, Y, W));
-   ins[1].src[2] = negate(etna_native_to_src(temp, INST_SWIZ_IDENTITY));
-
-   ins[2].opcode = INST_OPCODE_MOV;
-   ins[2].dst = dst;
-   ins[2].dst.comps = INST_COMPS_W;
-   ins[2].src[2] = alloc_imm_f32(c, 1.0f);
-
-   emit_inst(c, &ins[0]);
-   emit_inst(c, &ins[1]);
-   emit_inst(c, &ins[2]);
-}
-
-static void
 trans_dph(const struct instr_translater *t, struct etna_compile *c,
           const struct tgsi_full_instruction *inst, struct etna_inst_src *src)
 {
@@ -1815,7 +1771,6 @@ static const struct instr_translater translaters[TGSI_OPCODE_LAST] = {
    INSTR(LRP, trans_lrp),
    INSTR(LIT, trans_lit),
    INSTR(SSG, trans_ssg),
-   INSTR(XPD, trans_xpd),
    INSTR(DPH, trans_dph),
    INSTR(SUB, trans_sub),
    INSTR(ABS, trans_abs),
@@ -2311,6 +2266,7 @@ etna_compile_shader(const struct etna_specs *specs,
       .lower_DP2 = true,
       .lower_DP2A = true,
       .lower_TRUNC = true,
+      .lower_XPD = true
    };
 
    c = CALLOC_STRUCT(etna_compile);
