@@ -516,6 +516,12 @@ dri2_open_driver(_EGLDisplay *disp)
 
    if (asprintf(&get_extensions_name, "%s_%s",
                 __DRI_DRIVER_GET_EXTENSIONS, dri2_dpy->driver_name) != -1) {
+      /* replace - with _ */
+      for (unsigned i = 0; i < strlen(get_extensions_name); i++) {
+         if (get_extensions_name[i] == '-')
+            get_extensions_name[i] = '_';
+      }
+
       get_extensions = dlsym(dri2_dpy->driver, get_extensions_name);
       if (get_extensions) {
          extensions = get_extensions();
