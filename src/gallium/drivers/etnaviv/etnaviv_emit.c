@@ -441,6 +441,11 @@ etna_emit_state(struct etna_context *ctx)
       uint32_t val = etna_rasterizer_state(ctx->rasterizer)->PA_CONFIG;
       /*00A34*/ EMIT_STATE(PA_CONFIG, val & ctx->shader_state.PA_CONFIG);
    }
+   if (unlikely(dirty & (ETNA_DIRTY_RASTERIZER))) {
+      struct etna_rasterizer_state *rasterizer = etna_rasterizer_state(ctx->rasterizer);
+      /*00A38*/ EMIT_STATE(PA_LINE_UNK00A38, rasterizer->PA_LINE_WIDTH);
+      /*00A3C*/ EMIT_STATE(PA_LINE_UNK00A3C, rasterizer->PA_LINE_WIDTH);
+   }
    if (unlikely(dirty & (ETNA_DIRTY_SHADER))) {
       for (int x = 0; x < 10; ++x) {
          /*00A40*/ EMIT_STATE(PA_SHADER_ATTRIBUTES(x), ctx->shader_state.PA_SHADER_ATTRIBUTES[x]);
