@@ -44,6 +44,13 @@ struct etna_format {
 
 #define RS_FORMAT_NONE ~0
 
+#define RS_FORMAT_MASK        0xf
+#define RS_FORMAT(x)          ((x) & RS_FORMAT_MASK)
+#define RS_FORMAT_RB_SWAP     0x10
+
+#define RS_FORMAT_X8B8G8R8    (RS_FORMAT_X8R8G8B8 | RS_FORMAT_RB_SWAP)
+#define RS_FORMAT_A8B8G8R8    (RS_FORMAT_A8R8G8B8 | RS_FORMAT_RB_SWAP)
+
 /* vertex + texture */
 #define VT(pipe, vtxfmt, texfmt, rsfmt)                   \
    [PIPE_FORMAT_##pipe] = {                               \
@@ -231,7 +238,10 @@ translate_rs_format(enum pipe_format fmt)
    if (!formats[fmt].present)
       return ETNA_NO_MATCH;
 
-   return formats[fmt].rs;
+   if (formats[fmt].rs == ETNA_NO_MATCH)
+      return ETNA_NO_MATCH;
+
+   return RS_FORMAT(formats[fmt].rs);
 }
 
 /* Return type flags for vertex element format */
