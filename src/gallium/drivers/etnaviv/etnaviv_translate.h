@@ -29,6 +29,7 @@
 #include "pipe/p_state.h"
 
 #include "etnaviv_debug.h"
+#include "etnaviv_format.h"
 #include "etnaviv_tiling.h"
 #include "etnaviv_util.h"
 #include "hw/cmdstream.xml.h"
@@ -253,29 +254,9 @@ etna_compatible_rs_format(enum pipe_format fmt)
 }
 
 static inline int
-translate_rb_format_swap(enum pipe_format fmt)
-{
-   switch (fmt) {
-   case PIPE_FORMAT_B4G4R4X4_UNORM:
-   case PIPE_FORMAT_B4G4R4A4_UNORM:
-   case PIPE_FORMAT_B5G5R5X1_UNORM:
-   case PIPE_FORMAT_B5G5R5A1_UNORM:
-   case PIPE_FORMAT_B5G6R5_UNORM:
-   case PIPE_FORMAT_B8G8R8X8_UNORM:
-   case PIPE_FORMAT_B8G8R8A8_UNORM:
-   case PIPE_FORMAT_YUYV:
-   default:
-      return 0;
-   case PIPE_FORMAT_R8G8B8X8_UNORM:
-   case PIPE_FORMAT_R8G8B8A8_UNORM:
-      return 1;
-   }
-}
-
-static inline int
 translate_rb_src_dst_swap(enum pipe_format src, enum pipe_format dst)
 {
-   return translate_rb_format_swap(src) ^ translate_rb_format_swap(dst);
+   return translate_rs_format_rb_swap(src) ^ translate_rs_format_rb_swap(dst);
 }
 
 static inline uint32_t
