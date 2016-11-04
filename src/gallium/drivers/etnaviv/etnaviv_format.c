@@ -244,6 +244,14 @@ translate_rs_format(enum pipe_format fmt)
    return RS_FORMAT(formats[fmt].rs);
 }
 
+int
+translate_rs_format_rb_swap(enum pipe_format fmt)
+{
+   assert(formats[fmt].present);
+
+   return formats[fmt].rs & RS_FORMAT_RB_SWAP;
+}
+
 /* Return type flags for vertex element format */
 uint32_t
 translate_vertex_format_type(enum pipe_format fmt)

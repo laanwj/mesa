@@ -38,6 +38,9 @@ translate_texture_format(enum pipe_format fmt);
 uint32_t
 translate_rs_format(enum pipe_format fmt);
 
+int
+translate_rs_format_rb_swap(enum pipe_format fmt);
+
 uint32_t
 translate_vertex_format_type(enum pipe_format fmt);
 
