@@ -71,6 +71,37 @@ etna_context_destroy(struct pipe_context *pctx)
    FREE(pctx);
 }
 
+/* Update render state where needed based on draw operation */
+static void
+etna_update_state_for_draw(struct etna_context *ctx, const struct pipe_draw_info *info)
+{
+   /* Handle primitive restart:
+    * - If not an indexed draw, we don't care about the state of the primitive restart bit.
+    * - Otherwise, set the bit in INDEX_STREAM_CONTROL in the index buffer state
+    *   accordingly
+    * - If the value of the INDEX_STREAM_CONTROL register changed due to this, or
+    *   primitive restart is enabled and the restart index changed, mark the index
+    *   buffer state as dirty
+    */
+
+   if (info->indexed) {
+      uint32_t new_control = ctx->index_buffer.FE_INDEX_STREAM_CONTROL;
+
+      if (info->primitive_restart)
+         new_control |= VIVS_FE_INDEX_STREAM_CONTROL_PRIMITIVE_RESTART;
+      else
+         new_control &= ~VIVS_FE_INDEX_STREAM_CONTROL_PRIMITIVE_RESTART;
+
+      if (ctx->index_buffer.FE_INDEX_STREAM_CONTROL != new_control ||
+          (info->primitive_restart && ctx->index_buffer.FE_PRIMITIVE_RESTART_INDEX != info->restart_index)) {
+         ctx->index_buffer.FE_INDEX_STREAM_CONTROL = new_control;
+         ctx->index_buffer.FE_PRIMITIVE_RESTART_INDEX = info->restart_index;
+         ctx->dirty |= ETNA_DIRTY_INDEX_BUFFER;
+      }
+   }
+}
+
+
 static void
 etna_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 {
@@ -150,6 +181,9 @@ etna_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
 
    ctx->stats.prims_emitted += u_reduced_prims_for_vertices(info->mode, info->count);
    ctx->stats.draw_calls++;
+
+   /* Update state for this draw operation */
+   etna_update_state_for_draw(ctx, info);
 
    /* First, sync state, then emit DRAW_PRIMITIVES or DRAW_INDEXED_PRIMITIVES */
    etna_emit_state(ctx);
