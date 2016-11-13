@@ -49,7 +49,7 @@ struct instr {
    uint32_t tex_swiz    : 8;
    uint32_t src0_use    : 1;
    uint32_t src0_reg    : 9;
-   uint32_t unk1_21     : 1;
+   uint32_t type_bit2   : 1;
    uint32_t src0_swiz   : 8;
    uint32_t src0_neg    : 1;
    uint32_t src0_abs    : 1;
@@ -64,7 +64,7 @@ struct instr {
    uint32_t src1_neg    : 1;
    uint32_t src1_abs    : 1;
    uint32_t src1_amode  : 3;
-   uint32_t unk2_30     : 2;
+   uint32_t type_bit01  : 2;
 
    /* dword3: */
    union {
@@ -117,6 +117,48 @@ struct opc_operands {
 
    int imm;
 };
+
+static void
+printf_type(uint8_t type)
+{
+   switch(type) {
+   case INST_TYPE_F32:
+      /* as f32 is the default print nothing */
+      break;
+
+   case INST_TYPE_S32:
+      printf(".s32");
+      break;
+
+   case INST_TYPE_S8:
+      printf(".s8");
+      break;
+
+   case INST_TYPE_U16:
+      printf(".u16");
+      break;
+
+   case INST_TYPE_F16:
+      printf(".f16");
+      break;
+
+   case INST_TYPE_S16:
+      printf(".s16");
+      break;
+
+   case INST_TYPE_U32:
+      printf(".u32");
+      break;
+
+   case INST_TYPE_U8:
+      printf(".u8");
+      break;
+
+   default:
+      abort();
+      break;
+   }
+}
 
 static void
 print_condition(uint8_t condition)
@@ -542,7 +584,10 @@ print_instr(uint32_t *dwords, int n, enum debug_t debug)
          .imm = imm,
       };
 
+      uint8_t type = instr->type_bit01 | (instr->type_bit2 << 2);
+
       printf("%s", name);
+      printf_type(type);
       if (instr->sat)
          printf(".SAT");
       print_condition(instr->cond);

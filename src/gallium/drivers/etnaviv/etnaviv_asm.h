@@ -81,6 +81,7 @@ struct etna_inst_src {
 /*** instruction ***/
 struct etna_inst {
    uint8_t opcode; /* INST_OPCODE_* */
+   uint8_t type; /* INST_TYPE_* */
    unsigned cond:5; /* INST_CONDITION_* */
    unsigned sat:1; /* saturate result between 0..1 */
    struct etna_inst_dst dst; /* destination operand */

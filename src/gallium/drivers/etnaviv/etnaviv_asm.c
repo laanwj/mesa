@@ -80,6 +80,7 @@ etna_assemble(uint32_t *out, const struct etna_inst *inst)
             VIV_ISA_WORD_1_TEX_SWIZ(inst->tex.swiz) |
             COND(inst->src[0].use, VIV_ISA_WORD_1_SRC0_USE) |
             VIV_ISA_WORD_1_SRC0_REG(inst->src[0].reg) |
+            COND(inst->type & 0x4, VIV_ISA_WORD_1_TYPE_BIT2) |
             VIV_ISA_WORD_1_SRC0_SWIZ(inst->src[0].swiz) |
             COND(inst->src[0].neg, VIV_ISA_WORD_1_SRC0_NEG) |
             COND(inst->src[0].abs, VIV_ISA_WORD_1_SRC0_ABS);
@@ -90,7 +91,8 @@ etna_assemble(uint32_t *out, const struct etna_inst *inst)
             VIV_ISA_WORD_2_SRC1_SWIZ(inst->src[1].swiz) |
             COND(inst->src[1].neg, VIV_ISA_WORD_2_SRC1_NEG) |
             COND(inst->src[1].abs, VIV_ISA_WORD_2_SRC1_ABS) |
-            VIV_ISA_WORD_2_SRC1_AMODE(inst->src[1].amode);
+            VIV_ISA_WORD_2_SRC1_AMODE(inst->src[1].amode) |
+            VIV_ISA_WORD_2_TYPE_BIT01(inst->type & 0x3);
    out[3] = VIV_ISA_WORD_3_SRC1_RGROUP(inst->src[1].rgroup) |
             COND(inst->src[2].use, VIV_ISA_WORD_3_SRC2_USE) |
             VIV_ISA_WORD_3_SRC2_REG(inst->src[2].reg) |
