@@ -150,6 +150,8 @@ etna_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
                       NON_POWER_OF_TWO); */
 
    case PIPE_CAP_PRIMITIVE_RESTART:
+   case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
+   case PIPE_CAP_TGSI_INSTANCEID:
       return VIV_FEATURE(screen, chipMinorFeatures1, HALTI0);
 
    case PIPE_CAP_ENDIANNESS:
@@ -162,9 +164,7 @@ etna_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_COMPUTE: /* XXX supported on gc2000 */
    case PIPE_CAP_MIXED_COLORBUFFER_FORMATS: /* only one colorbuffer supported, so mixing makes no sense */
    case PIPE_CAP_CONDITIONAL_RENDER: /* no occlusion queries */
-   case PIPE_CAP_TGSI_INSTANCEID: /* no idea, really */
    case PIPE_CAP_START_INSTANCE: /* instancing not supported AFAIK */
-   case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR: /* instancing not supported AFAIK */
    case PIPE_CAP_SHADER_STENCIL_EXPORT: /* Fragment shader cannot export stencil value */
    case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS: /* no dual-source supported */
    case PIPE_CAP_TEXTURE_MULTISAMPLE: /* no texture multisample */

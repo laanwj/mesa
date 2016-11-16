@@ -185,13 +185,17 @@ etna_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
    /* Update state for this draw operation */
    etna_update_state_for_draw(ctx, info);
 
-   /* First, sync state, then emit DRAW_PRIMITIVES or DRAW_INDEXED_PRIMITIVES */
+   /* First, sync state, then emit DRAW_PRIMITIVES, DRAW_INDEXED_PRIMITIVES or DRAW_INSTANCED */
    etna_emit_state(ctx);
-
-   if (info->indexed)
-      etna_draw_indexed_primitives(ctx->stream, draw_mode, info->start, prims, info->index_bias);
-   else
-      etna_draw_primitives(ctx->stream, draw_mode, info->start, prims);
+   if (info->instance_count <= 1) {
+      if (info->indexed)
+         etna_draw_indexed_primitives(ctx->stream, draw_mode, info->start, prims, info->index_bias);
+      else
+         etna_draw_primitives(ctx->stream, draw_mode, info->start, prims);
+   } else {
+      etna_draw_instanced(ctx->stream, info->indexed, draw_mode, info->instance_count,
+         info->start, info->count, info->index_bias);
+   }
 
    if (DBG_ENABLED(ETNA_DBG_DRAW_STALL)) {
       /* Stall the FE after every draw operation.  This allows better
