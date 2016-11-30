@@ -58,7 +58,10 @@
 #define ETNA_SE_CLIP_MARGIN_RIGHT (0xffff)
 #define ETNA_SE_CLIP_MARGIN_BOTTOM (0xffff)
 
-/* GPU chip 3D specs */
+/* GPU chip 3D specs.
+ * This structure is passed to the compiler to determine code generation
+ * parameters.
+ */
 struct etna_specs {
    /* supports SUPERTILE (64x64) tiling? */
    unsigned can_supertile : 1;
@@ -70,6 +73,8 @@ struct etna_specs {
    unsigned has_sign_floor_ceil : 1;
    /* can use VS_RANGE, PS_RANGE registers*/
    unsigned has_shader_range_registers : 1;
+   /* has the new sin/cos functions */
+   unsigned has_new_sin_cos : 1;
    /* can use any kind of wrapping mode on npot textures */
    unsigned npot_tex_any_wrap;
    /* number of bits per TS tile */

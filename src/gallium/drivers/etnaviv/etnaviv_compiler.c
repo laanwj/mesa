@@ -171,8 +171,10 @@ struct etna_compile {
    /* Temporary register for use within translated TGSI instruction,
     * only allocated when needed.
     */
-   int inner_temps; /* number of inner temps used; only up to one available at
-                       this point */
+   int inner_temps; /* number of inner temps used; only up to two available at */
+                    /* this point. Beware that one may be used internally to */
+                    /* accommodate an uniform for an instruction that gets passed */
+                    /* two uniforms as inputs. */
    struct etna_native_reg inner_temp[ETNA_MAX_INNER_TEMPS];
 
    /* Fields for handling nested conditionals */
@@ -734,7 +736,8 @@ etna_compile_pass_optimize_outputs(struct etna_compile *c)
 
 /* Get a temporary to be used within one TGSI instruction.
  * The first time that this function is called the temporary will be allocated.
- * Each call to this function will return the same temporary.
+ * Each call to this function for a different instruction will return the same
+ * temporaries.
  */
 static struct etna_native_reg
 etna_compile_get_inner_temp(struct etna_compile *c)
@@ -1474,7 +1477,42 @@ static void
 trans_trig(const struct instr_translater *t, struct etna_compile *c,
            const struct tgsi_full_instruction *inst, struct etna_inst_src *src)
 {
-   if (c->specs->has_sin_cos_sqrt) {
+   if (c->specs->has_new_sin_cos) { /* Alternative SIN/COS */
+      /* On newer chips alternative SIN/COS instructions are implemented,
+       * which:
+       * - Need their input scaled by 1/pi instead of 2/pi
+       * - Output an x and y component, which need to be multiplied to
+       *   get the result
+       */
+      /* TGSI lowering should deal with SCS */
+      assert(inst->Instruction.Opcode != TGSI_OPCODE_SCS);
+
+      struct etna_native_reg temp = etna_compile_get_inner_temp(c); /* only using .xyz */
+      emit_inst(c, &(struct etna_inst) {
+         .opcode = INST_OPCODE_MUL,
+         .sat = 0,
+         .dst = etna_native_to_dst(temp, INST_COMPS_Z),
+         .src[0] = src[0], /* any swizzling happens here */
+         .src[1] = alloc_imm_f32(c, 1.0f / M_PI),
+      });
+      emit_inst(c, &(struct etna_inst) {
+         .opcode = inst->Instruction.Opcode == TGSI_OPCODE_COS
+                    ? INST_OPCODE_COS
+                    : INST_OPCODE_SIN,
+         .sat = 0,
+         .dst = etna_native_to_dst(temp, INST_COMPS_X | INST_COMPS_Y),
+         .src[2] = etna_native_to_src(temp, SWIZZLE(Z, Z, Z, Z)),
+         .tex = { .amode=1 }, /* Unknown bit needs to be set */
+      });
+      emit_inst(c, &(struct etna_inst) {
+         .opcode = INST_OPCODE_MUL,
+         .sat = inst->Instruction.Saturate,
+         .dst = convert_dst(c, &inst->Dst[0]),
+         .src[0] = etna_native_to_src(temp, SWIZZLE(X, X, X, X)),
+         .src[1] = etna_native_to_src(temp, SWIZZLE(Y, Y, Y, Y)),
+      });
+
+   } else if (c->specs->has_sin_cos_sqrt) {
       /* TGSI lowering should deal with SCS */
       assert(inst->Instruction.Opcode != TGSI_OPCODE_SCS);
 
