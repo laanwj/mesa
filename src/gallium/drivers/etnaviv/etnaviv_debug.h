@@ -52,7 +52,7 @@
 #define ETNA_DBG_ZERO            0x200000 /* Zero all resources after allocation */
 #define ETNA_DBG_DRAW_STALL      0x400000 /* Stall FE/PE after every draw op */
 
-extern int etna_mesa_debug; /* set in etna_screen.c from ETNA_DEBUG */
+extern int etna_mesa_debug; /* set in etna_screen.c from ETNA_MESA_DEBUG */
 
 #define DBG_ENABLED(flag) unlikely(etna_mesa_debug & (flag))
 
