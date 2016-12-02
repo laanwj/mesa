@@ -2586,8 +2586,10 @@ etna_link_shader(struct etna_shader_link_info *info,
          continue;
       }
 
-      if (vsio == NULL)
+      if (vsio == NULL) {
+         BUG("Semantic %d value %d not found in vertex shader outputs\n", fsio->semantic.Name, fsio->semantic.Index);
          return true; /* not found -- link error */
+      }
 
       varying->use[0] = VARYING_COMPONENT_USE_USED;
       varying->use[1] = VARYING_COMPONENT_USE_USED;
