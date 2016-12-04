@@ -1095,6 +1095,8 @@ xdri | xxlib | xgallium-xlib)
         ;;
     esac
     ;;
+xdummy )
+    ;;
 xno)
     ;;
 *)
@@ -1103,7 +1105,7 @@ xno)
 esac
 
 AM_CONDITIONAL(HAVE_GLX, test "x$enable_glx" != xno)
-AM_CONDITIONAL(HAVE_DRI_GLX, test "x$enable_glx" = xdri)
+AM_CONDITIONAL(HAVE_DRI_GLX, test "x$enable_glx" = xdri || test "x$enable_glx" = xdummy)
 AM_CONDITIONAL(HAVE_XLIB_GLX, test "x$enable_glx" = xxlib)
 AM_CONDITIONAL(HAVE_GALLIUM_XLIB_GLX, test "x$enable_glx" = xgallium-xlib)
 
@@ -1442,6 +1444,8 @@ xdri)
     # need DRM libs, $PTHREAD_LIBS, etc.
     GL_LIB_DEPS="$GL_LIB_DEPS $LIBDRM_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
     GL_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
+    ;;
+xdummy)
     ;;
 esac
 

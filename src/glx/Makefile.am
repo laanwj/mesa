@@ -54,7 +54,7 @@ AM_CFLAGS = \
 
 lib_LTLIBRARIES = lib@GL_LIB@.la
 
-noinst_LTLIBRARIES = libglx.la
+noinst_LTLIBRARIES =
 
 libglx_la_SOURCES = \
 	clientattrib.c \
@@ -175,7 +175,6 @@ GL_LIB_VERSION=1:2
 endif
 
 GL_LIBS = \
-	libglx.la \
 	$(top_builddir)/src/mapi/glapi/libglapi.la \
 	$(SHARED_GLAPI_LIB) \
 	$(GL_LIB_DEPS)
