@@ -1372,6 +1372,8 @@ xdri | xxlib | xgallium-xlib)
         ;;
     esac
     ;;
+xdummy )
+    ;;
 xno)
     ;;
 *)
@@ -1380,7 +1382,7 @@ xno)
 esac
 
 AM_CONDITIONAL(HAVE_GLX, test "x$enable_glx" != xno)
-AM_CONDITIONAL(HAVE_DRI_GLX, test "x$enable_glx" = xdri)
+AM_CONDITIONAL(HAVE_DRI_GLX, test "x$enable_glx" = xdri || test "x$enable_glx" = xdummy)
 AM_CONDITIONAL(HAVE_XLIB_GLX, test "x$enable_glx" = xxlib)
 AM_CONDITIONAL(HAVE_GALLIUM_XLIB_GLX, test "x$enable_glx" = xgallium-xlib)
 
@@ -1559,9 +1561,9 @@ AC_ARG_ENABLE([driglx-direct],
 dnl
 dnl libGL configuration per driver
 dnl
-if test "x$enable_glx" != xno; then
-    PKG_CHECK_MODULES([GLPROTO], [glproto >= $GLPROTO_REQUIRED])
-fi
+dnl if test "x$enable_glx" != xno; then
+dnl     PKG_CHECK_MODULES([GLPROTO], [glproto >= $GLPROTO_REQUIRED])
+dnl fi
 case "x$enable_glx" in
 xxlib | xgallium-xlib)
     # Xlib-based GLX
@@ -1613,6 +1615,8 @@ xdri)
     # need DRM libs, $PTHREAD_LIBS, etc.
     GL_LIB_DEPS="$GL_LIB_DEPS $LIBDRM_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
     GL_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
+    ;;
+xdummy)
     ;;
 esac
 
@@ -1774,11 +1778,11 @@ for plat in $platforms; do
     esac
 done
 
-if test "x$enable_glx" != xno; then
-    if ! echo "$platforms" | grep -q 'x11'; then
-        AC_MSG_ERROR([Building GLX without the x11 platform is not supported])
-    fi
-fi
+#if test "x$enable_glx" != xno; then
+#    if ! echo "$platforms" | grep -q 'x11'; then
+#        AC_MSG_ERROR([Building GLX without the x11 platform is not supported])
+#    fi
+#fi
 
 if test x"$enable_dri3" = xyes; then
     DEFINES="$DEFINES -DHAVE_DRI3"
