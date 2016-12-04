@@ -52,7 +52,7 @@ AM_CFLAGS = \
 
 lib_LTLIBRARIES = lib@GL_LIB@.la
 
-noinst_LTLIBRARIES = libglx.la
+noinst_LTLIBRARIES =
 
 libglx_la_SOURCES = \
 	clientattrib.c \
@@ -178,8 +178,6 @@ endif
 # Push the libdrm furhter up, as due to libtool bug we might end up relinking
 # against the system one.
 GL_LIBS = \
-	$(LIBDRM_LIBS) \
-	libglx.la \
 	$(top_builddir)/src/mapi/glapi/libglapi.la \
 	$(SHARED_GLAPI_LIB) \
 	$(GL_LIB_DEPS)
