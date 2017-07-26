@@ -787,6 +787,9 @@ etna_get_specs(struct etna_screen *screen)
    if (screen->specs.single_buffer)
       DBG("etnaviv: Single buffer mode enabled with %d pixel pipes\n", screen->specs.pixel_pipes);
 
+   screen->specs.use_instanced_drawing =
+      VIV_FEATURE(screen, chipMinorFeatures4, HALTI2);
+
    return true;
 
 fail:
