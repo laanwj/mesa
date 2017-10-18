@@ -23,7 +23,7 @@
 
 int is_nouveau_vieux(int fd);
 
-#ifdef HAVE_LIBDRM
+#if 0
 
 #include <stdlib.h>
 #include <xf86drm.h>
