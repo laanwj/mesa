@@ -28,6 +28,7 @@
 
 #include "hw/common.xml.h"
 
+#include "etnaviv_blt.h"
 #include "etnaviv_context.h"
 #include "etnaviv_emit.h"
 #include "etnaviv_emit.h"
@@ -42,6 +43,8 @@
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "util/u_surface.h"
+
+#define translate_blt_format translate_rs_format
 
 /* Save current state for blitter operation */
 static void
@@ -118,7 +121,7 @@ etna_blit_clear_color(struct pipe_context *pctx, struct pipe_surface *dst,
    struct etna_context *ctx = etna_context(pctx);
    struct etna_surface *surf = etna_surface(dst);
    uint32_t new_clear_value = pack_rgba(surf->base.format, color->f);
-
+#if 0
    if (surf->surf.ts_size) { /* TS: use precompiled clear command */
       ctx->framebuffer.TS_COLOR_CLEAR_VALUE = new_clear_value;
 
@@ -137,6 +140,41 @@ etna_blit_clear_color(struct pipe_context *pctx, struct pipe_surface *dst,
    }
 
    etna_submit_rs_state(ctx, &surf->clear_command);
+#else
+   struct etna_resource *res = etna_resource(surf->base.texture);
+   struct blt_clear_op clr = {};
+   clr.dest.addr.bo = res->bo;
+   clr.dest.addr.offset = surf->surf.offset;
+   clr.dest.addr.flags = ETNA_RELOC_WRITE;
+   clr.dest.bpp = util_format_get_blocksize(surf->base.format);
+   clr.dest.stride = surf->surf.stride;
+   /* TODO: color compression
+   clr.dest.compressed = 1;
+   clr.dest.compress_fmt = 3;
+   */
+   clr.dest.tiling = res->layout;
+   clr.dest.cache_mode = TS_CACHE_MODE_128; /* TODO: cache modes */
+
+   if (surf->surf.ts_size) {
+      clr.dest.use_ts = 1;
+      clr.dest.ts_addr.bo = res->ts_bo;
+      clr.dest.ts_addr.offset = 0;
+      clr.dest.ts_addr.flags = ETNA_RELOC_WRITE;
+      clr.dest.ts_clear_value[0] = new_clear_value;
+      clr.dest.ts_clear_value[1] = new_clear_value;
+   }
+
+   clr.clear_value[0] = new_clear_value;
+   clr.clear_value[1] = new_clear_value;
+   clr.clear_bits[0] = 0xffffffff; /* TODO: Might want to clear only specific channels? */
+   clr.clear_bits[1] = 0xffffffff;
+   clr.rect_x = 0; /* What about scissors? */
+   clr.rect_y = 0;
+   clr.rect_w = surf->surf.width;
+   clr.rect_h = surf->surf.height;
+
+   emit_blt_clearimage(ctx->stream, &clr);
+#endif
    surf->level->clear_value = new_clear_value;
    resource_written(ctx, surf->base.texture);
    etna_resource(surf->base.texture)->seqno++;
@@ -254,7 +292,12 @@ etna_clear(struct pipe_context *pctx, unsigned buffers,
    if ((buffers & PIPE_CLEAR_DEPTHSTENCIL) && ctx->framebuffer_s.zsbuf != NULL)
       etna_blit_clear_zs(pctx, ctx->framebuffer_s.zsbuf, buffers, depth, stencil);
 
+#if 0
    etna_stall(ctx->stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
+#else
+   /* We intend to render to this image, so make sure the RA is synchronized to BLT */
+   emit_blt_sync_ra(ctx->stream);
+#endif
 }
 
 static void
@@ -409,6 +452,126 @@ etna_get_rs_alignment_mask(const struct etna_context *ctx,
 
    *width_mask = w_align - 1;
    *height_mask = h_align -1;
+}
+
+static bool
+etna_try_blt_blit(struct pipe_context *pctx,
+                 const struct pipe_blit_info *blit_info)
+{
+   struct etna_context *ctx = etna_context(pctx);
+   struct etna_resource *src = etna_resource(blit_info->src.resource);
+   struct etna_resource *dst = etna_resource(blit_info->dst.resource);
+   int msaa_xscale = 1, msaa_yscale = 1;
+
+   /* Ensure that the level is valid */
+   assert(blit_info->src.level <= src->base.last_level);
+   assert(blit_info->dst.level <= dst->base.last_level);
+
+   if (!translate_samples_to_xyscale(src->base.nr_samples, &msaa_xscale, &msaa_yscale, NULL))
+      return FALSE;
+
+   /* The width/height are in pixels; they do not change as a result of
+    * multi-sampling. So, when blitting from a 4x multisampled surface
+    * to a non-multisampled surface, the width and height will be
+    * identical. As we do not support scaling, reject different sizes. */
+   if (blit_info->dst.box.width != blit_info->src.box.width ||
+       blit_info->dst.box.height != blit_info->src.box.height) {
+      DBG("scaling requested: source %dx%d destination %dx%d",
+          blit_info->src.box.width, blit_info->src.box.height,
+          blit_info->dst.box.width, blit_info->dst.box.height);
+      return FALSE;
+   }
+
+   /* No masks - not sure if BLT can copy individual channels */
+   unsigned mask = util_format_get_mask(blit_info->dst.format);
+   if ((blit_info->mask & mask) != mask) {
+      DBG("sub-mask requested: 0x%02x vs format mask 0x%02x", blit_info->mask, mask);
+      return FALSE;
+   }
+
+   /* TODO: Does this work if there is format conversion? */
+   unsigned src_format = etna_compatible_rs_format(blit_info->src.format);
+   unsigned dst_format = etna_compatible_rs_format(blit_info->dst.format);
+   if (translate_rs_format(src_format) == ETNA_NO_MATCH ||
+       translate_rs_format(dst_format) == ETNA_NO_MATCH ||
+       blit_info->scissor_enable ||
+       blit_info->dst.box.depth != blit_info->src.box.depth ||
+       blit_info->dst.box.depth != 1) {
+      return FALSE;
+   }
+
+   /* Ensure that the Z coordinate is sane */
+   if (dst->base.target != PIPE_TEXTURE_CUBE)
+      assert(blit_info->dst.box.z == 0);
+   if (src->base.target != PIPE_TEXTURE_CUBE)
+      assert(blit_info->src.box.z == 0);
+
+   assert(blit_info->src.box.z < src->base.array_size);
+   assert(blit_info->dst.box.z < dst->base.array_size);
+
+   struct etna_resource_level *src_lev = &src->levels[blit_info->src.level];
+   struct etna_resource_level *dst_lev = &dst->levels[blit_info->dst.level];
+
+   /* Kick off BLT here */
+   struct blt_imgcopy_op op = {};
+
+   op.src.addr.bo = src->bo;
+   op.src.addr.offset = src_lev->offset + blit_info->src.box.z * src_lev->layer_stride;
+   op.src.addr.flags = ETNA_RELOC_READ;
+   op.src.format = translate_blt_format(src_format);
+   op.src.stride = src_lev->stride;
+   op.src.tiling = src->layout;
+   op.src.cache_mode = 0; /* TODO: cache modes */
+   op.src.swizzle[0] = TEXTURE_SWIZZLE_RED; /* TODO need actual swizzle of source */
+   op.src.swizzle[1] = TEXTURE_SWIZZLE_GREEN;
+   op.src.swizzle[2] = TEXTURE_SWIZZLE_BLUE;
+   op.src.swizzle[3] = TEXTURE_SWIZZLE_ALPHA;
+
+   if (src->levels[blit_info->src.level].ts_size &&
+       src->levels[blit_info->src.level].ts_valid) {
+      op.src.use_ts = 1;
+      op.src.ts_addr.bo = src->ts_bo;
+      op.src.ts_addr.offset = src_lev->ts_offset + blit_info->src.box.z * src_lev->ts_layer_stride;
+      op.src.ts_addr.flags = ETNA_RELOC_READ;
+      op.src.ts_clear_value[0] = src_lev->clear_value;
+      op.src.ts_clear_value[1] = src_lev->clear_value;
+   }
+
+   op.dest.addr.bo = dst->bo;
+   op.dest.addr.offset = dst_lev->offset + blit_info->dst.box.z * dst_lev->layer_stride;
+   op.dest.addr.flags = ETNA_RELOC_WRITE;
+   op.dest.format = translate_blt_format(dst_format);
+   op.dest.stride = dst_lev->stride;
+   /* TODO color compression
+   op.dest.compressed = 1;
+   op.dest.compress_fmt = 3;
+   */
+   op.dest.tiling = dst->layout;
+   op.dest.cache_mode = 0; /* TODO cache modes */
+   op.dest.swizzle[0] = TEXTURE_SWIZZLE_RED;  /* TODO need actual swizzle of dest (might need r/b swap) */
+   op.dest.swizzle[1] = TEXTURE_SWIZZLE_GREEN;
+   op.dest.swizzle[2] = TEXTURE_SWIZZLE_BLUE;
+   op.dest.swizzle[3] = TEXTURE_SWIZZLE_ALPHA;
+
+   op.dest_x = blit_info->dst.box.x;
+   op.dest_y = blit_info->dst.box.y;
+   op.src_x = blit_info->src.box.x;
+   op.src_y = blit_info->src.box.y;
+   op.rect_w = blit_info->src.box.width;
+   op.rect_h = blit_info->src.box.height;
+
+   emit_blt_copyimage(ctx->stream, &op);
+
+   /* Make FE wait for BLT, in case we want to do something with the image next.
+    * This probably shouldn't be here.
+    */
+   emit_blt_sync_fe(ctx->stream);
+
+   resource_written(ctx, &dst->base);
+   dst->seqno++;
+   dst->levels[blit_info->dst.level].ts_valid = false;
+
+   return TRUE;
 }
 
 static bool
@@ -653,9 +816,13 @@ etna_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
       DBG("color resolve unimplemented");
       return;
    }
-
+#if 0
    if (etna_try_rs_blit(pctx, blit_info))
       return;
+#else
+   if (etna_try_blt_blit(pctx, blit_info))
+      return;
+#endif
 
    if (util_try_blit_via_copy_region(pctx, blit_info))
       return;
