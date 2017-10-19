@@ -708,7 +708,7 @@ etna_get_specs(struct etna_screen *screen)
       VIV_FEATURE(screen, chipMinorFeatures3, HAS_FAST_TRANSCENDENTALS);
    screen->specs.has_halti2_instructions =
       VIV_FEATURE(screen, chipMinorFeatures4, HALTI2);
-
+#if 0
    if (VIV_FEATURE(screen, chipMinorFeatures3, INSTRUCTION_CACHE)) {
       /* GC3000 - this core is capable of loading shaders from
        * memory. It can also run shaders from registers, as a fallback, but
@@ -736,6 +736,12 @@ etna_get_specs(struct etna_screen *screen)
       }
       screen->specs.has_icache = false;
    }
+#else
+      screen->specs.vs_offset = 0;
+      screen->specs.ps_offset = 0;
+      screen->specs.max_instructions = 0; /* Do not program shaders manually */
+      screen->specs.has_icache = true;
+#endif
 
    if (VIV_FEATURE(screen, chipMinorFeatures1, HALTI0)) {
       screen->specs.max_varyings = 12;
@@ -762,6 +768,7 @@ etna_get_specs(struct etna_screen *screen)
       screen->specs.max_vs_uniforms = 256;
       screen->specs.max_ps_uniforms = 256;
    }
+#if 0
    /* unified uniform memory on GC3000 - HALTI1 feature bit is just a guess
    */
    if (VIV_FEATURE(screen, chipMinorFeatures2, HALTI1)) {
@@ -777,6 +784,12 @@ etna_get_specs(struct etna_screen *screen)
       screen->specs.vs_uniforms_offset = VIVS_VS_UNIFORMS(0);
       screen->specs.ps_uniforms_offset = VIVS_PS_UNIFORMS(0);
    }
+#else
+      /* GC7000 */
+      screen->specs.has_unified_uniforms = true;
+      screen->specs.vs_uniforms_offset = VIVS_SH_HALTI5_UNIFORMS_MIRROR(0);
+      screen->specs.ps_uniforms_offset = VIVS_SH_HALTI5_UNIFORMS(screen->specs.max_vs_uniforms*4);
+#endif
 
    screen->specs.max_texture_size =
       VIV_FEATURE(screen, chipMinorFeatures0, TEXTURE_8K) ? 8192 : 2048;
