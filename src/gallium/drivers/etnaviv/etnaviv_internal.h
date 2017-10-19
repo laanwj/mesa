@@ -215,13 +215,18 @@ struct compiled_framebuffer_state {
 /* Compiled context->create_vertex_elements_state */
 struct compiled_vertex_elements_state {
    unsigned num_elements;
+#if 0
    uint32_t FE_VERTEX_ELEMENT_CONFIG[VIVS_FE_VERTEX_ELEMENT_CONFIG__LEN];
+#endif
+   uint32_t NFE_GENERIC_ATTRIB_CONFIG0[VIVS_NFE_GENERIC_ATTRIB__LEN];
    uint32_t NFE_GENERIC_ATTRIB_SCALE[VIVS_NFE_GENERIC_ATTRIB__LEN];
+   uint32_t NFE_GENERIC_ATTRIB_CONFIG1[VIVS_NFE_GENERIC_ATTRIB__LEN];
 };
 
 /* Compiled context->set_vertex_buffer result */
 struct compiled_set_vertex_buffer {
    uint32_t FE_VERTEX_STREAM_CONTROL;
+   uint32_t FE_VERTEX_STREAM_UNK14680;
    struct etna_reloc FE_VERTEX_STREAM_BASE_ADDR;
 };
 
