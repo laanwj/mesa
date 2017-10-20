@@ -521,7 +521,7 @@ etna_try_blt_blit(struct pipe_context *pctx,
    op.src.format = translate_blt_format(src_format);
    op.src.stride = src_lev->stride;
    op.src.tiling = src->layout;
-   op.src.cache_mode = 0; /* TODO: cache modes */
+   op.src.cache_mode = TS_CACHE_MODE_128; /* TODO: cache modes */
    op.src.swizzle[0] = TEXTURE_SWIZZLE_RED; /* TODO need actual swizzle of source */
    op.src.swizzle[1] = TEXTURE_SWIZZLE_GREEN;
    op.src.swizzle[2] = TEXTURE_SWIZZLE_BLUE;
@@ -547,7 +547,7 @@ etna_try_blt_blit(struct pipe_context *pctx,
    op.dest.compress_fmt = 3;
    */
    op.dest.tiling = dst->layout;
-   op.dest.cache_mode = 0; /* TODO cache modes */
+   op.dest.cache_mode = TS_CACHE_MODE_128; /* TODO cache modes */
    op.dest.swizzle[0] = TEXTURE_SWIZZLE_RED;  /* TODO need actual swizzle of dest (might need r/b swap) */
    op.dest.swizzle[1] = TEXTURE_SWIZZLE_GREEN;
    op.dest.swizzle[2] = TEXTURE_SWIZZLE_BLUE;

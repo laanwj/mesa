@@ -353,6 +353,7 @@ etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
    etna_set_state(stream, VIVS_PS_MSAA_CONFIG, 0xffffff7f);
    etna_set_state(stream, VIVS_FE_HALTI5_UNK007C4, 0x00000000);
    etna_set_state(stream, VIVS_PE_MEM_CONFIG, 0x00000000); /* TODO: cache modes */
+   //etna_set_state(stream, VIVS_PE_MEM_CONFIG, 0x05000000); /* TODO: cache modes */
    etna_set_state(stream, VIVS_PE_HALTI4_UNK014C0, 0x00000000);
    etna_set_state(stream, VIVS_GL_MULTI_SAMPLE_CONFIG, 0x00300000);
    etna_set_state(stream, VIVS_PS_SAMPLER_BASE, 0x00000000);
