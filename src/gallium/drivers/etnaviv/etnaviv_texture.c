@@ -27,6 +27,7 @@
 #include "etnaviv_texture.h"
 
 #include "hw/common.xml.h"
+#include "hw/texdesc_3d.xml.h"
 
 #include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
@@ -46,7 +47,7 @@ etna_create_sampler_state(struct pipe_context *pipe,
 
    if (!cs)
       return NULL;
-
+#if 0
    cs->TE_SAMPLER_CONFIG0 =
       VIVS_TE_SAMPLER_CONFIG0_UWRAP(translate_texture_wrapmode(ss->wrap_s)) |
       VIVS_TE_SAMPLER_CONFIG0_VWRAP(translate_texture_wrapmode(ss->wrap_t)) |
@@ -68,6 +69,29 @@ etna_create_sampler_state(struct pipe_context *pipe,
        * lowest LOD is selected */
       cs->min_lod = cs->max_lod = etna_float_to_fixp55(ss->min_lod);
    }
+#endif
+   cs->SAMP_CTRL0 =
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_UWRAP(translate_texture_wrapmode(ss->wrap_s)) |
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_VWRAP(translate_texture_wrapmode(ss->wrap_t)) |
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_WWRAP(translate_texture_wrapmode(ss->wrap_r)) |
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_MIN(translate_texture_filter(ss->min_img_filter)) |
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_MIP(translate_texture_mipfilter(ss->min_mip_filter)) |
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_MAG(translate_texture_filter(ss->mag_img_filter)) |
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_UNK21 |
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_UNK23;
+      /* TODO: ROUND_UV bit? */
+   cs->SAMP_CTRL1 = VIVS_NTE_DESCRIPTOR_SAMP_CTRL1_UNK1;
+   if (ss->min_mip_filter != PIPE_TEX_MIPFILTER_NONE) {
+      cs->SAMP_LOD_MINMAX =
+         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MAX(etna_float_to_fixp88(ss->max_lod)) |
+         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MIN(etna_float_to_fixp88(ss->min_lod));
+   } else {
+      cs->SAMP_LOD_MINMAX =
+         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MAX(etna_float_to_fixp88(ss->min_lod)) |
+         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MIN(etna_float_to_fixp88(ss->min_lod));
+   }
+   cs->SAMP_LOD_BIAS = VIVS_NTE_DESCRIPTOR_SAMP_LOD_BIAS_BIAS(0);
+   cs->TX_CTRL = 0; /* TODO: texture TS */
 
    return cs;
 }
@@ -258,14 +282,46 @@ etna_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *prsc,
          VIVS_TE_SAMPLER_CONFIG0_VWRAP(TEXTURE_WRAPMODE_CLAMP_TO_EDGE);
    }
 
+   sv->bo = etna_bo_new(ctx->screen->dev, 0x100, DRM_ETNA_GEM_CACHE_UNCACHED);
+   if (!sv->bo)
+      goto error;
+
+   uint32_t *buf = etna_bo_map(sv->bo);
+   etna_bo_cpu_prep(sv->bo, DRM_ETNA_PREP_WRITE);
+   memset(buf, 0, 0x100);
+#define DESC_SET(x, y) buf[(TEXDESC_##x)>>2] = (y)
+   DESC_SET(CONFIG0, sv->TE_SAMPLER_CONFIG0);
+   DESC_SET(CONFIG1, sv->TE_SAMPLER_CONFIG1);
+   DESC_SET(CONFIG2, 0x00030000);
+   DESC_SET(SLICE, 0x00100000);
+   DESC_SET(3D_CONFIG, 0x00000001);
+   DESC_SET(BASELOD, TEXDESC_BASELOD_BASELOD(0) | TEXDESC_BASELOD_MAXLOD(res->base.last_level));
+   DESC_SET(LOG_SIZE_EXT, TEXDESC_LOG_SIZE_EXT_WIDTH(etna_log2_fixp88(res->base.width0)) |
+                          TEXDESC_LOG_SIZE_EXT_HEIGHT(etna_log2_fixp88(res->base.height0)));
+   DESC_SET(SIZE, sv->TE_SAMPLER_SIZE);
+   DESC_SET(LOG_SIZE, sv->TE_SAMPLER_LOG_SIZE);
+   for (int lod = 0; lod <= res->base.last_level; ++lod)
+      DESC_SET(LOD_ADDR(lod), etna_bo_gpu_address(res->bo) + res->levels[lod].offset);
+#undef SET_DESC
+   etna_bo_cpu_fini(sv->bo);
+
+   sv->DESC_ADDR.bo = sv->bo;
+   sv->DESC_ADDR.offset = 0;
+   sv->DESC_ADDR.flags = ETNA_RELOC_READ;
+
    return &sv->base;
+error:
+   free(sv);
+   return NULL;
 }
 
 static void
 etna_sampler_view_destroy(struct pipe_context *pctx,
-                          struct pipe_sampler_view *view)
+                          struct pipe_sampler_view *view_)
 {
-   pipe_resource_reference(&view->texture, NULL);
+   struct etna_sampler_view *view = etna_sampler_view(view_);
+   pipe_resource_reference(&view->base.texture, NULL);
+   etna_bo_del(view->bo);
    FREE(view);
 }
 

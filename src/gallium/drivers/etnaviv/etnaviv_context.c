@@ -468,6 +468,18 @@ etna_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 
    slab_create_child(&ctx->transfer_pool, &screen->transfer_pool);
 
+   /* Create an empty dummy texture descriptor */
+   ctx->dummy_desc_bo = etna_bo_new(ctx->screen->dev, 0x100, DRM_ETNA_GEM_CACHE_UNCACHED);
+   if (!ctx->dummy_desc_bo)
+      goto fail;
+   uint32_t *buf = etna_bo_map(ctx->dummy_desc_bo);
+   etna_bo_cpu_prep(ctx->dummy_desc_bo, DRM_ETNA_PREP_WRITE);
+   memset(buf, 0, 0x100);
+   etna_bo_cpu_fini(ctx->dummy_desc_bo);
+   ctx->DUMMY_DESC_ADDR.bo = ctx->dummy_desc_bo;
+   ctx->DUMMY_DESC_ADDR.offset = 0;
+   ctx->DUMMY_DESC_ADDR.flags = ETNA_RELOC_READ;
+
    return pctx;
 
 fail:

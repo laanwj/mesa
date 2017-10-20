@@ -734,6 +734,34 @@ etna_emit_state(struct etna_context *ctx)
    etna_coalesce_end(stream, &coalesce);
    /* end only EMIT_STATE */
 
+   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_SAMPLERS))) {
+      etna_set_state(stream, VIVS_GL_FLUSH_CACHE, 0x00003000);
+
+      struct etna_sampler_state *ss;
+      struct etna_sampler_view *sv;
+      for (int x = 0; x < 32; ++x) {
+         if ((1 << x) & active_samplers) {
+            ss = etna_sampler_state(ctx->sampler[x]);
+            sv = etna_sampler_view(ctx->sampler_view[x]);
+            etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &sv->DESC_ADDR);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_TX_CTRL(x), ss->TX_CTRL);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_CTRL0(x), ss->SAMP_CTRL0);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_CTRL1(x), ss->SAMP_CTRL1);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX(x), ss->SAMP_LOD_MINMAX);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_LOD_BIAS(x), ss->SAMP_LOD_BIAS);
+         } else {
+            /* dummy texture descriptors for unused samplers */
+            etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &ctx->DUMMY_DESC_ADDR);
+         }
+      }
+
+      /* Invalidate them all TODO: be more selective, this sucks */
+      for (int x = 0; x < 32; ++x) {
+         etna_set_state(stream, VIVS_NTE_DESCRIPTOR_INVALIDATE,
+               VIVS_NTE_DESCRIPTOR_INVALIDATE_UNK29 |
+               VIVS_NTE_DESCRIPTOR_INVALIDATE_IDX(x));
+      }
+   }
    /* Insert a FE/PE stall as changing the shader instructions (and maybe
     * the uniforms) can corrupt the previous in-progress draw operation.
     * Observed with amoeba on GC2000 during the right-to-left rendering
