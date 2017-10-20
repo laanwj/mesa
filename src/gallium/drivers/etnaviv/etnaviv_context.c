@@ -322,11 +322,11 @@ etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
 
    etna_set_state(stream, VIVS_GL_API_MODE, VIVS_GL_API_MODE_OPENGL);
    etna_set_state(stream, VIVS_GL_VERTEX_ELEMENT_CONFIG, 0x00000001);
-   etna_set_state(stream, VIVS_RA_EARLY_DEPTH, 0x00000031);
+   etna_set_state(stream, VIVS_RA_EARLY_DEPTH, 0x50000031);
    etna_set_state(stream, VIVS_PA_W_CLIP_LIMIT, 0x34000001);
-   etna_set_state(stream, VIVS_PA_FLAGS, 0x00000000); /* blob sets ZCONVERT_BYPASS on GC3000, this messes up z for us */
+   etna_set_state(stream, VIVS_PA_FLAGS, 0x00000000); /* blob sets ZCONVERT_BYPASS on GC3000+, this messes up z for us */
    etna_set_state(stream, VIVS_RA_UNK00E0C, 0x00000000); /* HALTI2 */
-   etna_set_state(stream, VIVS_PA_VIEWPORT_UNK00A80, 0x38a01404);
+   etna_set_state(stream, VIVS_PA_VIEWPORT_UNK00A80, 0x38f01e06); /* was: 0x38a01404 */
    etna_set_state(stream, VIVS_PA_VIEWPORT_UNK00A84, fui(8192.0));
    etna_set_state(stream, VIVS_PA_ZFARCLIPPING, 0x00000000);
    etna_set_state(stream, VIVS_PE_ALPHA_COLOR_EXT0, 0x00000000);
@@ -344,6 +344,20 @@ etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
    etna_set_state(stream, VIVS_SH_CONFIG, 0x00000002); /* HALTI5 - RTNE rounding */
    etna_set_state(stream, VIVS_VS_HALTI1_UNK00884, 0x00000808); /* HALTI1 */
    etna_set_state(stream, VIVS_NTE_DESCRIPTOR_UNK14C40, 0x00000001); /* TX_DESCRIPTORS */
+
+   etna_set_state(stream, VIVS_PS_MSAA_CONFIG, 0xffff6fff);
+   etna_set_state(stream, VIVS_PS_MSAA_CONFIG, 0x6fffffff);
+   etna_set_state(stream, VIVS_PS_MSAA_CONFIG, 0xf70fffff);
+   etna_set_state(stream, VIVS_PS_MSAA_CONFIG, 0xfff6ffff);
+   etna_set_state(stream, VIVS_PS_MSAA_CONFIG, 0xfffff6ff);
+   etna_set_state(stream, VIVS_PS_MSAA_CONFIG, 0xffffff7f);
+   etna_set_state(stream, VIVS_FE_HALTI5_UNK007C4, 0x00000000);
+   etna_set_state(stream, VIVS_PE_MEM_CONFIG, 0x00000000); /* TODO: cache modes */
+   etna_set_state(stream, VIVS_PE_HALTI4_UNK014C0, 0x00000000);
+   etna_set_state(stream, VIVS_GL_MULTI_SAMPLE_CONFIG, 0x00300000);
+   etna_set_state(stream, VIVS_PS_SAMPLER_BASE, 0x00000000);
+   etna_set_state(stream, VIVS_VS_SAMPLER_BASE, 0x00000020);
+   etna_set_state(stream, VIVS_PA_HALTI5_UNK00AA8, 0x00000002);
 
 #if 0
    /* Enable SINGLE_BUFFER for resolve, if supported */

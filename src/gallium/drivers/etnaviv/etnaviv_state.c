@@ -544,14 +544,16 @@ etna_vertex_elements_state_create(struct pipe_context *pctx,
       assert(format_type != ETNA_NO_MATCH);
       assert(normalize != ETNA_NO_MATCH);
 
-      cs->FE_VERTEX_ELEMENT_CONFIG[idx] =
-         COND(nonconsecutive, VIVS_FE_VERTEX_ELEMENT_CONFIG_NONCONSECUTIVE) |
+      cs->NFE_GENERIC_ATTRIB_CONFIG0[idx] =
          format_type |
-         VIVS_FE_VERTEX_ELEMENT_CONFIG_NUM(util_format_get_nr_components(elements[idx].src_format)) |
-         normalize | VIVS_FE_VERTEX_ELEMENT_CONFIG_ENDIAN(ENDIAN_MODE_NO_SWAP) |
-         VIVS_FE_VERTEX_ELEMENT_CONFIG_STREAM(elements[idx].vertex_buffer_index) |
-         VIVS_FE_VERTEX_ELEMENT_CONFIG_START(elements[idx].src_offset) |
-         VIVS_FE_VERTEX_ELEMENT_CONFIG_END(end_offset - start_offset);
+         VIVS_NFE_GENERIC_ATTRIB_CONFIG0_NUM(util_format_get_nr_components(elements[idx].src_format)) |
+         normalize | VIVS_NFE_GENERIC_ATTRIB_CONFIG0_ENDIAN(ENDIAN_MODE_NO_SWAP) |
+         VIVS_NFE_GENERIC_ATTRIB_CONFIG0_STREAM(elements[idx].vertex_buffer_index) |
+         VIVS_NFE_GENERIC_ATTRIB_CONFIG0_START(elements[idx].src_offset);
+      cs->NFE_GENERIC_ATTRIB_CONFIG1[idx] =
+         COND(nonconsecutive, VIVS_NFE_GENERIC_ATTRIB_CONFIG1_NONCONSECUTIVE) |
+         VIVS_NFE_GENERIC_ATTRIB_CONFIG1_END(end_offset - start_offset);
+      cs->NFE_GENERIC_ATTRIB_SCALE[idx] = 0x3f800000; /* 1 for integer, 1.0 for float */
    }
 
    return cs;
