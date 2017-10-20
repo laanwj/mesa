@@ -800,6 +800,7 @@ etna_emit_state(struct etna_context *ctx)
       /* Magic states (load balancing, inter-unit sync, buffers) */
       etna_set_state(stream, VIVS_VS_HALTI5_OUTPUT_COUNT, vs_output_count | ((vs_output_count * 0x10) << 8));
       etna_set_state(stream, VIVS_VS_HALTI5_UNK008A0, 0x0001000e | ((0x110/vs_output_count) << 20));
+      etna_set_state(stream, VIVS_PA_HALTI5_UNK00AA8, vs_output_count);
 
       /* This sequence is special, do not change it unless necessary. According to comment
          snippets in the Vivante kernel driver a process called "steering" goes on while programming

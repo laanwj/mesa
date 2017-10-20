@@ -358,7 +358,6 @@ etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
    etna_set_state(stream, VIVS_GL_MULTI_SAMPLE_CONFIG, 0x00300000);
    etna_set_state(stream, VIVS_PS_SAMPLER_BASE, 0x00000000);
    etna_set_state(stream, VIVS_VS_SAMPLER_BASE, 0x00000020);
-   etna_set_state(stream, VIVS_PA_HALTI5_UNK00AA8, 0x00000002);
 
 #if 0
    /* Enable SINGLE_BUFFER for resolve, if supported */
