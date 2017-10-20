@@ -174,6 +174,12 @@ etna_blit_clear_color(struct pipe_context *pctx, struct pipe_surface *dst,
    clr.rect_h = surf->surf.height;
 
    emit_blt_clearimage(ctx->stream, &clr);
+
+   /* This made the TS valid */
+   if (surf->surf.ts_size) {
+      ctx->framebuffer.TS_COLOR_CLEAR_VALUE = new_clear_value;
+      surf->level->ts_valid = true;
+   }
 #endif
    surf->level->clear_value = new_clear_value;
    resource_written(ctx, surf->base.texture);
@@ -527,8 +533,7 @@ etna_try_blt_blit(struct pipe_context *pctx,
    op.src.swizzle[2] = TEXTURE_SWIZZLE_BLUE;
    op.src.swizzle[3] = TEXTURE_SWIZZLE_ALPHA;
 
-   if (src->levels[blit_info->src.level].ts_size &&
-       src->levels[blit_info->src.level].ts_valid) {
+   if (src_lev->ts_size && src_lev->ts_valid) {
       op.src.use_ts = 1;
       op.src.ts_addr.bo = src->ts_bo;
       op.src.ts_addr.offset = src_lev->ts_offset + blit_info->src.box.z * src_lev->ts_layer_stride;
