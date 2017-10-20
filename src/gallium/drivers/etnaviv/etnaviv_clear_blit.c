@@ -215,7 +215,7 @@ etna_blit_clear_zs(struct pipe_context *pctx, struct pipe_surface *dst,
       new_clear_bits |= clear_bits_depth;
    if (buffers & PIPE_CLEAR_STENCIL)
       new_clear_bits |= clear_bits_stencil;
-
+#if 0
    /* FIXME: when tile status is enabled, this becomes more complex as
     * we may separately clear the depth from the stencil.  In this case,
     * we want to resolve the surface, and avoid using the tile status.
@@ -244,6 +244,46 @@ etna_blit_clear_zs(struct pipe_context *pctx, struct pipe_surface *dst,
    }
 
    etna_submit_rs_state(ctx, &surf->clear_command);
+#else
+   /* TODO unduplicate this */
+   struct etna_resource *res = etna_resource(surf->base.texture);
+   struct blt_clear_op clr = {};
+   clr.dest.addr.bo = res->bo;
+   clr.dest.addr.offset = surf->surf.offset;
+   clr.dest.addr.flags = ETNA_RELOC_WRITE;
+   clr.dest.bpp = util_format_get_blocksize(surf->base.format);
+   clr.dest.stride = surf->surf.stride;
+   clr.dest.compressed = 1;
+   clr.dest.compress_fmt = COLOR_COMPRESSION_FORMAT_D24S8; /* TODO D16 */
+   clr.dest.tiling = res->layout;
+   clr.dest.cache_mode = TS_CACHE_MODE_128; /* TODO: cache modes */
+
+   if (surf->surf.ts_size) {
+      clr.dest.use_ts = 1;
+      clr.dest.ts_addr.bo = res->ts_bo;
+      clr.dest.ts_addr.offset = 0;
+      clr.dest.ts_addr.flags = ETNA_RELOC_WRITE;
+      clr.dest.ts_clear_value[0] = new_clear_value;
+      clr.dest.ts_clear_value[1] = new_clear_value;
+   }
+
+   clr.clear_value[0] = new_clear_value;
+   clr.clear_value[1] = new_clear_value;
+   clr.clear_bits[0] = 0xffffffff; /* TODO: Clear only depth or only stencil */
+   clr.clear_bits[1] = 0xffffffff;
+   clr.rect_x = 0; /* What about scissors? */
+   clr.rect_y = 0;
+   clr.rect_w = surf->surf.width;
+   clr.rect_h = surf->surf.height;
+
+   emit_blt_clearimage(ctx->stream, &clr);
+
+   /* This made the TS valid */
+   if (surf->surf.ts_size) {
+      ctx->framebuffer.TS_DEPTH_CLEAR_VALUE = new_clear_value;
+      surf->level->ts_valid = true;
+   }
+#endif
    surf->level->clear_value = new_clear_value;
    resource_written(ctx, surf->base.texture);
    etna_resource(surf->base.texture)->seqno++;
