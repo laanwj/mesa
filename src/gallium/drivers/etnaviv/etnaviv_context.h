@@ -179,6 +179,9 @@ struct etna_context {
 
    struct pipe_debug_callback debug;
    int in_fence_fd;
+
+   struct etna_bo *dummy_desc_bo;
+   struct etna_reloc DUMMY_DESC_ADDR;
 };
 
 static inline struct etna_context *

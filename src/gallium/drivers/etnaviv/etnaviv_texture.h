@@ -36,12 +36,18 @@
 
 struct etna_sampler_state {
    struct pipe_sampler_state base;
-
+#if 0
    /* sampler offset +4*sampler, interleave when committing state */
    uint32_t TE_SAMPLER_CONFIG0;
    uint32_t TE_SAMPLER_CONFIG1;
    uint32_t TE_SAMPLER_LOD_CONFIG;
    unsigned min_lod, max_lod;
+#endif
+   uint32_t SAMP_CTRL0;
+   uint32_t SAMP_CTRL1;
+   uint32_t SAMP_LOD_MINMAX;
+   uint32_t SAMP_LOD_BIAS;
+   uint32_t TX_CTRL;
 };
 
 static inline struct etna_sampler_state *
@@ -52,7 +58,6 @@ etna_sampler_state(struct pipe_sampler_state *samp)
 
 struct etna_sampler_view {
    struct pipe_sampler_view base;
-
    /* sampler offset +4*sampler, interleave when committing state */
    uint32_t TE_SAMPLER_CONFIG0;
    uint32_t TE_SAMPLER_CONFIG0_MASK;
@@ -61,6 +66,9 @@ struct etna_sampler_view {
    uint32_t TE_SAMPLER_LOG_SIZE;
    struct etna_reloc TE_SAMPLER_LOD_ADDR[VIVS_TE_SAMPLER_LOD_ADDR__LEN];
    unsigned min_lod, max_lod; /* 5.5 fixp */
+
+   struct etna_bo *bo;
+   struct etna_reloc DESC_ADDR;
 };
 
 static inline struct etna_sampler_view *
