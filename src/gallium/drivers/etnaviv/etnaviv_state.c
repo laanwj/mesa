@@ -135,7 +135,8 @@ etna_set_framebuffer_state(struct pipe_context *pctx,
          VIVS_PE_COLOR_FORMAT_FORMAT(translate_rs_format(cbuf->base.format)) |
          VIVS_PE_COLOR_FORMAT_COMPONENTS__MASK |
          VIVS_PE_COLOR_FORMAT_OVERWRITE |
-         COND(color_supertiled, VIVS_PE_COLOR_FORMAT_SUPER_TILED);
+         COND(color_supertiled, VIVS_PE_COLOR_FORMAT_SUPER_TILED) |
+         COND(color_supertiled, VIVS_PE_COLOR_FORMAT_SUPER_TILED_NEW);
       /* VIVS_PE_COLOR_FORMAT_COMPONENTS() and
        * VIVS_PE_COLOR_FORMAT_OVERWRITE comes from blend_state
        * but only if we set the bits above. */
