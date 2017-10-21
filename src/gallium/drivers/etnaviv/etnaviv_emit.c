@@ -739,7 +739,7 @@ etna_emit_state(struct etna_context *ctx)
 
       struct etna_sampler_state *ss;
       struct etna_sampler_view *sv;
-      for (int x = 0; x < 32; ++x) {
+      for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
          if ((1 << x) & active_samplers) {
             ss = etna_sampler_state(ctx->sampler[x]);
             sv = etna_sampler_view(ctx->sampler_view[x]);
@@ -755,8 +755,11 @@ etna_emit_state(struct etna_context *ctx)
          }
       }
 
-      /* Invalidate them all TODO: be more selective, this sucks */
-      for (int x = 0; x < 32; ++x) {
+      /* Invalidate them all TODO: be more selective.
+       * Need a mask of dirty samplers? At least everything that was still
+       * pointing to a dummy descriptor doesn't need invalidation.
+       */
+      for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
          etna_set_state(stream, VIVS_NTE_DESCRIPTOR_INVALIDATE,
                VIVS_NTE_DESCRIPTOR_INVALIDATE_UNK29 |
                VIVS_NTE_DESCRIPTOR_INVALIDATE_IDX(x));
