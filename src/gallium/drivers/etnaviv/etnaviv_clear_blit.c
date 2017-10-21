@@ -253,8 +253,10 @@ etna_blit_clear_zs(struct pipe_context *pctx, struct pipe_surface *dst,
    clr.dest.addr.flags = ETNA_RELOC_WRITE;
    clr.dest.bpp = util_format_get_blocksize(surf->base.format);
    clr.dest.stride = surf->surf.stride;
+#if 0 /* TODO depth compression */
    clr.dest.compressed = 1;
-   clr.dest.compress_fmt = COLOR_COMPRESSION_FORMAT_D24S8; /* TODO D16 */
+   clr.dest.compress_fmt = COLOR_COMPRESSION_FORMAT_D24S8;
+#endif
    clr.dest.tiling = res->layout;
    clr.dest.cache_mode = TS_CACHE_MODE_128; /* TODO: cache modes */
 

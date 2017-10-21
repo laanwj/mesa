@@ -213,7 +213,9 @@ etna_set_framebuffer_state(struct pipe_context *pctx,
       cs->PE_DEPTH_CONFIG =
          depth_format |
          COND(depth_supertiled, VIVS_PE_DEPTH_CONFIG_SUPER_TILED) |
-         VIVS_PE_DEPTH_CONFIG_DEPTH_MODE_Z;
+         VIVS_PE_DEPTH_CONFIG_DEPTH_MODE_Z |
+         VIVS_PE_DEPTH_CONFIG_DISABLE_ZS /* Needs to be enabled on GC7000, otherwise depth writes hang w/ TS - apparently it does something else now */
+         ;
       /* VIVS_PE_DEPTH_CONFIG_ONLY_DEPTH */
       /* merged with depth_stencil_alpha */
 
