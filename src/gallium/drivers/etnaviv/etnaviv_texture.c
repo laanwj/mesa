@@ -92,7 +92,9 @@ etna_create_sampler_state(struct pipe_context *pipe,
          VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MAX(min_lod_fp8) |
          VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MIN(min_lod_fp8);
    }
-   cs->SAMP_LOD_BIAS = VIVS_NTE_DESCRIPTOR_SAMP_LOD_BIAS_BIAS(0);
+   cs->SAMP_LOD_BIAS =
+      VIVS_NTE_DESCRIPTOR_SAMP_LOD_BIAS_BIAS(etna_float_to_fixp88(ss->lod_bias)) |
+      COND(ss->lod_bias != 0.0, VIVS_NTE_DESCRIPTOR_SAMP_LOD_BIAS_ENABLE);
    cs->TX_CTRL = 0; /* TODO: texture TS */
 
    return cs;
