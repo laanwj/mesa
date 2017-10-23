@@ -81,14 +81,16 @@ etna_create_sampler_state(struct pipe_context *pipe,
       VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_UNK23;
       /* no ROUND_UV bit? */
    cs->SAMP_CTRL1 = VIVS_NTE_DESCRIPTOR_SAMP_CTRL1_UNK1;
+   uint32_t min_lod_fp8 = MIN2(etna_float_to_fixp88(ss->min_lod), 0xfff);
+   uint32_t max_lod_fp8 = MIN2(etna_float_to_fixp88(ss->max_lod), 0xfff);
    if (ss->min_mip_filter != PIPE_TEX_MIPFILTER_NONE) {
       cs->SAMP_LOD_MINMAX =
-         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MAX(etna_float_to_fixp88(ss->max_lod)) |
-         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MIN(etna_float_to_fixp88(ss->min_lod));
+         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MAX(max_lod_fp8) |
+         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MIN(min_lod_fp8);
    } else {
       cs->SAMP_LOD_MINMAX =
-         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MAX(etna_float_to_fixp88(ss->min_lod)) |
-         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MIN(etna_float_to_fixp88(ss->min_lod));
+         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MAX(min_lod_fp8) |
+         VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX_MIN(min_lod_fp8);
    }
    cs->SAMP_LOD_BIAS = VIVS_NTE_DESCRIPTOR_SAMP_LOD_BIAS_BIAS(0);
    cs->TX_CTRL = 0; /* TODO: texture TS */
@@ -257,8 +259,8 @@ etna_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *prsc,
    sv->TE_SAMPLER_CONFIG1 = COND(ext, VIVS_TE_SAMPLER_CONFIG1_FORMAT_EXT(format)) |
                             VIVS_TE_SAMPLER_CONFIG1_HALIGN(res->halign) | swiz |
                             VIVS_TE_SAMPLER_CONFIG1_UNK25;
-   sv->TE_SAMPLER_SIZE = VIVS_TE_SAMPLER_SIZE_WIDTH(res->base.width0) |
-                         VIVS_TE_SAMPLER_SIZE_HEIGHT(res->base.height0);
+   sv->TE_SAMPLER_SIZE = VIVS_TE_SAMPLER_SIZE_WIDTH(res->base.width0 >> sv->base.u.tex.first_level) |
+                         VIVS_TE_SAMPLER_SIZE_HEIGHT(res->base.height0 >> sv->base.u.tex.first_level);
    sv->TE_SAMPLER_LOG_SIZE =
       VIVS_TE_SAMPLER_LOG_SIZE_WIDTH(etna_log2_fixp55(res->base.width0)) |
       VIVS_TE_SAMPLER_LOG_SIZE_HEIGHT(etna_log2_fixp55(res->base.height0));
@@ -290,6 +292,11 @@ etna_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *prsc,
    uint32_t *buf = etna_bo_map(sv->bo);
    etna_bo_cpu_prep(sv->bo, DRM_ETNA_PREP_WRITE);
    memset(buf, 0, 0x100);
+
+   /** GC7000 needs the size of the BASELOD level */
+   uint32_t base_width = u_minify(res->base.width0, sv->base.u.tex.first_level);
+   uint32_t base_height = u_minify(res->base.height0, sv->base.u.tex.first_level);
+
 #define DESC_SET(x, y) buf[(TEXDESC_##x)>>2] = (y)
    DESC_SET(CONFIG0, sv->TE_SAMPLER_CONFIG0);
    DESC_SET(CONFIG1, sv->TE_SAMPLER_CONFIG1);
@@ -297,14 +304,17 @@ etna_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *prsc,
    DESC_SET(LINEAR_STRIDE, res->levels[0].stride);
    DESC_SET(SLICE, res->levels[0].layer_stride);
    DESC_SET(3D_CONFIG, 0x00000001);
-   DESC_SET(BASELOD, TEXDESC_BASELOD_BASELOD(0) | TEXDESC_BASELOD_MAXLOD(res->base.last_level));
-   DESC_SET(LOG_SIZE_EXT, TEXDESC_LOG_SIZE_EXT_WIDTH(etna_log2_fixp88(res->base.width0)) |
-                          TEXDESC_LOG_SIZE_EXT_HEIGHT(etna_log2_fixp88(res->base.height0)));
-   DESC_SET(SIZE, sv->TE_SAMPLER_SIZE);
-   DESC_SET(LOG_SIZE, sv->TE_SAMPLER_LOG_SIZE);
+   DESC_SET(BASELOD, TEXDESC_BASELOD_BASELOD(sv->base.u.tex.first_level) |
+                     TEXDESC_BASELOD_MAXLOD(MIN2(sv->base.u.tex.last_level, res->base.last_level)));
+   DESC_SET(LOG_SIZE_EXT, TEXDESC_LOG_SIZE_EXT_WIDTH(etna_log2_fixp88(base_width)) |
+                          TEXDESC_LOG_SIZE_EXT_HEIGHT(etna_log2_fixp88(base_height)));
+   DESC_SET(SIZE, VIVS_TE_SAMPLER_SIZE_WIDTH(base_width) |
+                  VIVS_TE_SAMPLER_SIZE_HEIGHT(base_height));
+   DESC_SET(LOG_SIZE, 0); /* appears unused */
    for (int lod = 0; lod <= res->base.last_level; ++lod)
       DESC_SET(LOD_ADDR(lod), etna_bo_gpu_address(res->bo) + res->levels[lod].offset);
 #undef SET_DESC
+
    etna_bo_cpu_fini(sv->bo);
 
    sv->DESC_ADDR.bo = sv->bo;
