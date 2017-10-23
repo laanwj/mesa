@@ -288,8 +288,13 @@ etna_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info)
       etna_stall(ctx->stream, SYNC_RECIPIENT_FE, SYNC_RECIPIENT_PE);
    }
 
-   if (DBG_ENABLED(ETNA_DBG_FLUSH_ALL))
-      pctx->flush(pctx, NULL, 0);
+   if (DBG_ENABLED(ETNA_DBG_FLUSH_ALL)) {
+      struct pipe_fence_handle *fence = NULL;
+      pctx->flush(pctx, &fence, 0);
+      assert(fence);
+      pctx->screen->fence_finish(pctx->screen, pctx, fence, PIPE_TIMEOUT_INFINITE);
+      pctx->screen->fence_reference(pctx->screen, &fence, NULL);
+   }
 
    if (ctx->framebuffer.cbuf)
       etna_resource(ctx->framebuffer.cbuf->texture)->seqno++;
