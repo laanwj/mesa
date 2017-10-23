@@ -255,7 +255,8 @@ etna_create_sampler_view(struct pipe_context *pctx, struct pipe_resource *prsc,
    }
 
    sv->TE_SAMPLER_CONFIG1 = COND(ext, VIVS_TE_SAMPLER_CONFIG1_FORMAT_EXT(format)) |
-                            VIVS_TE_SAMPLER_CONFIG1_HALIGN(res->halign) | swiz;
+                            VIVS_TE_SAMPLER_CONFIG1_HALIGN(res->halign) | swiz |
+                            VIVS_TE_SAMPLER_CONFIG1_UNK25;
    sv->TE_SAMPLER_SIZE = VIVS_TE_SAMPLER_SIZE_WIDTH(res->base.width0) |
                          VIVS_TE_SAMPLER_SIZE_HEIGHT(res->base.height0);
    sv->TE_SAMPLER_LOG_SIZE =
