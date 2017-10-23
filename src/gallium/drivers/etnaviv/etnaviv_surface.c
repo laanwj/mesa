@@ -116,6 +116,7 @@ etna_create_surface(struct pipe_context *pctx, struct pipe_resource *prsc,
       surf->ts_reloc.offset = surf->surf.ts_offset;
       surf->ts_reloc.flags = 0;
 
+#if 0
       /* This (ab)uses the RS as a plain buffer memset().
        * Currently uses a fixed row size of 64 bytes. Some benchmarking with
        * different sizes may be in order. */
@@ -134,8 +135,11 @@ etna_create_surface(struct pipe_context *pctx, struct pipe_resource *prsc,
          .clear_mode = VIVS_RS_CLEAR_CONTROL_MODE_ENABLED1,
          .clear_bits = 0xffff
       });
+#endif
    } else {
+#if 0
       etna_rs_gen_clear_surface(ctx, surf, surf->level->clear_value);
+#endif
    }
 
    return &surf->base;

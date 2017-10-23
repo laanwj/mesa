@@ -212,8 +212,7 @@ etna_resource_alloc(struct pipe_screen *pscreen, unsigned layout,
    /* If we have the TEXTURE_HALIGN feature, we can always align to the
     * resolve engine's width.  If not, we must not align resources used
     * only for textures. */
-   bool rs_align = VIV_FEATURE(screen, chipMinorFeatures1, TEXTURE_HALIGN) ||
-                   !etna_resource_sampler_only(templat);
+   bool rs_align = false;
 
    /* Determine needed padding (alignment of height/width) */
    unsigned paddingX = 0, paddingY = 0;

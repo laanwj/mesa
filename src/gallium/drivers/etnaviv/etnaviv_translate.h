@@ -410,6 +410,7 @@ etna_layout_multiple(unsigned layout, unsigned pixel_pipes, bool rs_align,
 static inline void etna_adjust_rs_align(unsigned num_pixelpipes,
                                         unsigned *paddingX, unsigned *paddingY)
 {
+#if 0
    unsigned alignX = ETNA_RS_WIDTH_MASK + 1;
    unsigned alignY = (ETNA_RS_HEIGHT_MASK + 1) * num_pixelpipes;
 
@@ -417,6 +418,7 @@ static inline void etna_adjust_rs_align(unsigned num_pixelpipes,
       *paddingX = align(*paddingX, alignX);
    if (paddingY)
       *paddingY = align(*paddingY, alignY);
+#endif
 }
 
 static inline uint32_t
