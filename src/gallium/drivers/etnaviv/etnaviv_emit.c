@@ -735,30 +735,42 @@ etna_emit_state(struct etna_context *ctx)
    etna_coalesce_end(stream, &coalesce);
    /* end only EMIT_STATE */
 
-   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_SAMPLERS))) {
-      etna_set_state(stream, VIVS_GL_FLUSH_CACHE, 0x00003000);
-
-      struct etna_sampler_state *ss;
-      struct etna_sampler_view *sv;
+   if (unlikely(dirty & ETNA_DIRTY_SAMPLERS)) {
       for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
          if ((1 << x) & active_samplers) {
-            ss = etna_sampler_state(ctx->sampler[x]);
-            sv = etna_sampler_view(ctx->sampler_view[x]);
-            etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &sv->DESC_ADDR);
+            struct etna_sampler_state *ss = etna_sampler_state(ctx->sampler[x]);
             etna_set_state(stream, VIVS_NTE_DESCRIPTOR_TX_CTRL(x), ss->TX_CTRL);
             etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_CTRL0(x), ss->SAMP_CTRL0);
             etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_CTRL1(x), ss->SAMP_CTRL1);
             etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX(x), ss->SAMP_LOD_MINMAX);
             etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_LOD_BIAS(x), ss->SAMP_LOD_BIAS);
+         }
+      }
+   }
+
+   if (unlikely(dirty & ETNA_DIRTY_SAMPLER_VIEWS)) {
+      /* Need a mask of dirty sampler views? At least everything that was still
+       * pointing to a dummy descriptor doesn't need a new state value,
+       * nor invalidation. */
+
+      /* TXDESC cache flush - is probably only necessary when any texture
+       * descriptors were changed?
+       */
+      etna_set_state(stream, VIVS_GL_FLUSH_CACHE, 0x00003000);
+
+      /* Set texture descriptors */
+      for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
+         if ((1 << x) & active_samplers) {
+            struct etna_sampler_view *sv;
+            sv = etna_sampler_view(ctx->sampler_view[x]);
+            etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &sv->DESC_ADDR);
          } else {
             /* dummy texture descriptors for unused samplers */
             etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &ctx->DUMMY_DESC_ADDR);
          }
       }
 
-      /* Invalidate them all TODO: be more selective.
-       * Need a mask of dirty samplers? At least everything that was still
-       * pointing to a dummy descriptor doesn't need invalidation.
+      /* Invalidate them all.
        */
       for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
          etna_set_state(stream, VIVS_NTE_DESCRIPTOR_INVALIDATE,
