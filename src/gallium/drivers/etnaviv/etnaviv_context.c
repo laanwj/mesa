@@ -311,6 +311,9 @@ etna_flush(struct pipe_context *pctx, struct pipe_fence_handle **fence,
    struct etna_context *ctx = etna_context(pctx);
    int out_fence_fd = -1;
 
+   /* GC7000: blob does this before flushing */
+   etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, 0x00000c23);
+
    etna_cmd_stream_flush2(ctx->stream, ctx->in_fence_fd,
 			  (flags & PIPE_FLUSH_FENCE_FD) ? &out_fence_fd :
 			  NULL);

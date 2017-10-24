@@ -34,6 +34,8 @@
 
 #include "hw/state_3d.xml.h"
 
+struct etna_context;
+
 struct etna_sampler_state {
    struct pipe_sampler_state base;
 #if 0
@@ -79,5 +81,10 @@ etna_sampler_view(struct pipe_sampler_view *view)
 
 void
 etna_texture_init(struct pipe_context *pctx);
+
+void
+etna_sampler_view_update_descriptor(struct etna_context *ctx,
+                                    struct etna_cmd_stream *stream,
+                                    struct etna_sampler_view *sv);
 
 #endif

@@ -763,6 +763,7 @@ etna_emit_state(struct etna_context *ctx)
          if ((1 << x) & active_samplers) {
             struct etna_sampler_view *sv;
             sv = etna_sampler_view(ctx->sampler_view[x]);
+            etna_sampler_view_update_descriptor(ctx, stream, sv);
             etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &sv->DESC_ADDR);
          } else {
             /* dummy texture descriptors for unused samplers */
@@ -902,6 +903,7 @@ etna_emit_state(struct etna_context *ctx)
 
       etna_set_state(stream, VIVS_VS_ICACHE_PREFETCH, 0x00000000);
       etna_set_state(stream, VIVS_PS_ICACHE_PREFETCH, 0x00000000);
+      etna_stall(stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
    } else {
       /* ideally this cache would only be flushed if there are VS uniform changes */
 #if 0

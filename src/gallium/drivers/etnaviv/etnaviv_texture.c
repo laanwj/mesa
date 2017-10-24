@@ -329,6 +329,23 @@ error:
    return NULL;
 }
 
+void
+etna_sampler_view_update_descriptor(struct etna_context *ctx,
+                                    struct etna_cmd_stream *stream,
+                                    struct etna_sampler_view *sv)
+{
+   /* TODO: this should instruct the kernel to update the descriptor when the
+    * bo is submitted. For now, just prevent the bo from being freed
+    * while it is in use indirectly.
+    */
+   struct etna_resource *res = etna_resource(sv->base.texture);
+   if (res->texture) {
+      res = etna_resource(res->texture);
+   }
+   /* No need to ref LOD levels individually as they'll always come from the same bo */
+   etna_cmd_stream_ref(stream, res->bo);
+}
+
 static void
 etna_sampler_view_destroy(struct pipe_context *pctx,
                           struct pipe_sampler_view *view_)
