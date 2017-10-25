@@ -373,7 +373,17 @@ etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
    etna_set_state(stream, VIVS_RS_SINGLE_BUFFER, COND(ctx->specs.single_buffer, VIVS_RS_SINGLE_BUFFER_ENABLE));
 #endif
 
+   /* TXDESC cache flush - do this once at the beginning, as texture
+    * descriptors are only written by the CPU once, then patched by the kernel
+    * before command stream submission. It does not need flushing if the
+    * referenced image data changes.
+    */
+   etna_set_state(stream, VIVS_GL_FLUSH_CACHE,
+         VIVS_GL_FLUSH_CACHE_DESCRIPTOR_UNK12 |
+         VIVS_GL_FLUSH_CACHE_DESCRIPTOR_UNK13);
+
    ctx->dirty = ~0L;
+   /* TODO mark all sampler views dirty */
 
    /* go through all the used resources and clear their status flag */
    LIST_FOR_EACH_ENTRY_SAFE(rsc, rsc_tmp, &ctx->used_resources, list)

@@ -753,11 +753,6 @@ etna_emit_state(struct etna_context *ctx)
        * pointing to a dummy descriptor doesn't need a new state value,
        * nor invalidation. */
 
-      /* TXDESC cache flush - is probably only necessary when any texture
-       * descriptors were changed?
-       */
-      etna_set_state(stream, VIVS_GL_FLUSH_CACHE, 0x00003000);
-
       /* Set texture descriptors */
       for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
          if ((1 << x) & active_samplers) {
