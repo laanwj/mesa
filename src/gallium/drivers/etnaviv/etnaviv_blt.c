@@ -155,7 +155,9 @@ void emit_blt_copyimage(struct etna_cmd_stream *stream, const struct blt_imgcopy
     }
     etna_set_state_reloc(stream, VIVS_BLT_SRC_ADDR, &op->src.addr);
     etna_set_state(stream, VIVS_BLT_DEST_STRIDE, blt_compute_stride_bits(&op->dest));
-    etna_set_state(stream, VIVS_BLT_DEST_CONFIG, blt_compute_img_config_bits(&op->dest, true));
+    etna_set_state(stream, VIVS_BLT_DEST_CONFIG,
+          blt_compute_img_config_bits(&op->dest, true) |
+          COND(op->flip_y, BLT_IMAGE_CONFIG_FLIP_Y));
     assert(!op->dest.use_ts); /* Dest TS path doesn't work for copies? */
     if (op->dest.use_ts) {
         etna_set_state_reloc(stream, VIVS_BLT_DEST_TS, &op->dest.ts_addr);

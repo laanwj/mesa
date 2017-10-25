@@ -523,7 +523,7 @@ etna_try_blt_blit(struct pipe_context *pctx,
     * to a non-multisampled surface, the width and height will be
     * identical. As we do not support scaling, reject different sizes. */
    if (blit_info->dst.box.width != blit_info->src.box.width ||
-       blit_info->dst.box.height != blit_info->src.box.height) {
+       blit_info->dst.box.height != abs(blit_info->src.box.height)) { /* allow y flip for glTexImage2D */
       DBG("scaling requested: source %dx%d destination %dx%d",
           blit_info->src.box.width, blit_info->src.box.height,
           blit_info->dst.box.width, blit_info->dst.box.height);
@@ -604,8 +604,13 @@ etna_try_blt_blit(struct pipe_context *pctx,
    op.dest_y = blit_info->dst.box.y;
    op.src_x = blit_info->src.box.x;
    op.src_y = blit_info->src.box.y;
-   op.rect_w = blit_info->src.box.width;
-   op.rect_h = blit_info->src.box.height;
+   op.rect_w = blit_info->dst.box.width;
+   op.rect_h = blit_info->dst.box.height;
+
+   if (blit_info->src.box.height < 0) { /* flipped? fix up base y */
+      op.flip_y = 1;
+      op.src_y += blit_info->src.box.height;
+   }
 
    emit_blt_copyimage(ctx->stream, &op);
 
