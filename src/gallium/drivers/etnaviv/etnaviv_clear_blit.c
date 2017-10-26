@@ -193,6 +193,7 @@ etna_blit_clear_zs(struct pipe_context *pctx, struct pipe_surface *dst,
    struct etna_context *ctx = etna_context(pctx);
    struct etna_surface *surf = etna_surface(dst);
    uint32_t new_clear_value = translate_clear_depth_stencil(surf->base.format, depth, stencil);
+#if 0
    uint32_t new_clear_bits = 0, clear_bits_depth, clear_bits_stencil;
 
    /* Get the channels to clear */
@@ -215,7 +216,6 @@ etna_blit_clear_zs(struct pipe_context *pctx, struct pipe_surface *dst,
       new_clear_bits |= clear_bits_depth;
    if (buffers & PIPE_CLEAR_STENCIL)
       new_clear_bits |= clear_bits_stencil;
-#if 0
    /* FIXME: when tile status is enabled, this becomes more complex as
     * we may separately clear the depth from the stencil.  In this case,
     * we want to resolve the surface, and avoid using the tile status.
@@ -245,6 +245,29 @@ etna_blit_clear_zs(struct pipe_context *pctx, struct pipe_surface *dst,
 
    etna_submit_rs_state(ctx, &surf->clear_command);
 #else
+   uint32_t new_clear_bits = 0, clear_bits_depth, clear_bits_stencil;
+
+   /* Get the channels to clear */
+   switch (surf->base.format) {
+   case PIPE_FORMAT_Z16_UNORM:
+      clear_bits_depth = 0xffffffff;
+      clear_bits_stencil = 0x00000000;
+      break;
+   case PIPE_FORMAT_X8Z24_UNORM:
+   case PIPE_FORMAT_S8_UINT_Z24_UNORM:
+      clear_bits_depth = 0xffffff00;
+      clear_bits_stencil = 0x000000ff;
+      break;
+   default:
+      clear_bits_depth = clear_bits_stencil = 0xffffffff;
+      break;
+   }
+
+   if (buffers & PIPE_CLEAR_DEPTH)
+      new_clear_bits |= clear_bits_depth;
+   if (buffers & PIPE_CLEAR_STENCIL)
+      new_clear_bits |= clear_bits_stencil;
+
    /* TODO unduplicate this */
    struct etna_resource *res = etna_resource(surf->base.texture);
    struct blt_clear_op clr = {};
@@ -271,8 +294,8 @@ etna_blit_clear_zs(struct pipe_context *pctx, struct pipe_surface *dst,
 
    clr.clear_value[0] = new_clear_value;
    clr.clear_value[1] = new_clear_value;
-   clr.clear_bits[0] = 0xffffffff; /* TODO: Clear only depth or only stencil */
-   clr.clear_bits[1] = 0xffffffff;
+   clr.clear_bits[0] = new_clear_bits;
+   clr.clear_bits[1] = new_clear_bits;
    clr.rect_x = 0; /* What about scissors? */
    clr.rect_y = 0;
    clr.rect_w = surf->surf.width;
@@ -538,11 +561,15 @@ etna_try_blt_blit(struct pipe_context *pctx,
    }
 
    /* TODO: 1 byte per pixel formats aren't handled by etna_compatible_rs_format nor
-    * translate_rs_format */
+    * translate_rs_format.
+    * Also this should be smarter about format conversions; etna_compatible_rs_format
+    * assumes all 2-byte pixel format are laid out as 4444, all 4-byte pixel formats
+    * are 8888.
+    */
    unsigned src_format = etna_compatible_rs_format(blit_info->src.format);
    unsigned dst_format = etna_compatible_rs_format(blit_info->dst.format);
-   if (translate_rs_format(src_format) == ETNA_NO_MATCH ||
-       translate_rs_format(dst_format) == ETNA_NO_MATCH ||
+   if (translate_blt_format(src_format) == ETNA_NO_MATCH ||
+       translate_blt_format(dst_format) == ETNA_NO_MATCH ||
        blit_info->scissor_enable ||
        blit_info->dst.box.depth != blit_info->src.box.depth ||
        blit_info->dst.box.depth != 1) {
@@ -550,11 +577,8 @@ etna_try_blt_blit(struct pipe_context *pctx,
    }
 
    /* Ensure that the Z coordinate is sane */
-   if (dst->base.target != PIPE_TEXTURE_CUBE)
-      assert(blit_info->dst.box.z == 0);
-   if (src->base.target != PIPE_TEXTURE_CUBE)
-      assert(blit_info->src.box.z == 0);
-
+   assert(dst->base.target == PIPE_TEXTURE_CUBE || blit_info->dst.box.z == 0);
+   assert(src->base.target != PIPE_TEXTURE_CUBE || blit_info->src.box.z == 0);
    assert(blit_info->src.box.z < src->base.array_size);
    assert(blit_info->dst.box.z < dst->base.array_size);
 
@@ -571,10 +595,10 @@ etna_try_blt_blit(struct pipe_context *pctx,
    op.src.stride = src_lev->stride;
    op.src.tiling = src->layout;
    op.src.cache_mode = TS_CACHE_MODE_128; /* TODO: cache modes */
-   op.src.swizzle[0] = TEXTURE_SWIZZLE_RED; /* TODO need actual swizzle of source */
-   op.src.swizzle[1] = TEXTURE_SWIZZLE_GREEN;
-   op.src.swizzle[2] = TEXTURE_SWIZZLE_BLUE;
-   op.src.swizzle[3] = TEXTURE_SWIZZLE_ALPHA;
+   const struct util_format_description *src_format_desc =
+      util_format_description(blit_info->src.format);
+   for (unsigned x=0; x<4; ++x)
+      op.src.swizzle[x] = src_format_desc->swizzle[x];
 
    if (src_lev->ts_size && src_lev->ts_valid) {
       op.src.use_ts = 1;
@@ -596,10 +620,10 @@ etna_try_blt_blit(struct pipe_context *pctx,
    */
    op.dest.tiling = dst->layout;
    op.dest.cache_mode = TS_CACHE_MODE_128; /* TODO cache modes */
-   op.dest.swizzle[0] = TEXTURE_SWIZZLE_RED;  /* TODO need actual swizzle of dest (might need r/b swap) */
-   op.dest.swizzle[1] = TEXTURE_SWIZZLE_GREEN;
-   op.dest.swizzle[2] = TEXTURE_SWIZZLE_BLUE;
-   op.dest.swizzle[3] = TEXTURE_SWIZZLE_ALPHA;
+   const struct util_format_description *dst_format_desc =
+      util_format_description(blit_info->dst.format);
+   for (unsigned x=0; x<4; ++x)
+      op.dest.swizzle[x] = dst_format_desc->swizzle[x];
 
    op.dest_x = blit_info->dst.box.x;
    op.dest_y = blit_info->dst.box.y;
@@ -616,7 +640,7 @@ etna_try_blt_blit(struct pipe_context *pctx,
    emit_blt_copyimage(ctx->stream, &op);
 
    /* Make FE wait for BLT, in case we want to do something with the image next.
-    * This probably shouldn't be here.
+    * This probably shouldn't be here, and depend on what is done with the resource.
     */
    emit_blt_sync_fe(ctx->stream);
 
