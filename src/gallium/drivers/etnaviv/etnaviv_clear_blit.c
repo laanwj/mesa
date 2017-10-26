@@ -537,7 +537,8 @@ etna_try_blt_blit(struct pipe_context *pctx,
       return FALSE;
    }
 
-   /* TODO: Does this work if there is format conversion? */
+   /* TODO: 1 byte per pixel formats aren't handled by etna_compatible_rs_format nor
+    * translate_rs_format */
    unsigned src_format = etna_compatible_rs_format(blit_info->src.format);
    unsigned dst_format = etna_compatible_rs_format(blit_info->dst.format);
    if (translate_rs_format(src_format) == ETNA_NO_MATCH ||
@@ -621,7 +622,7 @@ etna_try_blt_blit(struct pipe_context *pctx,
 
    resource_written(ctx, &dst->base);
    dst->seqno++;
-   dst->levels[blit_info->dst.level].ts_valid = false;
+   dst_lev->ts_valid = false;
 
    return TRUE;
 }
