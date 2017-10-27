@@ -637,6 +637,15 @@ etna_try_blt_blit(struct pipe_context *pctx,
       op.src_y += blit_info->src.box.height;
    }
 
+   assert(op.src_x < src_lev->padded_width);
+   assert(op.src_y < src_lev->padded_height);
+   assert((op.src_x + op.rect_w) <= src_lev->padded_width);
+   assert((op.src_y + op.rect_h) <= src_lev->padded_height);
+   assert(op.dest_x < dst_lev->padded_width);
+   assert(op.dest_y < dst_lev->padded_height);
+   assert((op.dest_x + op.rect_w) <= dst_lev->padded_width);
+   assert((op.dest_y + op.rect_h) <= dst_lev->padded_height);
+
    emit_blt_copyimage(ctx->stream, &op);
 
    /* Make FE wait for BLT, in case we want to do something with the image next.
