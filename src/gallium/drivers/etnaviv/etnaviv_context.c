@@ -493,7 +493,7 @@ etna_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 
    if (screen->specs.use_texture_descriptors) {
       /* Create an empty dummy texture descriptor */
-      ctx->dummy_desc_bo = etna_bo_new(ctx->screen->dev, 0x100, DRM_ETNA_GEM_CACHE_UNCACHED);
+      ctx->dummy_desc_bo = etna_bo_new(ctx->screen->dev, 0x100, DRM_ETNA_GEM_CACHE_UNCACHED | DRM_ETNA_GEM_TYPE_TXD);
       if (!ctx->dummy_desc_bo)
          goto fail;
       uint32_t *buf = etna_bo_map(ctx->dummy_desc_bo);
