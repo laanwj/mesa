@@ -103,7 +103,7 @@ etna_screen_resource_alloc_ts(struct pipe_screen *pscreen,
          rsc, rt_ts_size);
 
    struct etna_bo *rt_ts;
-   rt_ts = etna_bo_new(screen->dev, rt_ts_size, DRM_ETNA_GEM_CACHE_WC);
+   rt_ts = etna_bo_new(screen->dev, rt_ts_size, DRM_ETNA_GEM_CACHE_WC | DRM_ETNA_GEM_TYPE_TS);
 
    if (unlikely(!rt_ts)) {
       BUG("Problem allocating tile status for resource");
