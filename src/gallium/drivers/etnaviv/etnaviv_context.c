@@ -328,6 +328,9 @@ etna_cmd_stream_reset_notify(struct etna_cmd_stream *stream, void *priv)
    struct etna_context *ctx = priv;
    struct etna_resource *rsc, *rsc_tmp;
 
+   /* GC7000: blob does this before anything else */
+   etna_set_state(ctx->stream, VIVS_GL_FLUSH_CACHE, 0x00000c23);
+
    etna_set_state(stream, VIVS_GL_API_MODE, VIVS_GL_API_MODE_OPENGL);
    etna_set_state(stream, VIVS_GL_VERTEX_ELEMENT_CONFIG, 0x00000001);
    /* blob sets this to 0x40000031 on GC7000, seems to make no difference,

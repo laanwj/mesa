@@ -37,7 +37,7 @@
 
 static inline uint32_t blt_compute_stride_bits(const struct blt_imginfo *img)
 {
-    return VIVS_BLT_DEST_STRIDE_TILING(img->tiling == ETNA_LAYOUT_LINEAR ? 0 : 3) |
+    return VIVS_BLT_DEST_STRIDE_TILING(img->tiling == ETNA_LAYOUT_LINEAR ? 0 : 1) | /* 3? */
            VIVS_BLT_DEST_STRIDE_FORMAT(img->format) |
            VIVS_BLT_DEST_STRIDE_STRIDE(img->stride);
 }
@@ -225,11 +225,13 @@ void emit_blt_genmipmaps(struct etna_cmd_stream *stream, const struct blt_genmip
 
 void emit_blt_sync_fe(struct etna_cmd_stream *stream)
 {
+    uint32_t token = 0x00001001 | (1<<28) | (1<<29); /* When to set bit 28/29? */
     etna_cmd_stream_reserve(stream, 64*2); /* Never allow BLT sequences to be broken up */
+    /* nb: UNK28=3, after copy_buffer */
     etna_set_state(stream, VIVS_BLT_ENABLE, 0x00000001);
-    etna_set_state(stream, VIVS_GL_SEMAPHORE_TOKEN, 0x00001001);
+    etna_set_state(stream, VIVS_GL_SEMAPHORE_TOKEN, token);
     etna_cmd_stream_emit(stream, 0x48000000); /* command STALL (9) OP=STALL */
-    etna_cmd_stream_emit(stream, 0x00001001); /* command   TOKEN FROM=FE,TO=BLT,UNK28=0x0 */
+    etna_cmd_stream_emit(stream, token); /* command   TOKEN FROM=FE,TO=BLT,UNK28=0x0 */
     etna_set_state(stream, VIVS_BLT_ENABLE, 0x00000000);
 
     etna_set_state(stream, VIVS_GL_FLUSH_CACHE, 0x00000c23);
@@ -243,8 +245,8 @@ void emit_blt_sync_ra(struct etna_cmd_stream *stream)
     etna_set_state(stream, VIVS_GL_STALL_TOKEN, 0x00001005);
     etna_set_state(stream, VIVS_BLT_ENABLE, 0x00000000);
 
-    etna_set_state(stream, VIVS_GL_FLUSH_CACHE, 0x00000002);
-    etna_set_state(stream, VIVS_DUMMY_DUMMY, 0x00000000);
+    etna_set_state(stream, VIVS_GL_FLUSH_CACHE, 0x00000c23); /* If COLOR and DEPTH updated */
+    /* etna_set_state(stream, VIVS_GL_FLUSH_CACHE, 0x00000002); if only COLOR touched */
 }
 
 

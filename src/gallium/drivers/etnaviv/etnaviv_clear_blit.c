@@ -369,6 +369,14 @@ etna_clear(struct pipe_context *pctx, unsigned buffers,
    /* We intend to render to this image, so make sure the RA is synchronized to BLT */
    emit_blt_sync_ra(ctx->stream);
 #endif
+
+   if (DBG_ENABLED(ETNA_DBG_FLUSH_ALL)) {
+      struct pipe_fence_handle *fence = NULL;
+      pctx->flush(pctx, &fence, 0);
+      assert(fence);
+      pctx->screen->fence_finish(pctx->screen, pctx, fence, PIPE_TIMEOUT_INFINITE);
+      pctx->screen->fence_reference(pctx->screen, &fence, NULL);
+   }
 }
 
 static void
@@ -378,9 +386,11 @@ etna_clear_render_target(struct pipe_context *pctx, struct pipe_surface *dst,
                          bool render_condition_enabled)
 {
    struct etna_context *ctx = etna_context(pctx);
+   printf("etna_clear_render_target\n");
 
    /* XXX could fall back to RS when target area is full screen / resolveable
     * and no TS. */
+   /* TODO implement in terms of BLT op */
    etna_blit_save_state(ctx);
    util_blitter_clear_render_target(ctx->blitter, dst, color, dstx, dsty, width, height);
 }
@@ -392,9 +402,11 @@ etna_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *dst,
                          unsigned height, bool render_condition_enabled)
 {
    struct etna_context *ctx = etna_context(pctx);
+   printf("etna_clear_depth_stencil\n");
 
    /* XXX could fall back to RS when target area is full screen / resolveable
     * and no TS. */
+   /* TODO implement in terms of BLT op */
    etna_blit_save_state(ctx);
    util_blitter_clear_depth_stencil(ctx->blitter, dst, clear_flags, depth,
                                     stencil, dstx, dsty, width, height);
@@ -410,6 +422,12 @@ etna_resource_copy_region(struct pipe_context *pctx, struct pipe_resource *dst,
 
    /* The resource must be of the same format. */
    assert(src->format == dst->format);
+   assert(src->target == dst->target);
+   printf("etna_resource_copy_region tgt=%d dst_level=%d dstx=%d dsty=%d dstz=%d src_level=%d src_box=(%d,%d,%d,%d,%d,%d)\n",
+                          dst->target,
+                          dst_level, dstx, dsty,
+                          dstz, src_level,
+                          src_box->x, src_box->y, src_box->z, src_box->width, src_box->height, src_box->depth);
 
    /* XXX we can use the RS as a literal copy engine here
     * the only complexity is tiling; the size of the boxes needs to be aligned
@@ -652,6 +670,15 @@ etna_try_blt_blit(struct pipe_context *pctx,
     * This probably shouldn't be here, and depend on what is done with the resource.
     */
    emit_blt_sync_fe(ctx->stream);
+#if 0
+   if (DBG_ENABLED(ETNA_DBG_FLUSH_ALL)) {
+      struct pipe_fence_handle *fence = NULL;
+      pctx->flush(pctx, &fence, 0);
+      assert(fence);
+      pctx->screen->fence_finish(pctx->screen, pctx, fence, PIPE_TIMEOUT_INFINITE);
+      pctx->screen->fence_reference(pctx->screen, &fence, NULL);
+   }
+#endif
 
    resource_written(ctx, &dst->base);
    dst->seqno++;
@@ -902,12 +929,20 @@ etna_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
       DBG("color resolve unimplemented");
       return;
    }
+
 #if 0
    if (etna_try_rs_blit(pctx, blit_info))
       return;
 #else
    if (etna_try_blt_blit(pctx, blit_info))
       return;
+#endif
+#if 1
+   printf("etna_blit [fallback] dst_tgt=%d dst_box=(%d,%d,%d,%d,%d,%d) src_tgt=%d src_box=(%d,%d,%d,%d,%d,%d)\n",
+                        blit_info->dst.resource->target,
+                        blit_info->dst.box.x, blit_info->dst.box.y, blit_info->dst.box.z, blit_info->dst.box.width, blit_info->dst.box.height, blit_info->dst.box.depth,
+                        blit_info->src.resource->target,
+                        blit_info->src.box.x, blit_info->src.box.y, blit_info->src.box.z, blit_info->src.box.width, blit_info->src.box.height, blit_info->src.box.depth);
 #endif
 
    if (util_try_blit_via_copy_region(pctx, blit_info))
