@@ -103,7 +103,7 @@ etna_screen_resource_alloc_ts(struct pipe_screen *pscreen,
          rsc, rt_ts_size);
 
    struct etna_bo *rt_ts;
-   rt_ts = etna_bo_new(screen->dev, rt_ts_size, DRM_ETNA_GEM_CACHE_WC);
+   rt_ts = etna_bo_new(screen->dev, rt_ts_size, DRM_ETNA_GEM_CACHE_WC | DRM_ETNA_GEM_TYPE_TS);
 
    if (unlikely(!rt_ts)) {
       BUG("Problem allocating tile status for resource");
@@ -276,6 +276,19 @@ etna_resource_alloc(struct pipe_screen *pscreen, unsigned layout,
    uint32_t flags = DRM_ETNA_GEM_CACHE_WC;
    if (templat->bind & PIPE_BIND_VERTEX_BUFFER)
       flags |= DRM_ETNA_GEM_FORCE_MMU;
+
+   /* Determine surface type */
+   if (templat->bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DISPLAY_TARGET))
+      flags |= DRM_ETNA_GEM_TYPE_RT;
+   else if (templat->bind & PIPE_BIND_DEPTH_STENCIL)
+      flags |= DRM_ETNA_GEM_TYPE_ZS;
+   else if (templat->bind & PIPE_BIND_INDEX_BUFFER)
+      flags |= DRM_ETNA_GEM_TYPE_IDX;
+   else if (templat->bind & PIPE_BIND_VERTEX_BUFFER)
+      flags |= DRM_ETNA_GEM_TYPE_VTX;
+   else if (templat->bind & PIPE_BIND_SAMPLER_VIEW)
+      flags |= DRM_ETNA_GEM_TYPE_TEX;
+
    struct etna_bo *bo = etna_bo_new(screen->dev, size, flags);
    if (unlikely(bo == NULL)) {
       BUG("Problem allocating video memory for resource");
