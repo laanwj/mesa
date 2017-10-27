@@ -129,7 +129,7 @@ etna_create_sampler_view_desc(struct pipe_context *pctx, struct pipe_resource *p
    }
 
    /* Create texture descriptor */
-   sv->bo = etna_bo_new(ctx->screen->dev, 0x100, DRM_ETNA_GEM_CACHE_UNCACHED);
+   sv->bo = etna_bo_new(ctx->screen->dev, 0x100, DRM_ETNA_GEM_CACHE_UNCACHED | DRM_ETNA_GEM_TYPE_TXD);
    if (!sv->bo)
       goto error;
 
