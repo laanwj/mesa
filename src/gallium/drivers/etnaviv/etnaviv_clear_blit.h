@@ -57,6 +57,9 @@ void
 etna_clear_blit_init(struct pipe_context *pctx);
 
 void
+etna_clear_blit_blt_init(struct pipe_context *pctx);
+
+void
 etna_clear_blit_rs_init(struct pipe_context *pctx);
 
 #endif
