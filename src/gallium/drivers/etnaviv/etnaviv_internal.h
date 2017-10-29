@@ -82,6 +82,8 @@ struct etna_specs {
    unsigned has_unified_uniforms : 1;
    /* can load shader instructions from memory */
    unsigned has_icache : 1;
+   /* uses descriptor-based texturing */
+   unsigned use_texture_descriptors : 1;
    /* has BLT engine instead of RS */
    unsigned use_blt : 1;
    /* can use any kind of wrapping mode on npot textures */

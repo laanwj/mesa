@@ -32,6 +32,7 @@
 #include "etnaviv_context.h"
 #include "etnaviv_emit.h"
 #include "etnaviv_format.h"
+#include "etnaviv_texture_desc.h"
 #include "etnaviv_texture_plain.h"
 #include "etnaviv_translate.h"
 #include "util/u_inlines.h"
@@ -236,8 +237,14 @@ etna_texture_barrier(struct pipe_context *pctx, unsigned flags)
 void
 etna_texture_init(struct pipe_context *pctx)
 {
+   struct etna_context *ctx = etna_context(pctx);
+
    pctx->bind_sampler_states = etna_bind_sampler_states;
    pctx->set_sampler_views = etna_set_sampler_views;
    pctx->texture_barrier = etna_texture_barrier;
-   etna_texture_plain_init(pctx);
+
+   if (ctx->specs.use_texture_descriptors)
+      etna_texture_desc_init(pctx);
+   else
+      etna_texture_plain_init(pctx);
 }

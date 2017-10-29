@@ -35,6 +35,7 @@
 #include "etnaviv_screen.h"
 #include "etnaviv_shader.h"
 #include "etnaviv_texture.h"
+#include "etnaviv_texture_desc.h"
 #include "etnaviv_texture_plain.h"
 #include "etnaviv_translate.h"
 #include "etnaviv_uniforms.h"
@@ -373,6 +374,56 @@ etna_emit_texture_plain(struct etna_context *ctx)
       }
    }
    etna_coalesce_end(stream, &coalesce);
+}
+
+static void
+etna_emit_texture_desc(struct etna_context *ctx)
+{
+   struct etna_cmd_stream *stream = ctx->stream;
+   uint32_t active_samplers = active_samplers_bits(ctx);
+   uint32_t dirty = ctx->dirty;
+
+   if (unlikely(dirty & (ETNA_DIRTY_SAMPLERS | ETNA_DIRTY_SAMPLER_VIEWS))) {
+      for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
+         if ((1 << x) & active_samplers) {
+            struct etna_sampler_state_desc *ss = etna_sampler_state_desc(ctx->sampler[x]);
+            struct etna_sampler_view_desc *sv = etna_sampler_view_desc(ctx->sampler_view[x]);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_TX_CTRL(x), ss->TX_CTRL);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_CTRL0(x), ss->SAMP_CTRL0 | sv->SAMP_CTRL0);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_CTRL1(x), ss->SAMP_CTRL1 | sv->SAMP_CTRL1);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_LOD_MINMAX(x), ss->SAMP_LOD_MINMAX);
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_SAMP_LOD_BIAS(x), ss->SAMP_LOD_BIAS);
+         }
+      }
+   }
+
+   if (unlikely(dirty & ETNA_DIRTY_SAMPLER_VIEWS)) {
+      /* Set texture descriptors */
+      for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
+         if ((1 << x) & ctx->dirty_sampler_views) {
+            if ((1 << x) & active_samplers) {
+               struct etna_sampler_view_desc *sv = etna_sampler_view_desc(ctx->sampler_view[x]);
+               etna_sampler_view_update_descriptor(ctx, stream, sv);
+               etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &sv->DESC_ADDR);
+            } else {
+               /* dummy texture descriptors for unused samplers */
+               etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &ctx->DUMMY_DESC_ADDR);
+            }
+         }
+      }
+   }
+
+   if (unlikely(dirty & ETNA_DIRTY_SAMPLER_VIEWS)) {
+      /* Invalidate all dirty sampler views.
+       */
+      for (int x = 0; x < PIPE_MAX_SAMPLERS; ++x) {
+         if ((1 << x) & ctx->dirty_sampler_views) {
+            etna_set_state(stream, VIVS_NTE_DESCRIPTOR_INVALIDATE,
+                  VIVS_NTE_DESCRIPTOR_INVALIDATE_UNK29 |
+                  VIVS_NTE_DESCRIPTOR_INVALIDATE_IDX(x));
+         }
+      }
+   }
 }
 
 /* Emit state that only exists on HALTI5+ */
@@ -815,7 +866,10 @@ etna_emit_state(struct etna_context *ctx)
    else
       emit_pre_halti5_state(ctx);
 
-   etna_emit_texture_plain(ctx);
+   if (ctx->specs.use_texture_descriptors)
+      etna_emit_texture_desc(ctx);
+   else
+      etna_emit_texture_plain(ctx);
 
    /* Insert a FE/PE stall as changing the shader instructions (and maybe
     * the uniforms) can corrupt the previous in-progress draw operation.
