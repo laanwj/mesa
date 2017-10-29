@@ -743,6 +743,7 @@ etna_emit_state(struct etna_context *ctx)
          /*03828*/ EMIT_STATE(GL_VARYING_COMPONENT_USE(x), ctx->shader_state.GL_VARYING_COMPONENT_USE[x]);
       }
 #endif
+      /*03888*/ EMIT_STATE(GL_HALTI5_SH_SPECIALS, ctx->shader_state.GL_HALTI5_SH_SPECIALS);
    }
    etna_coalesce_end(stream, &coalesce);
    /* end only EMIT_STATE */
