@@ -790,6 +790,15 @@ etna_get_specs(struct etna_screen *screen)
    screen->specs.use_instanced_drawing =
       VIV_FEATURE(screen, chipMinorFeatures4, HALTI2);
 
+   screen->specs.use_texture_descriptors =
+      screen->specs.halti5 = VIV_FEATURE(screen, chipMinorFeatures5, HALTI5);
+   if (screen->specs.halti5)
+      DBG("etnaviv: HALTI5 mode enabled: using texture descriptors and new states\n");
+
+   screen->specs.use_blt = VIV_FEATURE(screen, chipMinorFeatures5, BLT_ENGINE);
+   if (screen->specs.use_blt)
+      DBG("etnaviv: Using BLT instead of RS\n");
+
    return true;
 
 fail:

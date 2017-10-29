@@ -82,6 +82,12 @@ struct etna_specs {
    unsigned has_icache : 1;
    /* use only instanced drawing */
    unsigned use_instanced_drawing : 1;
+   /* uses descriptor-based texturing */
+   unsigned use_texture_descriptors : 1;
+   /* HALTI5 shader and frontend states */
+   unsigned halti5 : 1;
+   /* has BLT engine instead of RS */
+   unsigned use_blt : 1;
    /* can use any kind of wrapping mode on npot textures */
    unsigned npot_tex_any_wrap;
    /* number of bits per TS tile */
