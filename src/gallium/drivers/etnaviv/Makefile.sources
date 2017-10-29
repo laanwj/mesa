@@ -6,6 +6,7 @@ C_SOURCES :=  \
 	hw/state_3d.xml.h \
 	hw/state_blt.xml.h \
 	hw/state.xml.h \
+	hw/texdesc_3d.xml.h \
 	\
 	etnaviv_asm.c \
 	etnaviv_asm.h \
@@ -51,6 +52,8 @@ C_SOURCES :=  \
 	etnaviv_surface.h \
 	etnaviv_texture.c \
 	etnaviv_texture.h \
+	etnaviv_texture_desc.c \
+	etnaviv_texture_desc.h \
 	etnaviv_texture_state.c \
 	etnaviv_texture_state.h \
 	etnaviv_tiling.c \
