@@ -187,6 +187,10 @@ struct etna_context {
 
    /* list of active hardware queries */
    struct list_head active_hw_queries;
+
+   /* Dummy texture descriptor (if needed) */
+   struct etna_bo *dummy_desc_bo;
+   struct etna_reloc DUMMY_DESC_ADDR;
 };
 
 static inline struct etna_context *

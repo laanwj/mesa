@@ -51,6 +51,8 @@ C_SOURCES :=  \
 	etnaviv_surface.h \
 	etnaviv_texture.c \
 	etnaviv_texture.h \
+	etnaviv_texture_desc.c \
+	etnaviv_texture_desc.h \
 	etnaviv_texture_plain.c \
 	etnaviv_texture_plain.h \
 	etnaviv_tiling.c \
