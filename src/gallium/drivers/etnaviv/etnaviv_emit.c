@@ -399,6 +399,11 @@ etna_emit_state(struct etna_context *ctx)
          }
       }
    }
+   if (unlikely(ctx->specs.halti >= 2 && (dirty & (ETNA_DIRTY_VERTEX_ELEMENTS)))) {
+      /*00780*/ etna_set_state_multi(stream, VIVS_FE_GENERIC_ATTRIB_SCALE(0),
+         ctx->vertex_elements->num_elements,
+         ctx->vertex_elements->NFE_GENERIC_ATTRIB_SCALE);
+   }
    if (unlikely(dirty & (ETNA_DIRTY_SHADER))) {
       /*00800*/ EMIT_STATE(VS_END_PC, ctx->shader_state.VS_END_PC);
    }
