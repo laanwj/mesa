@@ -100,6 +100,9 @@ struct etna_shader_uniform_info {
 struct etna_context {
    struct pipe_context base;
 
+   /* GPU-specific implementation to emit texture state */
+   void (*emit_texture_state)(struct etna_context *pctx);
+
    struct etna_specs specs;
    struct etna_screen *screen;
    struct etna_cmd_stream *stream;

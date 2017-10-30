@@ -24,8 +24,8 @@
  *    Wladimir J. van der Laan <laanwj@gmail.com>
  */
 
-#ifndef H_ETNAVIV_TEXTURE
-#define H_ETNAVIV_TEXTURE
+#ifndef H_ETNAVIV_TEXTURE_PLAIN
+#define H_ETNAVIV_TEXTURE_PLAIN
 
 #include <etnaviv_drmif.h>
 
@@ -34,25 +34,44 @@
 
 #include "hw/state_3d.xml.h"
 
-struct etna_context;
+struct etna_sampler_state {
+   struct pipe_sampler_state base;
 
-/* Initialize common, shared texture methods for
- * context */
+   /* sampler offset +4*sampler, interleave when committing state */
+   uint32_t TE_SAMPLER_CONFIG0;
+   uint32_t TE_SAMPLER_CONFIG1;
+   uint32_t TE_SAMPLER_LOD_CONFIG;
+   unsigned min_lod, max_lod;
+};
+
+static inline struct etna_sampler_state *
+etna_sampler_state(struct pipe_sampler_state *samp)
+{
+   return (struct etna_sampler_state *)samp;
+}
+
+struct etna_sampler_view {
+   struct pipe_sampler_view base;
+
+   /* sampler offset +4*sampler, interleave when committing state */
+   uint32_t TE_SAMPLER_CONFIG0;
+   uint32_t TE_SAMPLER_CONFIG0_MASK;
+   uint32_t TE_SAMPLER_CONFIG1;
+   uint32_t TE_SAMPLER_SIZE;
+   uint32_t TE_SAMPLER_LOG_SIZE;
+   struct etna_reloc TE_SAMPLER_LOD_ADDR[VIVS_TE_SAMPLER_LOD_ADDR__LEN];
+   unsigned min_lod, max_lod; /* 5.5 fixp */
+};
+
+static inline struct etna_sampler_view *
+etna_sampler_view(struct pipe_sampler_view *view)
+{
+   return (struct etna_sampler_view *)view;
+}
+
+/* Initialize context for "plain" (non-descriptor, state-based) texture views
+ * and descriptors */
 void
-etna_texture_init(struct pipe_context *pctx);
-
-/* If the original resource is not compatible with the sampler.  Allocate
- * an appropriately tiled texture. */
-struct etna_resource *
-etna_texture_handle_incompatible(struct pipe_context *pctx, struct pipe_resource *prsc);
-
-/* Create bit field that specifies which samplers are active and thus need to be
- * programmed
- * 32 bits is enough for 32 samplers. As far as I know this is the upper bound
- * supported on any Vivante hw
- * up to GC4000.
- */
-uint32_t
-active_samplers_bits(struct etna_context *ctx);
+etna_texture_plain_init(struct pipe_context *pctx);
 
 #endif
