@@ -35,6 +35,7 @@
 #include "etnaviv_screen.h"
 #include "etnaviv_shader.h"
 #include "etnaviv_texture.h"
+#include "etnaviv_texture_plain.h"
 #include "etnaviv_translate.h"
 #include "etnaviv_uniforms.h"
 #include "etnaviv_util.h"
@@ -291,6 +292,88 @@ required_stream_size(struct etna_context *ctx)
    return size;
 }
 
+static void
+etna_emit_texture_plain(struct etna_context *ctx)
+{
+   struct etna_cmd_stream *stream = ctx->stream;
+   uint32_t active_samplers = active_samplers_bits(ctx);
+   uint32_t dirty = ctx->dirty;
+   struct etna_coalesce coalesce;
+
+   etna_coalesce_start(stream, &coalesce);
+
+   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_SAMPLERS))) {
+      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
+         uint32_t val = 0; /* 0 == sampler inactive */
+
+         /* set active samplers to their configuration value (determined by both
+          * the sampler state and sampler view) */
+         if ((1 << x) & active_samplers) {
+            struct etna_sampler_state *ss = etna_sampler_state(ctx->sampler[x]);
+            struct etna_sampler_view *sv = etna_sampler_view(ctx->sampler_view[x]);
+
+            val = (ss->TE_SAMPLER_CONFIG0 & sv->TE_SAMPLER_CONFIG0_MASK) |
+                  sv->TE_SAMPLER_CONFIG0;
+         }
+
+         /*02000*/ EMIT_STATE(TE_SAMPLER_CONFIG0(x), val);
+      }
+   }
+   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS))) {
+      struct etna_sampler_view *sv;
+
+      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
+         if ((1 << x) & active_samplers) {
+            sv = etna_sampler_view(ctx->sampler_view[x]);
+            /*02040*/ EMIT_STATE(TE_SAMPLER_SIZE(x), sv->TE_SAMPLER_SIZE);
+         }
+      }
+      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
+         if ((1 << x) & active_samplers) {
+            sv = etna_sampler_view(ctx->sampler_view[x]);
+            /*02080*/ EMIT_STATE(TE_SAMPLER_LOG_SIZE(x), sv->TE_SAMPLER_LOG_SIZE);
+         }
+      }
+   }
+   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_SAMPLERS))) {
+      struct etna_sampler_state *ss;
+      struct etna_sampler_view *sv;
+
+      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
+         if ((1 << x) & active_samplers) {
+            ss = etna_sampler_state(ctx->sampler[x]);
+            sv = etna_sampler_view(ctx->sampler_view[x]);
+
+            /* min and max lod is determined both by the sampler and the view */
+            /*020C0*/ EMIT_STATE(TE_SAMPLER_LOD_CONFIG(x),
+                                 ss->TE_SAMPLER_LOD_CONFIG |
+                                 VIVS_TE_SAMPLER_LOD_CONFIG_MAX(MIN2(ss->max_lod, sv->max_lod)) |
+                                 VIVS_TE_SAMPLER_LOD_CONFIG_MIN(MAX2(ss->min_lod, sv->min_lod)));
+         }
+      }
+      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
+         if ((1 << x) & active_samplers) {
+            ss = etna_sampler_state(ctx->sampler[x]);
+            sv = etna_sampler_view(ctx->sampler_view[x]);
+
+            /*021C0*/ EMIT_STATE(TE_SAMPLER_CONFIG1(x), ss->TE_SAMPLER_CONFIG1 |
+                                                        sv->TE_SAMPLER_CONFIG1);
+         }
+      }
+   }
+   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS))) {
+      for (int y = 0; y < VIVS_TE_SAMPLER_LOD_ADDR__LEN; ++y) {
+         for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
+            if ((1 << x) & active_samplers) {
+               struct etna_sampler_view *sv = etna_sampler_view(ctx->sampler_view[x]);
+               /*02400*/ EMIT_STATE_RELOC(TE_SAMPLER_LOD_ADDR(x, y),&sv->TE_SAMPLER_LOD_ADDR[y]);
+            }
+         }
+      }
+   }
+   etna_coalesce_end(stream, &coalesce);
+}
+
 /* Weave state before draw operation. This function merges all the compiled
  * state blocks under the context into one device register state. Parts of
  * this state that are changed since last call (dirty) will be uploaded as
@@ -299,7 +382,6 @@ void
 etna_emit_state(struct etna_context *ctx)
 {
    struct etna_cmd_stream *stream = ctx->stream;
-   uint32_t active_samplers = active_samplers_bits(ctx);
 
    /* Pre-reserve the command buffer space which we are likely to need.
     * This must cover all the state emitted below, and the following
@@ -668,77 +750,6 @@ etna_emit_state(struct etna_context *ctx)
       /*01668*/ EMIT_STATE_RELOC(TS_DEPTH_SURFACE_BASE, &ctx->framebuffer.TS_DEPTH_SURFACE_BASE);
       /*0166C*/ EMIT_STATE(TS_DEPTH_CLEAR_VALUE, ctx->framebuffer.TS_DEPTH_CLEAR_VALUE);
    }
-
-   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_SAMPLERS))) {
-      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
-         uint32_t val = 0; /* 0 == sampler inactive */
-
-         /* set active samplers to their configuration value (determined by both
-          * the sampler state and sampler view) */
-         if ((1 << x) & active_samplers) {
-            struct etna_sampler_state *ss = etna_sampler_state(ctx->sampler[x]);
-            struct etna_sampler_view *sv = etna_sampler_view(ctx->sampler_view[x]);
-
-            val = (ss->TE_SAMPLER_CONFIG0 & sv->TE_SAMPLER_CONFIG0_MASK) |
-                  sv->TE_SAMPLER_CONFIG0;
-         }
-
-         /*02000*/ EMIT_STATE(TE_SAMPLER_CONFIG0(x), val);
-      }
-   }
-   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS))) {
-      struct etna_sampler_view *sv;
-
-      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
-         if ((1 << x) & active_samplers) {
-            sv = etna_sampler_view(ctx->sampler_view[x]);
-            /*02040*/ EMIT_STATE(TE_SAMPLER_SIZE(x), sv->TE_SAMPLER_SIZE);
-         }
-      }
-      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
-         if ((1 << x) & active_samplers) {
-            sv = etna_sampler_view(ctx->sampler_view[x]);
-            /*02080*/ EMIT_STATE(TE_SAMPLER_LOG_SIZE(x), sv->TE_SAMPLER_LOG_SIZE);
-         }
-      }
-   }
-   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS | ETNA_DIRTY_SAMPLERS))) {
-      struct etna_sampler_state *ss;
-      struct etna_sampler_view *sv;
-
-      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
-         if ((1 << x) & active_samplers) {
-            ss = etna_sampler_state(ctx->sampler[x]);
-            sv = etna_sampler_view(ctx->sampler_view[x]);
-
-            /* min and max lod is determined both by the sampler and the view */
-            /*020C0*/ EMIT_STATE(TE_SAMPLER_LOD_CONFIG(x),
-                                 ss->TE_SAMPLER_LOD_CONFIG |
-                                 VIVS_TE_SAMPLER_LOD_CONFIG_MAX(MIN2(ss->max_lod, sv->max_lod)) |
-                                 VIVS_TE_SAMPLER_LOD_CONFIG_MIN(MAX2(ss->min_lod, sv->min_lod)));
-         }
-      }
-      for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
-         if ((1 << x) & active_samplers) {
-            ss = etna_sampler_state(ctx->sampler[x]);
-            sv = etna_sampler_view(ctx->sampler_view[x]);
-
-            /*021C0*/ EMIT_STATE(TE_SAMPLER_CONFIG1(x), ss->TE_SAMPLER_CONFIG1 |
-                                                        sv->TE_SAMPLER_CONFIG1);
-         }
-      }
-   }
-   if (unlikely(dirty & (ETNA_DIRTY_SAMPLER_VIEWS))) {
-      for (int y = 0; y < VIVS_TE_SAMPLER_LOD_ADDR__LEN; ++y) {
-         for (int x = 0; x < VIVS_TE_SAMPLER__LEN; ++x) {
-            if ((1 << x) & active_samplers) {
-               struct etna_sampler_view *sv = etna_sampler_view(ctx->sampler_view[x]);
-               /*02400*/ EMIT_STATE_RELOC(TE_SAMPLER_LOD_ADDR(x, y),&sv->TE_SAMPLER_LOD_ADDR[y]);
-            }
-         }
-      }
-   }
-
    if (unlikely(dirty & (ETNA_DIRTY_SHADER))) {
       /*0381C*/ EMIT_STATE(GL_VARYING_TOTAL_COMPONENTS, ctx->shader_state.GL_VARYING_TOTAL_COMPONENTS);
       /*03820*/ EMIT_STATE(PA_VARYING_NUM_COMPONENTS(0), ctx->shader_state.GL_VARYING_NUM_COMPONENTS);
@@ -752,6 +763,8 @@ etna_emit_state(struct etna_context *ctx)
    }
    etna_coalesce_end(stream, &coalesce);
    /* end only EMIT_STATE */
+
+   etna_emit_texture_plain(ctx);
 
    /* Insert a FE/PE stall as changing the shader instructions (and maybe
     * the uniforms) can corrupt the previous in-progress draw operation.
