@@ -93,6 +93,7 @@ etna_create_sampler_view_desc(struct pipe_context *pctx, struct pipe_resource *p
    struct etna_context *ctx = etna_context(pctx);
    const uint32_t format = translate_texture_format(so->format);
    const bool ext = !!(format & EXT_FORMAT);
+   const bool astc = !!(format & ASTC_FORMAT);
    const uint32_t swiz = get_texture_swiz(so->format, so->swizzle_r,
                                           so->swizzle_g, so->swizzle_b,
                                           so->swizzle_a);
@@ -141,15 +142,20 @@ etna_create_sampler_view_desc(struct pipe_context *pctx, struct pipe_resource *p
    uint32_t base_height = u_minify(res->base.height0, sv->base.u.tex.first_level);
 
 #define DESC_SET(x, y) buf[(TEXDESC_##x)>>2] = (y)
-   DESC_SET(CONFIG0, COND(!ext, VIVS_TE_SAMPLER_CONFIG0_FORMAT(format))
+   DESC_SET(CONFIG0, COND(!ext && !astc, VIVS_TE_SAMPLER_CONFIG0_FORMAT(format))
                    | VIVS_TE_SAMPLER_CONFIG0_TYPE(target_hw));
    DESC_SET(CONFIG1, COND(ext, VIVS_TE_SAMPLER_CONFIG1_FORMAT_EXT(format)) |
+                     COND(astc, VIVS_TE_SAMPLER_CONFIG1_FORMAT_EXT(TEXTURE_FORMAT_EXT_ASTC)) |
                             VIVS_TE_SAMPLER_CONFIG1_HALIGN(res->halign) | swiz |
                             VIVS_TE_SAMPLER_CONFIG1_UNK25);
    DESC_SET(CONFIG2, 0x00030000);
    DESC_SET(LINEAR_STRIDE, res->levels[0].stride);
    DESC_SET(SLICE, res->levels[0].layer_stride);
    DESC_SET(3D_CONFIG, 0x00000001);
+   DESC_SET(ASTC0, COND(astc, VIVS_NTE_SAMPLER_ASTC0_ASTC_FORMAT(format)) |
+                   VIVS_NTE_SAMPLER_ASTC0_UNK8(0xc) |
+                   VIVS_NTE_SAMPLER_ASTC0_UNK16(0xc) |
+                   VIVS_NTE_SAMPLER_ASTC0_UNK24(0xc));
    DESC_SET(BASELOD, TEXDESC_BASELOD_BASELOD(sv->base.u.tex.first_level) |
                      TEXDESC_BASELOD_MAXLOD(MIN2(sv->base.u.tex.last_level, res->base.last_level)));
    DESC_SET(LOG_SIZE_EXT, TEXDESC_LOG_SIZE_EXT_WIDTH(etna_log2_fixp88(base_width)) |
