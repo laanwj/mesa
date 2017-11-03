@@ -238,6 +238,8 @@ etna_resource_alloc(struct pipe_screen *pscreen, unsigned layout,
       struct renderonly_scanout *scanout;
       struct winsys_handle handle;
 
+      printf("Scanout modifier: %08lx\n", modifier);
+
       /* pad scanout buffer size to be compatible with the RS */
       if (!screen->specs.use_blt && modifier == DRM_FORMAT_MOD_LINEAR)
          etna_adjust_rs_align(screen->specs.pixel_pipes, &paddingX, &paddingY);
@@ -449,7 +451,10 @@ etna_resource_create_modifiers(struct pipe_screen *pscreen,
     * should be scanout enabled.
     */
    tmpl.bind |= PIPE_BIND_SCANOUT;
-
+   if (getenv("ETNA_MODIFIER_OVERRIDE")) {
+      printf("%s: hack: overriding format to supertiled\n", __func__);
+      modifier = DRM_FORMAT_MOD_VIVANTE_SUPER_TILED;
+   }
    return etna_resource_alloc(pscreen, modifier_to_layout(modifier),
                               modifier, &tmpl);
 }
@@ -503,6 +508,11 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
        tmpl->target, util_format_name(tmpl->format), tmpl->width0,
        tmpl->height0, tmpl->depth0, tmpl->array_size, tmpl->last_level,
        tmpl->nr_samples, tmpl->usage, tmpl->bind, tmpl->flags);
+
+   if (getenv("ETNA_MODIFIER_OVERRIDE")) {
+      printf("%s: hack: overriding format to supertiled\n", __func__);
+      handle->modifier = DRM_FORMAT_MOD_VIVANTE_SUPER_TILED;
+   }
 
    rsc = CALLOC_STRUCT(etna_resource);
    if (!rsc)
