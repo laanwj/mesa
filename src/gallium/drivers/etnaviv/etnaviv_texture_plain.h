@@ -32,8 +32,6 @@
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
 
-#include "hw/state_3d.xml.h"
-
 struct etna_sampler_state {
    struct pipe_sampler_state base;
 
