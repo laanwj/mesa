@@ -40,6 +40,7 @@ struct etna_format {
    unsigned vtx;
    unsigned tex;
    unsigned rs;
+   unsigned ts;
    boolean present;
    const unsigned char tex_swiz[4];
 };
@@ -52,6 +53,13 @@ struct etna_format {
 
 #define RS_FORMAT_X8B8G8R8    (RS_FORMAT_X8R8G8B8 | RS_FORMAT_RB_SWAP)
 #define RS_FORMAT_A8B8G8R8    (RS_FORMAT_A8R8G8B8 | RS_FORMAT_RB_SWAP)
+
+#define TS_SAMPLER_FORMAT_NONE      ETNA_NO_MATCH
+#define TS_SAMPLER_FORMAT_X4R4G4B4  TS_SAMPLER_FORMAT_A4R4G4B4
+#define TS_SAMPLER_FORMAT_X1R5G5B5  TS_SAMPLER_FORMAT_A1R5G5B5
+#define TS_SAMPLER_FORMAT_YUY2      TS_SAMPLER_FORMAT_NONE /* Not supported AFAIK */
+#define TS_SAMPLER_FORMAT_X8B8G8R8  TS_SAMPLER_FORMAT_X8R8G8B8
+#define TS_SAMPLER_FORMAT_A8B8G8R8  TS_SAMPLER_FORMAT_A8R8G8B8
 
 #define SWIZ(x,y,z,w) {    \
    PIPE_SWIZZLE_##x,       \
@@ -66,6 +74,7 @@ struct etna_format {
       .vtx = FE_DATA_TYPE_##vtxfmt, \
       .tex = TEXTURE_FORMAT_##texfmt,                     \
       .rs = RS_FORMAT_##rsfmt,                            \
+      .ts = TS_SAMPLER_FORMAT_##rsfmt,        \
       .present = 1,                                       \
       .tex_swiz = texswiz,                                \
    }
@@ -76,6 +85,7 @@ struct etna_format {
       .vtx = ETNA_NO_MATCH,        \
       .tex = TEXTURE_FORMAT_##fmt, \
       .rs = RS_FORMAT_##rsfmt,     \
+      .ts = TS_SAMPLER_FORMAT_##rsfmt,     \
       .present = 1,                \
       .tex_swiz = swiz,            \
    }
@@ -325,4 +335,13 @@ translate_vertex_format_type(enum pipe_format fmt)
       return ETNA_NO_MATCH;
 
    return formats[fmt].vtx;
+}
+
+uint32_t
+translate_ts_sampler_format(enum pipe_format fmt)
+{
+   if (!formats[fmt].present)
+      return ETNA_NO_MATCH;
+
+   return formats[fmt].ts;
 }
