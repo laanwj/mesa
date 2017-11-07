@@ -61,6 +61,12 @@ struct etna_sampler_view {
    uint32_t TE_SAMPLER_LOG_SIZE;
    struct etna_reloc TE_SAMPLER_LOD_ADDR[VIVS_TE_SAMPLER_LOD_ADDR__LEN];
    unsigned min_lod, max_lod; /* 5.5 fixp */
+
+   uint32_t TS_SAMPLER_CONFIG;
+   struct etna_reloc TS_SAMPLER_STATUS_BASE;
+   uint32_t TS_SAMPLER_CLEAR_VALUE;
+   uint32_t TS_SAMPLER_CLEAR_VALUE2;
+   struct etna_reloc TS_SAMPLER_SURFACE_BASE; /* HALTI3+ */
 };
 
 static inline struct etna_sampler_view *
