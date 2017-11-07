@@ -14,7 +14,7 @@ The rules-ng-ng source files this header was generated from are:
 - state_hi.xml  (  27733 bytes, from 2017-10-02 19:00:30)
 - copyright.xml (   1597 bytes, from 2016-10-29 07:29:22)
 - state_2d.xml  (  51552 bytes, from 2016-10-29 07:29:22)
-- state_3d.xml  (  80041 bytes, from 2017-11-06 13:44:22)
+- state_3d.xml  (  79992 bytes, from 2017-11-07 10:44:35)
 - state_blt.xml (  13405 bytes, from 2017-10-16 17:42:46)
 - state_vg.xml  (   5975 bytes, from 2016-10-29 07:29:22)
 
