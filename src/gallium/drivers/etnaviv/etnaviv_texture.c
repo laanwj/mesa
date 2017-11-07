@@ -160,7 +160,7 @@ etna_configure_sampler_ts(struct etna_context *ctx, struct pipe_sampler_view *pv
       view->TE_SAMPLER_CONFIG1 |= VIVS_TE_SAMPLER_CONFIG1_USE_TS;
       view->TS_SAMPLER_CONFIG =
          VIVS_TS_SAMPLER_CONFIG_ENABLE(1) |
-         VIVS_TS_SAMPLER_CONFIG_FORMAT_A8R8G8B8; /* TODO */
+         VIVS_TS_SAMPLER_CONFIG_FORMAT(TS_SAMPLER_FORMAT_A8R8G8B8); /* TODO */
       view->TS_SAMPLER_CLEAR_VALUE = lev->clear_value;
       view->TS_SAMPLER_CLEAR_VALUE2 = lev->clear_value; /* To handle 64-bit formats this needs a different value */
       view->TS_SAMPLER_STATUS_BASE.bo = rsc->ts_bo;
