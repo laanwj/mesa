@@ -2584,18 +2584,20 @@ etna_link_shader(struct etna_shader_link_info *info,
       varying->use[3] = VARYING_COMPONENT_USE_USED;
 
 
-      /* point coord is position output from VS, so has no dedicated reg */
+      /* point coord is an input to the PS without matching VS output,
+       * so it gets a varying slot without being assigned a VS register.
+       */
       if (fsio->semantic.Name == TGSI_SEMANTIC_PCOORD) {
          info->pcoord_varying_comp_ofs = comp_ofs;
-         continue;
+      } else {
+         if (vsio == NULL) {
+            BUG("Semantic %d value %d not found in vertex shader outputs\n", fsio->semantic.Name, fsio->semantic.Index);
+            return true; /* not found -- link error */
+         }
+
+         varying->reg = vsio->reg;
       }
 
-      if (vsio == NULL) {
-         BUG("Semantic %d value %d not found in vertex shader outputs\n", fsio->semantic.Name, fsio->semantic.Index);
-         return true; /* not found -- link error */
-      }
-
-      varying->reg = vsio->reg;
       comp_ofs += varying->num_components;
    }
 
